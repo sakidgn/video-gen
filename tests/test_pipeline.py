@@ -203,3 +203,22 @@ def test_web_engine_retries_filtered_with_new_scenario(channel, tmp_path, web_en
     result = run(FakeClient(), channel, tmp_path, publish=False)
     assert result.scenario.baslik == "Title 2"
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
+
+
+def test_scenario_falls_back_when_model_removed(channel):
+    from google.genai import errors
+
+    client = FakeClient()
+    original = client.models.generate_content
+    used = []
+
+    def gen(model, contents, config):
+        used.append(model)
+        if model == channel.models["metin"]:
+            raise errors.ClientError(404, {"error": {"code": 404, "message": "no longer available", "status": "NOT_FOUND"}})
+        return original(model=model, contents=contents, config=config)
+
+    client.models.generate_content = gen
+    s = script.write_scenario(client, channel, "theme")
+    assert used == [channel.models["metin"], script.FALLBACK_TEXT_MODEL]
+    assert s.baslik == "Title 1"

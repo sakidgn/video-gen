@@ -9,8 +9,8 @@ CHANNELS_DIR = ROOT / "kanallar"
 OUTPUT_DIR = ROOT / "cikti"
 
 DEFAULT_MODELS = {
-    "metin": "gemini-2.5-flash",
-    "gorsel": "gemini-2.5-flash-image",
+    "metin": "gemini-3.8-flash",
+    "gorsel": "gemini-3.1-flash-image",
     "video": "veo-3.1-generate-preview",
 }
 

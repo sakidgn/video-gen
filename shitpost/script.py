@@ -1,6 +1,6 @@
 import random
 
-from google.genai import types
+from google.genai import errors, types
 from pydantic import BaseModel, Field
 
 from . import history
@@ -64,17 +64,25 @@ def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
     )
 
 
+FALLBACK_TEXT_MODEL = "gemini-flash-latest"
+
+
 def write_scenario(client, channel: Channel, theme: str) -> Scenario:
     past = history.recent_summaries(channel.history_path)
-    resp = client.models.generate_content(
-        model=channel.models["metin"],
-        contents=build_prompt(channel, theme, past),
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=Scenario,
-            temperature=1.2,
-        ),
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=Scenario,
+        temperature=1.2,
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
+    contents = build_prompt(channel, theme, past)
+    try:
+        resp = client.models.generate_content(model=channel.models["metin"], contents=contents, config=config)
+    except errors.ClientError as e:
+        if e.code != 404 or channel.models["metin"] == FALLBACK_TEXT_MODEL:
+            raise
+        print(f"'{channel.models['metin']}' modeli artık yok, {FALLBACK_TEXT_MODEL} kullanılıyor")
+        resp = client.models.generate_content(model=FALLBACK_TEXT_MODEL, contents=contents, config=config)
     if isinstance(resp.parsed, Scenario):
         return resp.parsed
     return Scenario.model_validate_json(resp.text)
