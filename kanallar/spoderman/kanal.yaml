@@ -51,6 +51,7 @@ modeller:
   video: veo-3.1-generate-preview   # daha ucuz: veo-3.1-lite-generate-preview
 
 video:
+  motor: gemini_web   # gemini_web: Gemini uygulaması (AI Pro hesapları) | api: Veo API (kart gerekir)
   en_boy: "9:16"
   cozunurluk: 720p
   sure: 8
@@ -59,6 +60,9 @@ platformlar:
   youtube:
     token_env: YOUTUBE_TOKEN_SPODERMAN
     gizlilik: public   # ilk testlerde "private" yapabilirsin
-  ayrshare:
-    profil_env: AYRSHARE_PROFILE_SPODERMAN  # tek kanal için boş kalabilir
-    platformlar: [tiktok, instagram]
+  tiktok_web: {}
+  instagram_web: {}
+  # Kartın olursa TikTok/IG için tarayıcı yerine Ayrshare:
+  # ayrshare:
+  #   profil_env: AYRSHARE_PROFILE_SPODERMAN
+  #   platformlar: [tiktok, instagram]

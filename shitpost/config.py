@@ -15,6 +15,7 @@ DEFAULT_MODELS = {
 }
 
 DEFAULT_VIDEO = {
+    "motor": "api",
     "en_boy": "9:16",
     "cozunurluk": "720p",
     "sure": 8,

@@ -22,6 +22,9 @@ def cmd_uret(args) -> int:
             print(f"\n=== Video {i + 1}/{args.adet} ===")
         try:
             result = pipeline.run(client, channel, publish=not args.kuru)
+        except pipeline.NoQuotaLeft as e:
+            print(f"Durduruldu: {e}")
+            break
         except Exception as e:
             print(f"HATA: {type(e).__name__}: {e}", file=sys.stderr)
             failed += 1
@@ -48,6 +51,23 @@ def cmd_youtube_yetki(args) -> int:
 
     out = youtube.authorize(load_channel(args.kanal), Path(args.client_secret))
     print(f"Token kaydedildi: {out}\nGitHub Actions için bu dosyanın içeriğini secret olarak ekle.")
+    return 0
+
+
+def cmd_giris(args) -> int:
+    from playwright.sync_api import sync_playwright
+
+    from .browser import first_page, open_profile
+
+    with sync_playwright() as p:
+        ctx = open_profile(p, args.profil)
+        first_page(ctx).goto("https://gemini.google.com/app")
+        if not args.sadece_gemini:
+            ctx.new_page().goto("https://www.tiktok.com/login")
+            ctx.new_page().goto("https://www.instagram.com/accounts/login/")
+        input(f"Profil: {args.profil}\nAçılan sekmelerde giriş yap, bitince buraya dönüp ENTER'a bas...")
+        ctx.close()
+    print("Oturumlar kaydedildi.")
     return 0
 
 
@@ -83,6 +103,11 @@ def main(argv=None) -> int:
     y.add_argument("kanal")
     y.add_argument("--client-secret", default="client_secret.json")
     y.set_defaults(func=cmd_youtube_yetki)
+
+    g = sub.add_parser("giris", help="Tarayıcı profilinde Gemini/TikTok/Instagram'a giriş yap (bir kere)")
+    g.add_argument("profil", help=r"Profil klasörü, ör. C:\BotProfil1")
+    g.add_argument("--sadece-gemini", action="store_true", help="Sadece Gemini sekmesini aç")
+    g.set_defaults(func=cmd_giris)
 
     sub.add_parser("kanallar", help="Kanalları listele").set_defaults(func=cmd_kanallar)
 

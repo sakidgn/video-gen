@@ -16,9 +16,14 @@ class Post:
 
 
 def publish_all(channel: Channel, video_path: Path, post: Post) -> tuple[dict, dict]:
-    from . import ayrshare, youtube
+    from . import ayrshare, instagram_web, tiktok_web, youtube
 
-    publishers = {"youtube": youtube.publish, "ayrshare": ayrshare.publish}
+    publishers = {
+        "youtube": youtube.publish,
+        "tiktok_web": tiktok_web.publish,
+        "instagram_web": instagram_web.publish,
+        "ayrshare": ayrshare.publish,
+    }
     links, errors = {}, {}
     for name in channel.platforms:
         if name not in publishers:

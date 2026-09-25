@@ -7,9 +7,10 @@ from types import SimpleNamespace as NS
 import pytest
 from google.genai import types
 
-from shitpost import history, pipeline, script
+from shitpost import history, pipeline, script, video_web
 from shitpost.config import CHANNELS_DIR, load_channel
 from shitpost.publish import Post
+from shitpost.video import VideoFiltered
 
 PNG = b"\x89PNG\r\n\x1a\nfake"
 
@@ -65,6 +66,12 @@ def channel(tmp_path):
     return load_channel("spoderman", tmp_path / "kanallar")
 
 
+@pytest.fixture
+def api_channel(channel):
+    channel.video["motor"] = "api"
+    return channel
+
+
 def run(client, channel, tmp_path, **kw):
     return pipeline.run(client, channel, out_root=tmp_path / "cikti", log=lambda *a: None,
                         sleep=lambda s: None, rng=random.Random(1), **kw)
@@ -73,7 +80,8 @@ def run(client, channel, tmp_path, **kw):
 def test_channel_config_loads(channel):
     assert [c.name for c in channel.characters] == ["Spoderman", "Orange"]
     assert channel.video["en_boy"] == "9:16"
-    assert set(channel.platforms) == {"youtube", "ayrshare"}
+    assert channel.video["motor"] == "gemini_web"
+    assert set(channel.platforms) == {"youtube", "tiktok_web", "instagram_web"}
 
 
 def test_pick_theme_skips_recent(channel):
@@ -90,33 +98,33 @@ def test_prompt_includes_theme_and_past(channel):
     assert "Spoderman takes everything way too seriously." in prompt
 
 
-def test_dry_run_creates_outputs_without_history(channel, tmp_path):
+def test_dry_run_creates_outputs_without_history(api_channel, tmp_path):
     client = FakeClient()
-    result = run(client, channel, tmp_path, publish=False)
+    result = run(client, api_channel, tmp_path, publish=False)
 
     assert result.video.read_bytes() == b"mp4data"
     assert (result.folder / "ilk_kare.png").read_bytes() == PNG
     assert json.loads((result.folder / "senaryo.json").read_text())["baslik"] == "Title 1"
-    assert all(c.reference.exists() for c in channel.characters)
+    assert all(c.reference.exists() for c in api_channel.characters)
     cfg = client.video_calls[0]["config"]
     assert cfg.aspect_ratio == "9:16" and cfg.duration_seconds == 8
     assert client.video_calls[0]["image"].image_bytes == PNG
-    assert not channel.history_path.exists()
+    assert not api_channel.history_path.exists()
 
 
-def test_filtered_video_retries_with_new_scenario(channel, tmp_path):
+def test_filtered_video_retries_with_new_scenario(api_channel, tmp_path):
     client = FakeClient(filtered_times=1)
-    result = run(client, channel, tmp_path, publish=False)
+    result = run(client, api_channel, tmp_path, publish=False)
     assert len(client.video_calls) == 2
     assert result.scenario.baslik == "Title 2"
 
 
-def test_gives_up_after_attempts(channel, tmp_path):
+def test_gives_up_after_attempts(api_channel, tmp_path):
     with pytest.raises(RuntimeError, match="video üretilemedi"):
-        run(FakeClient(filtered_times=5), channel, tmp_path, publish=False, attempts=2)
+        run(FakeClient(filtered_times=5), api_channel, tmp_path, publish=False, attempts=2)
 
 
-def test_publish_records_history(channel, tmp_path, monkeypatch):
+def test_publish_records_history(api_channel, tmp_path, monkeypatch):
     posts = []
 
     def fake_publish_all(ch, video, post):
@@ -124,14 +132,74 @@ def test_publish_records_history(channel, tmp_path, monkeypatch):
         return {"youtube": "https://youtube.com/shorts/x"}, {"ayrshare": "boom"}
 
     monkeypatch.setattr(pipeline, "publish_all", fake_publish_all)
-    result = run(FakeClient(), channel, tmp_path)
+    result = run(FakeClient(), api_channel, tmp_path)
 
     assert result.errors == {"ayrshare": "boom"}
-    assert posts[0].hashtags == channel.hashtags + ["funny"]
-    entry = history.load(channel.history_path)[-1]
+    assert posts[0].hashtags == api_channel.hashtags + ["funny"]
+    entry = history.load(api_channel.history_path)[-1]
     assert entry["ozet"] == "summary 1" and entry["linkler"]["youtube"].endswith("/x")
 
 
 def test_caption_with_tags():
     post = Post(title="t", caption="lol", hashtags=["shorts", "#meme"])
     assert post.caption_with_tags() == "lol\n\n#shorts #meme"
+
+
+@pytest.fixture
+def web_env(tmp_path, monkeypatch):
+    from shitpost import accounts
+
+    monkeypatch.setenv("GEMINI_PROFILLER", "P1;P2")
+    monkeypatch.setenv("GEMINI_GUNLUK_LIMIT", "2")
+    monkeypatch.setattr(accounts, "STATE_PATH", tmp_path / "yerel" / "kota.json")
+    calls = []
+
+    def fake_web(profile, prompt, out_path, log=print, **kw):
+        calls.append((profile, prompt))
+        behavior = web_env_behavior.pop(0) if web_env_behavior else "ok"
+        if behavior == "quota":
+            raise video_web.QuotaExceeded("daily limit")
+        if behavior == "filtered":
+            raise VideoFiltered("no")
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"webvideo")
+        return out_path
+
+    web_env_behavior = []
+    monkeypatch.setattr(video_web, "generate_video_web", fake_web)
+    return NS(calls=calls, behavior=web_env_behavior, accounts=accounts)
+
+
+def test_web_engine_uses_account_and_counts_quota(channel, tmp_path, web_env):
+    result = run(FakeClient(), channel, tmp_path, publish=False)
+    assert result.video.read_bytes() == b"webvideo"
+    profile, prompt = web_env.calls[0]
+    assert profile == "P1"
+    assert "Vertical 9:16" in prompt and "bootleg" in prompt and "first frame" in prompt
+    assert not any(c.reference.exists() for c in channel.characters)
+
+    run(FakeClient(), channel, tmp_path, publish=False)
+    assert web_env.accounts.available() == ["P2"]
+
+
+def test_web_engine_switches_account_on_quota(channel, tmp_path, web_env):
+    web_env.behavior.append("quota")
+    run(FakeClient(), channel, tmp_path, publish=False)
+    assert [c[0] for c in web_env.calls] == ["P1", "P2"]
+    assert web_env.accounts.available() == ["P2"]
+
+
+def test_web_engine_stops_when_all_quota_used(channel, tmp_path, web_env):
+    web_env.behavior.extend(["quota", "quota"])
+    with pytest.raises(pipeline.NoQuotaLeft):
+        run(FakeClient(), channel, tmp_path, publish=False)
+    with pytest.raises(pipeline.NoQuotaLeft):
+        run(FakeClient(), channel, tmp_path, publish=False)
+    assert len(web_env.calls) == 2
+
+
+def test_web_engine_retries_filtered_with_new_scenario(channel, tmp_path, web_env):
+    web_env.behavior.append("filtered")
+    result = run(FakeClient(), channel, tmp_path, publish=False)
+    assert result.scenario.baslik == "Title 2"
+    assert [c[0] for c in web_env.calls] == ["P1", "P1"]

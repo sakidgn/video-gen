@@ -1,9 +1,11 @@
 name: Shitpost üret
 
+# Sadece video.motor: api (Veo API, kart gerekir) için. gemini_web motoru giriş yapılmış
+# tarayıcı istediği için bilgisayarında calistir.bat + Görev Zamanlayıcı ile çalışır.
+# API'ye geçince otomatik çalışması için buraya tekrar ekle:
+#   schedule:
+#     - cron: "7 6,12,17 * * *"   # TR 09:07, 15:07, 20:07
 on:
-  schedule:
-    # UTC saatleri; Türkiye saatiyle 09:07, 15:07, 20:07
-    - cron: "7 6,12,17 * * *"
   workflow_dispatch:
     inputs:
       kuru:

@@ -54,6 +54,16 @@ ALREADY MADE - do NOT repeat these ideas, jokes or structures:
 """
 
 
+def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
+    chars = " ".join(f"{c.name} is {c.description}." for c in channel.characters)
+    return (
+        f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
+        f"Characters: {chars} Style: {channel.style} "
+        f"Opening shot: {scenario.ilk_kare} Action: {scenario.video_prompt} "
+        f"No subtitles, captions or on-screen text."
+    )
+
+
 def write_scenario(client, channel: Channel, theme: str) -> Scenario:
     past = history.recent_summaries(channel.history_path)
     resp = client.models.generate_content(
