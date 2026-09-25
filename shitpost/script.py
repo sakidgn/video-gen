@@ -69,7 +69,13 @@ def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
     )
 
 
-FALLBACK_TEXT_MODEL = "gemini-flash-latest"
+FALLBACK_TEXT_MODELS = [
+    "gemini-flash-latest",
+    "gemini-3.7-flash",
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-lite-latest",
+]
 RETRY_DELAYS = [10, 30, 60]
 _sleep = time.sleep
 
@@ -79,24 +85,25 @@ def _is_temporary(e: errors.APIError) -> bool:
 
 
 def _generate_with_retry(client, model: str, contents, config):
-    models = [model] if model == FALLBACK_TEXT_MODEL else [model, FALLBACK_TEXT_MODEL]
+    models = [model] + [m for m in FALLBACK_TEXT_MODELS if m != model]
     last_error = None
-    for m in models:
-        for delay in [*RETRY_DELAYS, None]:
+    for delay in [0, *RETRY_DELAYS]:
+        if delay:
+            print(f"Tüm modeller yoğun, {delay} sn bekleniyor...")
+            _sleep(delay)
+        for m in list(models):
             try:
                 return client.models.generate_content(model=m, contents=contents, config=config)
             except errors.APIError as e:
                 last_error = e
                 if e.code == 404:
-                    print(f"'{m}' modeli artık yok, yedek modele geçiliyor")
-                    break
-                if not _is_temporary(e):
+                    models.remove(m)
+                elif _is_temporary(e):
+                    print(f"'{m}' yoğun ({e.code}), başka model deneniyor...")
+                else:
                     raise
-                if delay is None:
-                    print(f"'{m}' sürekli yoğun, yedek modele geçiliyor")
-                    break
-                print(f"Google sunucusu yoğun ({e.code}), {delay} sn sonra tekrar denenecek...")
-                _sleep(delay)
+        if not models:
+            break
     raise last_error
 
 

@@ -220,7 +220,7 @@ def test_scenario_falls_back_when_model_removed(channel):
 
     client.models.generate_content = gen
     s = script.write_scenario(client, channel, "theme")
-    assert used == [channel.models["metin"], script.FALLBACK_TEXT_MODEL]
+    assert used == [channel.models["metin"], script.FALLBACK_TEXT_MODELS[0]]
     assert s.baslik == "Title 1"
 
 
@@ -240,7 +240,7 @@ def test_scenario_retries_when_server_busy(channel, monkeypatch):
 
     client.models.generate_content = gen
     assert script.write_scenario(client, channel, "theme").baslik == "Title 1"
-    assert used == [channel.models["metin"]] * 3
+    assert used == [channel.models["metin"], *script.FALLBACK_TEXT_MODELS[:2]]
 
 
 def test_scenario_prompt_forbids_risky_content(channel):
@@ -267,3 +267,24 @@ def test_guncelle_overwrites_files_but_keeps_history(tmp_path, monkeypatch):
     assert cli.main(["guncelle"]) == 0
     assert (tmp_path / "shitpost" / "new.py").read_text() == "x = 1\n"
     assert "keep" in (tmp_path / "kanallar" / "spoderman" / "gecmis.json").read_text()
+
+
+def test_scenario_waits_only_when_all_models_busy(channel, monkeypatch):
+    from google.genai import errors
+
+    waits = []
+    monkeypatch.setattr(script, "_sleep", waits.append)
+    client = FakeClient()
+    original = client.models.generate_content
+    n_models = 1 + len(script.FALLBACK_TEXT_MODELS)
+    calls = []
+
+    def gen(model, contents, config):
+        calls.append(model)
+        if len(calls) <= n_models:
+            raise errors.ServerError(503, {"error": {"code": 503, "message": "busy", "status": "UNAVAILABLE"}})
+        return original(model=model, contents=contents, config=config)
+
+    client.models.generate_content = gen
+    script.write_scenario(client, channel, "theme")
+    assert waits == [script.RETRY_DELAYS[0]]
