@@ -78,6 +78,36 @@ def cmd_giris(args) -> int:
     return 0
 
 
+UPDATE_URL = "https://github.com/sakidgn/video-gen/archive/refs/heads/claude/oto-reels-uretici-gemini-sucu7b.zip"
+
+
+def cmd_guncelle(args) -> int:
+    import io
+    import os
+    import zipfile
+
+    import requests
+
+    from .config import ROOT
+
+    url = os.environ.get("GUNCELLEME_URL", UPDATE_URL)
+    print("En son sürüm indiriliyor...")
+    r = requests.get(url, timeout=120)
+    r.raise_for_status()
+    updated = 0
+    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+        for info in z.infolist():
+            rel = info.filename.split("/", 1)[1] if "/" in info.filename else ""
+            if not rel or info.is_dir() or rel.endswith("gecmis.json"):
+                continue
+            target = ROOT / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(z.read(info))
+            updated += 1
+    print(f"Güncellendi ({updated} dosya).")
+    return 0
+
+
 def cmd_kanallar(args) -> int:
     for slug in list_channels():
         print(slug)
@@ -115,6 +145,8 @@ def main(argv=None) -> int:
     g.add_argument("profil", help=r"Profil klasörü, ör. C:\BotProfil1")
     g.add_argument("--sadece-gemini", action="store_true", help="Sadece Gemini sekmesini aç")
     g.set_defaults(func=cmd_giris)
+
+    sub.add_parser("guncelle", help="En son sürümü GitHub'dan indir").set_defaults(func=cmd_guncelle)
 
     sub.add_parser("kanallar", help="Kanalları listele").set_defaults(func=cmd_kanallar)
 

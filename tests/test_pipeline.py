@@ -222,3 +222,48 @@ def test_scenario_falls_back_when_model_removed(channel):
     s = script.write_scenario(client, channel, "theme")
     assert used == [channel.models["metin"], script.FALLBACK_TEXT_MODEL]
     assert s.baslik == "Title 1"
+
+
+def test_scenario_retries_when_server_busy(channel, monkeypatch):
+    from google.genai import errors
+
+    monkeypatch.setattr(script, "_sleep", lambda s: None)
+    client = FakeClient()
+    original = client.models.generate_content
+    used = []
+
+    def gen(model, contents, config):
+        used.append(model)
+        if len(used) <= 2:
+            raise errors.ServerError(503, {"error": {"code": 503, "message": "high demand", "status": "UNAVAILABLE"}})
+        return original(model=model, contents=contents, config=config)
+
+    client.models.generate_content = gen
+    assert script.write_scenario(client, channel, "theme").baslik == "Title 1"
+    assert used == [channel.models["metin"]] * 3
+
+
+def test_scenario_prompt_forbids_risky_content(channel):
+    assert "explosions" in script.build_prompt(channel, "x", [])
+
+
+def test_guncelle_overwrites_files_but_keeps_history(tmp_path, monkeypatch):
+    import io
+    import zipfile
+
+    from shitpost import __main__ as cli
+    from shitpost import config
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("video-gen-branch/", "")
+        z.writestr("video-gen-branch/shitpost/new.py", "x = 1\n")
+        z.writestr("video-gen-branch/kanallar/spoderman/gecmis.json", "[]")
+    (tmp_path / "kanallar" / "spoderman").mkdir(parents=True)
+    (tmp_path / "kanallar" / "spoderman" / "gecmis.json").write_text('[{"keep": 1}]')
+
+    monkeypatch.setattr(config, "ROOT", tmp_path)
+    monkeypatch.setattr("requests.get", lambda url, timeout: NS(content=buf.getvalue(), raise_for_status=lambda: None))
+    assert cli.main(["guncelle"]) == 0
+    assert (tmp_path / "shitpost" / "new.py").read_text() == "x = 1\n"
+    assert "keep" in (tmp_path / "kanallar" / "spoderman" / "gecmis.json").read_text()

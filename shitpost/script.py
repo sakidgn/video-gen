@@ -1,4 +1,5 @@
 import random
+import time
 
 from google.genai import errors, types
 from pydantic import BaseModel, Field
@@ -47,6 +48,9 @@ RULES:
 - Max 2-3 very short dialogue lines total, spoken in language "{channel.language}".
 - Describe sound effects and ambience explicitly; no background music with lyrics.
 - No on-screen text or subtitles in the video.
+- The video model refuses anything that looks risky, so the humor must be 100% harmless: awkward, absurd,
+  cringe, dumb misunderstandings. NO injuries, falls, crashes, explosions, fire, electricity, weapons,
+  fights, violence, blood, dangerous stunts, heavy objects falling on anyone, choking, drugs or alcohol.
 {rules}
 
 ALREADY MADE - do NOT repeat these ideas, jokes or structures:
@@ -65,6 +69,34 @@ def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
 
 
 FALLBACK_TEXT_MODEL = "gemini-flash-latest"
+RETRY_DELAYS = [10, 30, 60]
+_sleep = time.sleep
+
+
+def _is_temporary(e: errors.APIError) -> bool:
+    return isinstance(e, errors.ServerError) or e.code == 429
+
+
+def _generate_with_retry(client, model: str, contents, config):
+    models = [model] if model == FALLBACK_TEXT_MODEL else [model, FALLBACK_TEXT_MODEL]
+    last_error = None
+    for m in models:
+        for delay in [*RETRY_DELAYS, None]:
+            try:
+                return client.models.generate_content(model=m, contents=contents, config=config)
+            except errors.APIError as e:
+                last_error = e
+                if e.code == 404:
+                    print(f"'{m}' modeli artık yok, yedek modele geçiliyor")
+                    break
+                if not _is_temporary(e):
+                    raise
+                if delay is None:
+                    print(f"'{m}' sürekli yoğun, yedek modele geçiliyor")
+                    break
+                print(f"Google sunucusu yoğun ({e.code}), {delay} sn sonra tekrar denenecek...")
+                _sleep(delay)
+    raise last_error
 
 
 def write_scenario(client, channel: Channel, theme: str) -> Scenario:
@@ -76,13 +108,7 @@ def write_scenario(client, channel: Channel, theme: str) -> Scenario:
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
     contents = build_prompt(channel, theme, past)
-    try:
-        resp = client.models.generate_content(model=channel.models["metin"], contents=contents, config=config)
-    except errors.ClientError as e:
-        if e.code != 404 or channel.models["metin"] == FALLBACK_TEXT_MODEL:
-            raise
-        print(f"'{channel.models['metin']}' modeli artık yok, {FALLBACK_TEXT_MODEL} kullanılıyor")
-        resp = client.models.generate_content(model=FALLBACK_TEXT_MODEL, contents=contents, config=config)
+    resp = _generate_with_retry(client, channel.models["metin"], contents, config)
     if isinstance(resp.parsed, Scenario):
         return resp.parsed
     return Scenario.model_validate_json(resp.text)

@@ -51,7 +51,7 @@ def run(
     channel: Channel,
     *,
     publish: bool = True,
-    attempts: int = 2,
+    attempts: int = 3,
     out_root: Path = OUTPUT_DIR,
     rng: random.Random | None = None,
     log=print,
