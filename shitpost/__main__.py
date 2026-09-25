@@ -55,18 +55,25 @@ def cmd_youtube_yetki(args) -> int:
 
 
 def cmd_giris(args) -> int:
-    from playwright.sync_api import sync_playwright
+    import subprocess
 
-    from .browser import first_page, open_profile
+    from .browser import find_chrome
 
-    with sync_playwright() as p:
-        ctx = open_profile(p, args.profil)
-        first_page(ctx).goto("https://gemini.google.com/app")
-        if not args.sadece_gemini:
-            ctx.new_page().goto("https://www.tiktok.com/login")
-            ctx.new_page().goto("https://www.instagram.com/accounts/login/")
-        input(f"Profil: {args.profil}\nAçılan sekmelerde giriş yap, bitince buraya dönüp ENTER'a bas...")
-        ctx.close()
+    urls = ["https://gemini.google.com/app"]
+    if not args.sadece_gemini:
+        urls += ["https://www.tiktok.com/login", "https://www.instagram.com/accounts/login/"]
+
+    chrome = find_chrome()
+    if not chrome:
+        print("Chrome bulunamadı. https://www.google.com/chrome adresinden kur ve tekrar dene.")
+        return 1
+    # Otomasyonsuz normal Chrome: Instagram/Google robot doğrulaması ancak böyle düzgün açılıyor.
+    subprocess.Popen([chrome, f"--user-data-dir={args.profil}", "--no-first-run", *urls])
+    input(
+        f"Profil: {args.profil}\n"
+        "Açılan Chrome'da giriş yap. Bitince Chrome'u TAMAMEN KAPAT (sağ üstteki X),\n"
+        "sonra buraya dönüp ENTER'a bas..."
+    )
     print("Oturumlar kaydedildi.")
     return 0
 

@@ -3,6 +3,20 @@ import time
 from pathlib import Path
 
 
+def find_chrome() -> str | None:
+    import shutil
+
+    candidates = [
+        os.path.join(os.environ.get(var, ""), "Google", "Chrome", "Application", "chrome.exe")
+        for var in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+        if os.environ.get(var)
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return shutil.which("chrome") or shutil.which("google-chrome") or shutil.which("chromium")
+
+
 def open_profile(p, profile_dir: str, headless: bool = False):
     channel = os.environ.get("TARAYICI_KANALI", "chrome") or None
     return p.chromium.launch_persistent_context(
