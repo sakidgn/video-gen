@@ -37,6 +37,11 @@ class QuotaExceeded(RuntimeError):
     pass
 
 
+def _with_reply(exc: Exception, reply: str) -> Exception:
+    exc.reply = reply
+    return exc
+
+
 def generate_video_web(profile_dir: str, prompt: str, out_path: Path, *, timeout_s: int = 600, log=print) -> Path:
     from playwright.sync_api import sync_playwright
 
@@ -45,8 +50,12 @@ def generate_video_web(profile_dir: str, prompt: str, out_path: Path, *, timeout
         page = first_page(ctx)
         try:
             return _generate(page, prompt, out_path, timeout_s, log)
-        except Exception:
-            screenshot(page, out_path.parent / "hata_gemini.png")
+        except Exception as e:
+            stamp = time.strftime("%H%M%S")
+            screenshot(page, out_path.parent / f"hata_gemini_{stamp}.png")
+            reply = getattr(e, "reply", None)
+            if reply:
+                (out_path.parent / f"gemini_cevabi_{stamp}.txt").write_text(reply, encoding="utf-8")
             raise
         finally:
             ctx.close()
@@ -69,16 +78,24 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
     start = time.time()
     responses = page.locator("model-response")
     src = None
+    prev_text = None
     while time.time() - start < timeout_s:
         page.wait_for_timeout(5000)
         src = page.evaluate(VIDEO_SRC_JS)
         if src:
             break
-        text = responses.last.inner_text().lower() if responses.count() else ""
+        raw = responses.last.inner_text() if responses.count() else ""
+        text = raw.lower()
+        settled = text == prev_text
+        prev_text = text
+        if not settled or time.time() - start < 20:
+            continue
         if any(ph in text for ph in QUOTA_PHRASES):
-            raise QuotaExceeded(text[:300])
-        if time.time() - start > 20 and any(ph in text for ph in REFUSAL_PHRASES):
-            raise VideoFiltered(f"Gemini reddetti: {text[:300]}")
+            log(f"Gemini'nin cevabı:\n{raw.strip()}")
+            raise _with_reply(QuotaExceeded(raw.strip()[:300]), raw)
+        if any(ph in text for ph in REFUSAL_PHRASES):
+            log(f"Gemini'nin cevabı:\n{raw.strip()}")
+            raise _with_reply(VideoFiltered("Gemini bu senaryoyu reddetti"), raw)
     else:
         raise TimeoutError(f"Gemini {timeout_s} sn içinde video vermedi")
 

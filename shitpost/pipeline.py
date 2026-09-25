@@ -38,7 +38,7 @@ def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
         try:
             path = video_web.generate_video_web(profile, prompt, folder / "video.mp4", log=log)
         except video_web.QuotaExceeded:
-            log(f"{profile}: günlük video hakkı bitmiş, sıradaki hesaba geçiliyor")
+            log(f">>> {profile} hesabının bugünkü video hakkı dolmuş. Sıradaki hesaba geçiliyor (yeni pencere açılacak).")
             accounts.record(profile, exhausted=True)
             continue
         accounts.record(profile)
@@ -85,7 +85,7 @@ def run(
             break
         except VideoFiltered as e:
             last_error = e
-            log(f"{e} - yeni senaryoyla tekrar deneniyor")
+            log(f">>> {e}. Yeni bir senaryo yazılıp yeni sohbette tekrar denenecek.")
     else:
         raise RuntimeError(f"{attempts} denemede video üretilemedi: {last_error}")
 
