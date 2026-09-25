@@ -1,0 +1,64 @@
+name: Shitpost üret
+
+on:
+  schedule:
+    # UTC saatleri; Türkiye saatiyle 09:07, 15:07, 20:07
+    - cron: "7 6,12,17 * * *"
+  workflow_dispatch:
+    inputs:
+      kuru:
+        description: "Üret ama paylaşma"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shitpost
+  cancel-in-progress: false
+
+jobs:
+  uret:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        kanal: [spoderman]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Üret ve paylaş
+        run: python -m shitpost uret "${{ matrix.kanal }}" ${{ inputs.kuru && '--kuru' || '' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AYRSHARE_API_KEY: ${{ secrets.AYRSHARE_API_KEY }}
+          AYRSHARE_PROFILE_SPODERMAN: ${{ secrets.AYRSHARE_PROFILE_SPODERMAN }}
+          YOUTUBE_TOKEN_SPODERMAN: ${{ secrets.YOUTUBE_TOKEN_SPODERMAN }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cikti-${{ matrix.kanal }}-${{ github.run_id }}
+          path: cikti/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Geçmişi ve karakter referanslarını kaydet
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add kanallar/
+          git diff --cached --quiet && exit 0
+          git commit -m "${{ matrix.kanal }}: geçmiş güncellendi"
+          git pull --rebase && git push

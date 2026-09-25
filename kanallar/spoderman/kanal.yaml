@@ -1,0 +1,64 @@
+# Yeni kanal açmak için bu klasörü kopyala (kanallar/<yeni_ad>/) ve alanları değiştir.
+ad: Spoderman & Orange
+dil: en  # diyalog dili; Veo en iyi İngilizce konuşuyor
+
+karakterler:
+  - ad: Spoderman
+    tarif: >
+      a cheap bootleg knockoff superhero in a badly sewn, saggy red and blue spandex costume
+      with a crooked hand-drawn black web pattern, huge lopsided white eye patches, slightly
+      wrong body proportions, confident but clueless body language, like a low-budget
+      party-store costume from a meme
+    referans: karakterler/spoderman.png
+  - ad: Orange
+    tarif: >
+      a real, slightly bruised orange fruit about the size of a fist, with a hyper-expressive
+      cartoonish human face (big googly eyes and a wide rubbery mouth), high-pitched annoying
+      voice, constantly laughing at its own jokes
+    referans: karakterler/orange.png
+
+stil: >
+  chaotic low-budget live-action meme video, handheld smartphone footage, slightly
+  oversaturated colors, abrupt zooms, deadpan comedic timing, cursed-but-funny energy
+
+hashtagler: [shorts, spoderman, annoyingorange, meme, ai]
+
+kurallar:
+  - Orange always interrupts or laughs obnoxiously at the worst moment.
+  - Spoderman takes everything way too seriously.
+  - End on a sudden cut right after the punchline.
+
+temalar:
+  - lost in an IKEA store during a meatball fight
+  - a neighborhood barber shop when the hair dryer explodes
+  - haggling over tomatoes at a Turkish street bazaar
+  - brewing Turkish tea in zero gravity on the International Space Station
+  - squeezed against the door of a packed Istanbul metrobus at rush hour
+  - trying to ride a dinosaur skeleton in a history museum
+  - tricking the waiter to skip the bill at a fancy restaurant
+  - fixing a modified Tofaş car at an industrial repair shop
+  - trying to scare the monsters in a haunted house
+  - a job interview at a fast food restaurant
+  - a school parent-teacher meeting
+  - a Turkish wedding while the money-pinning ceremony goes wrong
+  - a gym leg day with a very strict trainer
+  - a cooking competition show live on TV
+  - a driving test with a terrified examiner
+
+modeller:
+  metin: gemini-2.5-flash
+  gorsel: gemini-2.5-flash-image
+  video: veo-3.1-generate-preview   # daha ucuz: veo-3.1-lite-generate-preview
+
+video:
+  en_boy: "9:16"
+  cozunurluk: 720p
+  sure: 8
+
+platformlar:
+  youtube:
+    token_env: YOUTUBE_TOKEN_SPODERMAN
+    gizlilik: public   # ilk testlerde "private" yapabilirsin
+  ayrshare:
+    profil_env: AYRSHARE_PROFILE_SPODERMAN  # tek kanal için boş kalabilir
+    platformlar: [tiktok, instagram]

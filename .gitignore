@@ -1,0 +1,8 @@
+.env
+client_secret*.json
+youtube_token.json
+cikti/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
