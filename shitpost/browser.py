@@ -26,7 +26,7 @@ def open_profile(p, profile_dir: str, headless: bool = False):
         accept_downloads=True,
         viewport={"width": 1280, "height": 900},
         args=["--disable-blink-features=AutomationControlled"],
-        ignore_default_args=["--enable-automation"],
+        ignore_default_args=["--enable-automation", "--no-sandbox"],
     )
 
 

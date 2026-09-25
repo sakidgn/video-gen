@@ -61,6 +61,24 @@ def generate_video_web(profile_dir: str, prompt: str, out_path: Path, *, timeout
             ctx.close()
 
 
+def _norm_len(text: str) -> int:
+    return len("".join(text.split()))
+
+
+def _wait_until_box_has(page, box, prompt: str, timeout_s: int = 20) -> None:
+    # Gemini'nin editörü uzun metni parça parça işliyor; tamamı yerleşmeden Enter'a basılırsa yarım gidiyor.
+    expected = _norm_len(prompt)
+    deadline = time.time() + timeout_s
+    prev = -1
+    while time.time() < deadline:
+        page.wait_for_timeout(700)
+        cur = _norm_len(box.inner_text())
+        if cur >= expected * 0.98 and cur == prev:
+            return
+        prev = cur
+    raise RuntimeError(f"Prompt yazı kutusuna tam yerleşmedi ({prev}/{expected} karakter)")
+
+
 def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
     page.goto(GEMINI_URL, wait_until="domcontentloaded", timeout=90_000)
     page.wait_for_timeout(3000)
@@ -71,8 +89,14 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
     box.wait_for(state="visible", timeout=60_000)
     box.click()
     page.keyboard.insert_text(prompt)
-    page.wait_for_timeout(1000)
+    _wait_until_box_has(page, box, prompt)
     page.keyboard.press("Enter")
+    page.wait_for_timeout(3000)
+    if box.inner_text().strip():
+        log("UYARI: Gönderdikten sonra yazı kutusunda metin kaldı, prompt yarım gitmiş olabilir.")
+        box.click()
+        page.keyboard.press("Control+A")
+        page.keyboard.press("Delete")
     log("Prompt gönderildi, Gemini videoyu üretiyor...")
 
     start = time.time()
