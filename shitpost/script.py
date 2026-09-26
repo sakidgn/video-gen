@@ -89,33 +89,16 @@ def apply_aliases(channel: Channel, text: str) -> str:
 
 
 def build_chatgpt_request(channel: Channel, theme: str, past: list[str]) -> str:
-    lang = language_name(channel.language)
-    chars = "\n".join(f"- {c.alias}: {c.description}" for c in channel.characters)
-    rules = apply_aliases(channel, "\n".join(f"- {r}" for r in channel.extra_rules))
-    past_block = apply_aliases(channel, "\n".join(f"- {s}" for s in past)) or "- (henüz yok)"
-    return f"""DİKKAT: Daha önce ürettiğin hiçbir sahneyi, konuyu, şakayı ve diyaloğu TEKRARLAMA. Tamamen yepyeni olsun.
+    names = " ve ".join(c.name for c in channel.characters)
+    past_block = "\n".join(f"- {s}" for s in past)
+    past_part = f"\n\nDaha önce yaptıkların (bunlara benzeme):\n{past_block}" if past else ""
+    return f"""DİKKAT: Daha önce ürettiğin hiçbir sahneyi, konuyu ve diyaloğu TEKRARLAMA. Tamamen özgün ve yepyeni olmalı.
 
-Konu teması: {theme}
-
-KARAKTERLER (videoda SADECE bu isimlerle an, başka isim kullanma):
-{chars}
-
-GÖRSEL STİL: {channel.style}
+Konu teması: {names}, {theme}.{past_part}
 
 KURALLAR:
-- Tek sahne, 8 saniye, dikey 9:16. İlk saniyede dikkat çek, sonda punchline ve ani kesme.
-- En fazla 2-3 çok kısa diyalog; diyaloglar {lang}, tırnak içinde, kimin söylediği belli.
-- Ses efektlerini ve ortam sesini açıkça yaz. Ekranda yazı/altyazı yok.
-- Video modeli telifli şeyleri reddediyor: hiçbir film, çizgi film, oyun, marka ya da süper kahraman
-  adı veya bunları çağrıştıran kostüm/desen yazma (örümcek ağı deseni vb. yok).
-- Mizah tamamen zararsız olsun: yaralanma, düşme, patlama, ateş, kavga, silah yok.
-{rules}
-
-DAHA ÖNCE YAPILANLAR (bunlara benzeme):
-{past_block}
-
-ÇIKTI: Hiçbir açıklama, selamlama, başlık veya kod bloğu yazma. SADECE Gemini'ye doğrudan yapıştırıp video
-ürettireceğim İngilizce video promptunu (diyaloglar {lang}) tek parça düz metin olarak ver."""
+1. Kesinlikle hiçbir açıklama, selamlama veya kod bloğu/kart yazma.
+2. SADECE Gemini'ye doğrudan yapıştırıp video ürettirebileceğim saf video promptunu tek parça metin olarak ver."""
 
 
 def clean_chatgpt_output(text: str) -> str:
