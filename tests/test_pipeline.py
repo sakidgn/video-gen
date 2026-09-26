@@ -324,7 +324,7 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
 
     s = script.write_scenario(client, channel, "a bazaar")
     profile, message, project = sent[0]
-    assert profile == "P1" and project == "video gen"
+    assert profile == "P1" and project == "shitpost gen"
     assert "a bazaar" in message and "tekrarlama" in message and len(message) < 400
     assert s.video_prompt.startswith("Spoderman slips") and s.ilk_kare == ""
     assert s.baslik == "Spoderman pazarda"
