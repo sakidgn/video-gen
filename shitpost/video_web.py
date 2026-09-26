@@ -182,7 +182,7 @@ def generate_video_web(profile_dir: str, prompt: str, out_path: Path, *, timeout
         ctx = open_profile(p, profile_dir)
         page = first_page(ctx)
         new_pages = []
-        ctx.on("page", new_pages.append)
+        ctx.on("page", lambda pg: new_pages.append(pg))
         try:
             return _generate(page, prompt, out_path, timeout_s, log, new_pages)
         except Exception as e:

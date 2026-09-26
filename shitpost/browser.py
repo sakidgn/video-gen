@@ -22,6 +22,7 @@ def open_profile(p, profile_dir: str, headless: bool = False):
     return p.chromium.launch_persistent_context(
         user_data_dir=profile_dir,
         channel=channel,
+        executable_path=os.environ.get("TARAYICI_YOLU") or None,
         headless=headless,
         accept_downloads=True,
         viewport={"width": 1280, "height": 900},
