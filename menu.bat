@@ -14,7 +14,7 @@ echo  6) Cikis
 echo  7) Guncelle
 echo  8) Hata raporunu ac (son denemenin kaydi ve resimleri)
 echo ===============================================
-set /p secim=Secimin (1-7):
+set /p secim=Secimin (1-8):
 if "%secim%"=="1" python -m shitpost giris C:\BotProfil1
 if "%secim%"=="2" python -m shitpost giris C:\BotProfil2 --sadece-gemini
 if "%secim%"=="3" python -m shitpost youtube-yetki spoderman
