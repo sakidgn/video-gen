@@ -12,6 +12,7 @@ echo  4) Test videosu uret (paylasmaz)
 echo  5) Video uret ve paylas
 echo  6) Cikis
 echo  7) Guncelle
+echo  8) Hata raporunu ac (son denemenin kaydi ve resimleri)
 echo ===============================================
 set /p secim=Secimin (1-7):
 if "%secim%"=="1" python -m shitpost giris C:\BotProfil1
@@ -20,6 +21,7 @@ if "%secim%"=="3" python -m shitpost youtube-yetki spoderman
 if "%secim%"=="4" python -m shitpost uret spoderman --kuru
 if "%secim%"=="5" python -m shitpost uret spoderman
 if "%secim%"=="6" exit /b 0
+if "%secim%"=="8" python -m shitpost rapor
 if "%secim%"=="7" (
   python -m shitpost guncelle
   pip install -q -r requirements.txt

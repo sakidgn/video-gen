@@ -143,6 +143,26 @@ def cmd_guncelle(args) -> int:
     return 0
 
 
+def cmd_rapor(args) -> int:
+    import os
+
+    from .config import OUTPUT_DIR
+
+    log = OUTPUT_DIR / "son_calisma.txt"
+    runs = sorted((p for p in OUTPUT_DIR.glob("*/*") if p.is_dir()), key=lambda p: p.stat().st_mtime)
+    if not log.exists() and not runs:
+        print("Henüz rapor yok. Önce 4 ile bir deneme yap.")
+        return 1
+    opener = getattr(os, "startfile", None)
+    for target in [log if log.exists() else None, runs[-1] if runs else None]:
+        if target is None:
+            continue
+        print(f"Açılıyor: {target}")
+        if opener:
+            opener(str(target))
+    return 0
+
+
 def cmd_kanallar(args) -> int:
     for slug in list_channels():
         print(slug)
@@ -182,6 +202,7 @@ def main(argv=None) -> int:
     g.set_defaults(func=cmd_giris)
 
     sub.add_parser("guncelle", help="En son sürümü GitHub'dan indir").set_defaults(func=cmd_guncelle)
+    sub.add_parser("rapor", help="Son çalışmanın kaydını ve klasörünü aç").set_defaults(func=cmd_rapor)
 
     sub.add_parser("kanallar", help="Kanalları listele").set_defaults(func=cmd_kanallar)
 
