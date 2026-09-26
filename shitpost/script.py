@@ -62,7 +62,7 @@ def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
     chars = " ".join(f"{c.name} is {c.description}." for c in channel.characters)
     return (
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
-        f"Characters: {chars} Style: {channel.style} "
+        f"Characters: {chars} Style: {channel.style.rstrip('.')}. "
         f"Opening shot: {scenario.ilk_kare} Action: {scenario.video_prompt} "
         f"Lighthearted, family-friendly comedy: everyone is safe and nobody gets hurt. "
         f"No subtitles, captions or on-screen text."

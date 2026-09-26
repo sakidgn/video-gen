@@ -5,21 +5,24 @@ dil: en  # diyalog dili; Veo en iyi İngilizce konuşuyor
 karakterler:
   - ad: Spoderman
     tarif: >
-      a cheap bootleg knockoff superhero in a badly sewn, saggy red and blue spandex costume
-      with a crooked hand-drawn black web pattern, huge lopsided white eye patches, slightly
-      wrong body proportions, confident but clueless body language, like a low-budget
-      party-store costume from a meme
+      a janky low-poly 3D game character of a bootleg knockoff superhero: blocky body made of
+      few polygons, flat red and blue colors with a blurry low-resolution web texture stretched
+      wrong across it, huge white eye shapes, stiff T-pose-like arms, clipping through things,
+      robotic idle animation, confident but clueless
     referans: karakterler/spoderman.png
   - ad: Orange
     tarif: >
-      a real, shiny orange fruit about the size of a fist, with a hyper-expressive
-      cartoonish human face (big googly eyes and a wide rubbery mouth), high-pitched annoying
-      voice, constantly laughing at its own jokes
+      a low-poly 3D orange fruit game prop, a lumpy sphere with a blurry orange texture and a
+      pasted-on cartoon face (big googly eyes and a wide mouth that flaps open and shut like a
+      bad lip-sync), bounces around with broken physics, high-pitched annoying voice,
+      constantly laughing at its own jokes
     referans: karakterler/orange.png
 
 stil: >
-  chaotic low-budget live-action meme video, handheld smartphone footage, slightly
-  oversaturated colors, abrupt zooms, deadpan comedic timing, cursed-but-funny energy
+  cheap janky 3D video game look like a 2000s sandbox-game machinima: low-poly models,
+  blurry low-res textures, flat default lighting, stiff robotic animations, silly broken
+  physics, objects clipping and floating, choppy game-engine camera. Definitely NOT
+  realistic and NOT live-action; everything clearly looks like a cheap game
 
 hashtagler: [shorts, spoderman, annoyingorange, meme, ai]
 
@@ -27,6 +30,7 @@ kurallar:
   - Orange always interrupts or laughs obnoxiously at the worst moment.
   - Spoderman takes everything way too seriously.
   - End on a sudden cut right after the punchline.
+  - Use game-engine glitches as jokes (clipping, T-posing, floating objects, bad lip-sync).
 
 temalar:
   - lost in an IKEA store arguing over the last meatball
