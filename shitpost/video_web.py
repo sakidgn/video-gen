@@ -62,51 +62,102 @@ OVERLAY_TEXT_JS = """() => {
   return root ? root.innerText.trim().slice(0, 500) : '';
 }"""
 
+CLOSE_OVERLAY_JS = """(texts) => {
+  const root = document.querySelector('.cdk-overlay-container');
+  if (!root || !root.innerText.trim()) return 'bos';
+  const backdrop = root.querySelector('.cdk-overlay-backdrop');
+  if (backdrop) { backdrop.click(); return 'arka plan'; }
+  const btn = Array.from(root.querySelectorAll('button, [role="button"], a'))
+    .find(b => texts.includes((b.innerText || b.getAttribute('aria-label') || '').trim().toLowerCase()));
+  if (btn) { btn.click(); return (btn.innerText || btn.getAttribute('aria-label')).trim(); }
+  return null;
+}"""
+
+DISMISS_TEXTS = ["kapat", "close", "anladım", "got it", "hayır, teşekkürler", "no thanks", "şimdi değil",
+                 "not now", "tamam", "ok", "reddet", "dismiss", "atla", "skip"]
+
 SKIP_BUTTON = ("gönder", "send", "mikrofon", "microphone", "konuş", "speak", "durdur", "stop")
 VIDEO_WORDS = ("video", "veo")
 SELECTED_WORDS = ("kaldır", "remove", "deselect", "seçimi")
 
 
+def _click_button(page, idx: int, notes: list) -> bool:
+    sel = f'button[data-sp-idx="{idx}"]'
+    try:
+        page.locator(sel).click(timeout=3000)
+        return True
+    except Exception as e:
+        notes.append(f"Tıklama engellendi ({sel}): {str(e).splitlines()[0][:150]}; JS ile deneniyor")
+    try:
+        return bool(page.evaluate("s => { const b = document.querySelector(s); if (b) b.click(); return !!b; }", sel))
+    except Exception:
+        return False
+
+
+def _clear_overlays(page, log, notes: list) -> None:
+    for _ in range(4):
+        text = page.evaluate(OVERLAY_TEXT_JS)
+        if not text:
+            return
+        notes.append(f"Açık pencere: {text!r}")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(400)
+        if not page.evaluate(OVERLAY_TEXT_JS):
+            return
+        how = page.evaluate(CLOSE_OVERLAY_JS, DISMISS_TEXTS)
+        notes.append(f"Kapatma denemesi: {how}")
+        page.wait_for_timeout(600)
+    if page.evaluate(OVERLAY_TEXT_JS):
+        log("UYARI: Gemini'de kapatılamayan bir pencere açık kaldı, yine de devam ediliyor.")
+
+
 def _select_video_tool(page, log, diag_path: Path) -> bool:
+    notes: list[str] = []
+    try:
+        return _select_video_tool_inner(page, log, notes)
+    finally:
+        _clear_overlays(page, log, notes)
+        diag_path.parent.mkdir(parents=True, exist_ok=True)
+        diag_path.write_text("\n".join(notes), encoding="utf-8")
+
+
+def _select_video_tool_inner(page, log, notes: list) -> bool:
     page.on("filechooser", lambda fc: None)  # yanlış butona basılırsa dosya penceresi açılmasın
+    _clear_overlays(page, log, notes)
     buttons = page.evaluate(INPUT_BUTTONS_JS)
+    notes.append("Yazı kutusu butonları:\n" + "\n".join(f"  {b['label']} (pressed={b['pressed']})" for b in buttons))
 
     for b in buttons:
         low = b["label"].lower()
         if any(w in low for w in VIDEO_WORDS):
             if b["pressed"] == "true" or any(w in low for w in SELECTED_WORDS):
+                notes.append(f"SONUÇ: zaten seçili ({b['label']})")
                 log("Video aracı zaten seçili.")
                 return True
-            page.locator(f'button[data-sp-idx="{b["idx"]}"]').click()
+            _click_button(page, b["idx"], notes)
+            notes.append(f"SONUÇ: doğrudan buton ({b['label']})")
             log(f"Video aracı seçildi: {b['label']}")
             return True
 
-    overlays = []
     for b in buttons:
         low = b["label"].lower()
         if any(w in low for w in SKIP_BUTTON):
             continue
-        try:
-            page.locator(f'button[data-sp-idx="{b["idx"]}"]').click(timeout=3000)
-        except Exception:
+        if not _click_button(page, b["idx"], notes):
             continue
         page.wait_for_timeout(1000)
+        menu_text = page.evaluate(OVERLAY_TEXT_JS)
         picked = page.evaluate(CLICK_VIDEO_MENU_ITEM_JS)
+        notes.append(f"[{b['label']}] menüsü: {menu_text!r}")
         if picked:
             page.wait_for_timeout(1000)
+            notes.append(f"SONUÇ: '{b['label']}' -> '{picked}'")
             log(f"Video aracı seçildi: '{b['label']}' -> '{picked}'")
             return True
-        overlays.append(f"[{b['label']}] -> {page.evaluate(OVERLAY_TEXT_JS)!r}")
-        page.keyboard.press("Escape")
-        page.wait_for_timeout(500)
+        _clear_overlays(page, log, notes)
 
-    diag_path.parent.mkdir(parents=True, exist_ok=True)
-    diag_path.write_text(
-        "Yazı kutusu butonları:\n" + "\n".join(b["label"] for b in buttons)
-        + "\n\nAçılan menüler:\n" + "\n".join(overlays),
-        encoding="utf-8",
-    )
-    log(f"UYARI: Video aracı bulunamadı. Detaylar: {diag_path.name}")
+    notes.append("SONUÇ: bulunamadı")
+    log("UYARI: Video aracı bulunamadı. Detaylar: gemini_arayuz.txt")
     return False
 
 
@@ -166,14 +217,14 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
     box.wait_for(state="visible", timeout=60_000)
     page.wait_for_timeout(1500)
     _select_video_tool(page, log, out_path.parent / "gemini_arayuz.txt")
-    box.click()
+    box.focus()
     page.keyboard.insert_text(prompt)
     _wait_until_box_has(page, box, prompt)
     page.keyboard.press("Enter")
     page.wait_for_timeout(3000)
     if box.inner_text().strip():
         log("UYARI: Gönderdikten sonra yazı kutusunda metin kaldı, prompt yarım gitmiş olabilir.")
-        box.click()
+        box.focus()
         page.keyboard.press("Control+A")
         page.keyboard.press("Delete")
     log("Prompt gönderildi, Gemini videoyu üretiyor...")
