@@ -90,15 +90,14 @@ def apply_aliases(channel: Channel, text: str) -> str:
 
 def build_chatgpt_request(channel: Channel, theme: str, past: list[str]) -> str:
     names = " ve ".join(c.name for c in channel.characters)
-    past_block = "\n".join(f"- {s}" for s in past)
-    past_part = f"\n\nDaha önce yaptıkların (bunlara benzeme):\n{past_block}" if past else ""
-    return f"""DİKKAT: Daha önce ürettiğin hiçbir sahneyi, konuyu ve diyaloğu TEKRARLAMA. Tamamen özgün ve yepyeni olmalı.
-
-Konu teması: {names}, {theme}.{past_part}
-
-KURALLAR:
-1. Kesinlikle hiçbir açıklama, selamlama veya kod bloğu/kart yazma.
-2. SADECE Gemini'ye doğrudan yapıştırıp video ürettirebileceğim saf video promptunu tek parça metin olarak ver."""
+    lines = [f"Tema: {names}, {theme}."]
+    if past:
+        lines.append("Daha önce ürettiklerini tekrarlama:")
+        lines += [f"- {s}" for s in past]
+    else:
+        lines.append("Daha önce ürettiklerini tekrarlama.")
+    lines.append("Sadece video promptunu yaz.")
+    return "\n".join(lines)
 
 
 def clean_chatgpt_output(text: str) -> str:
@@ -114,14 +113,7 @@ def _sentence(text: str) -> str:
 
 def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
     if not scenario.ilk_kare:
-        return (
-            f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
-            f"{_sentence(apply_aliases(channel, scenario.video_prompt))} "
-            f"All characters are original and not based on any existing franchise. "
-            f"All spoken dialogue is in {language_name(channel.language)}. "
-            f"Lighthearted, family-friendly comedy: everyone is safe and nobody gets hurt. "
-            f"No subtitles, captions or on-screen text."
-        )
+        return apply_aliases(channel, scenario.video_prompt).strip()
     chars = " ".join(f"{c.alias} is {c.description}." for c in channel.characters)
     return (
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
@@ -197,7 +189,8 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
     past = history.recent_summaries(channel.history_path)
     profile = os.environ.get("CHATGPT_PROFILI") or accounts.publish_profile()
     raw = chatgpt_web.ask(profile, build_chatgpt_request(channel, theme, past),
-                          url=channel.scenario["chatgpt_url"], log=log, debug_dir=debug_dir)
+                          url=channel.scenario["chatgpt_url"], project=channel.scenario.get("chatgpt_proje", ""),
+                          log=log, debug_dir=debug_dir)
     video_prompt = clean_chatgpt_output(raw)
     if len(video_prompt) < 40:
         raise RuntimeError(f"ChatGPT'den anlamlı bir prompt gelmedi: {raw[:200]!r}")

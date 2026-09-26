@@ -313,8 +313,8 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
     monkeypatch.setenv("CHATGPT_PROFILI", "P1")
     sent = []
 
-    def fake_ask(profile, message, url, log, debug_dir):
-        sent.append((profile, message, url))
+    def fake_ask(profile, message, url, project, log, debug_dir):
+        sent.append((profile, message, project))
         return "```\nPrompt: Spoderman slips a tomato into Orange's pocket and says 'Bu domates benim!' in a low-poly bazaar.\n```"
 
     monkeypatch.setattr(chatgpt_web, "ask", fake_ask)
@@ -323,10 +323,10 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
     client.models.generate_content = lambda model, contents, config: NS(parsed=meta, text=meta.model_dump_json())
 
     s = script.write_scenario(client, channel, "a bazaar")
-    profile, message, url = sent[0]
-    assert profile == "P1" and url == channel.scenario["chatgpt_url"]
-    assert "a bazaar" in message and "TEKRARLAMA" in message and len(message) < 800
+    profile, message, project = sent[0]
+    assert profile == "P1" and project == "video gen"
+    assert "a bazaar" in message and "tekrarlama" in message and len(message) < 400
     assert s.video_prompt.startswith("Spoderman slips") and s.ilk_kare == ""
     assert s.baslik == "Spoderman pazarda"
     prompt = script.web_video_prompt(channel, s)
-    assert "spoderman" not in prompt.lower() and "Blocky Guy slips" in prompt and "Vertical 9:16" in prompt
+    assert prompt.startswith("Blocky Guy slips") and "spoderman" not in prompt.lower()

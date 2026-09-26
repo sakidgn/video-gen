@@ -17,6 +17,7 @@ DEFAULT_MODELS = {
 DEFAULT_SCENARIO = {
     "motor": "gemini_api",
     "chatgpt_url": "https://chatgpt.com/",
+    "chatgpt_proje": "",
 }
 
 DEFAULT_VIDEO = {
