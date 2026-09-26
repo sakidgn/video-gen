@@ -11,16 +11,27 @@ LAST_ASSISTANT_JS = """() => {
 
 ASSISTANT_COUNT_JS = """() => document.querySelectorAll('div[data-message-author-role="assistant"]').length"""
 
-FIND_PROJECT_JS = """(name) => {
-  const norm = t => (t || '').toLowerCase().replace(/[-_]+/g, ' ').replace(/\\s+/g, ' ').trim();
+FIND_PROJECT_JS = r"""(name) => {
+  const norm = t => (t || '').toLowerCase().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
   const want = norm(name);
-  const links = Array.from(document.querySelectorAll('a[href]'))
-    .filter(a => /\\/g\\/g-p-|\\/project/.test(a.getAttribute('href') || ''));
-  const hit = links.find(a => norm(a.innerText) === want) || links.find(a => norm(a.innerText).includes(want));
-  return {href: hit ? hit.href : null, names: links.map(a => (a.innerText || '').trim()).filter(Boolean).slice(0, 30)};
+  const slug = want.replace(/ /g, '-');
+  const all = Array.from(document.querySelectorAll('a[href]'));
+  const hrefOf = a => (a.getAttribute('href') || '').toLowerCase();
+  const proj = all.filter(a => /\/g\/g-p-/.test(hrefOf(a)));
+  const hit = proj.find(a => norm(a.innerText) === want)
+    || proj.find(a => norm(a.innerText).includes(want))
+    || proj.find(a => hrefOf(a).includes('-' + slug + '/'))
+    || proj.find(a => hrefOf(a).includes(slug));
+  const pp = all.find(a => /\/projects\/?(\?|$)/.test(hrefOf(a)))
+    || all.find(a => /^(projeler|projects)$/i.test((a.innerText || '').trim()));
+  return {
+    href: hit ? hit.href : null,
+    projectsPage: pp ? pp.href : null,
+    names: proj.map(a => (a.innerText || '').trim().split('\n')[0] || hrefOf(a)).slice(0, 30),
+  };
 }"""
 
-EXPAND_TEXTS = ["Projeler", "Projects", "Daha fazla", "Daha fazlasını gör", "See more", "Show more", "Tümünü göster"]
+EXPAND_TEXTS = ["Daha fazla", "Daha fazlasını gör", "See more", "Show more", "Tümünü göster", "See all", "View all"]
 
 GENERATING_JS = """() => !!document.querySelector(
   'button[data-testid="stop-button"], button[aria-label*="Stop" i], button[aria-label*="Durdur" i]')"""
@@ -43,8 +54,17 @@ def ask(profile_dir: str, message: str, *, url: str = DEFAULT_URL, project: str 
             ctx.close()
 
 
-def _open_project(page, name: str, log) -> None:
-    found = page.evaluate(FIND_PROJECT_JS, name)
+def _find_project(page, name: str, wait_s: int) -> dict:
+    deadline = time.time() + wait_s
+    while True:
+        found = page.evaluate(FIND_PROJECT_JS, name)
+        if found["href"] or time.time() >= deadline:
+            return found
+        page.wait_for_timeout(1000)
+
+
+def _open_project(page, name: str, log, fallback_url: str = "") -> None:
+    found = _find_project(page, name, 6)
     for text in EXPAND_TEXTS:
         if found["href"]:
             break
@@ -52,15 +72,22 @@ def _open_project(page, name: str, log) -> None:
         if loc.count():
             try:
                 loc.first.click(timeout=3000)
-                page.wait_for_timeout(1000)
             except Exception:
-                pass
-            found = page.evaluate(FIND_PROJECT_JS, name)
-    if not found["href"]:
+                continue
+            found = _find_project(page, name, 2)
+    if not found["href"] and found["projectsPage"]:
+        log("ChatGPT Projeler sayfası açılıyor...")
+        page.goto(found["projectsPage"], wait_until="domcontentloaded", timeout=90_000)
+        found = {**_find_project(page, name, 12), "projectsPage": None}
+    if found["href"]:
+        log(f"ChatGPT projesi açılıyor: {name}")
+        page.goto(found["href"], wait_until="domcontentloaded", timeout=90_000)
+    elif "/g/g-p-" in fallback_url:
+        log(f"'{name}' listede bulunamadı, kayıtlı proje linkine gidiliyor.")
+        page.goto(fallback_url, wait_until="domcontentloaded", timeout=90_000)
+    else:
         names = ", ".join(found["names"]) or "hiç proje görünmedi"
         raise RuntimeError(f"ChatGPT'de '{name}' adında proje bulunamadı. Görünen projeler: {names}")
-    log(f"ChatGPT projesi açılıyor: {name}")
-    page.goto(found["href"], wait_until="domcontentloaded", timeout=90_000)
     page.wait_for_timeout(3000)
 
 
@@ -70,7 +97,7 @@ def _ask(page, message: str, url: str, timeout_s: int, log, project: str = "") -
     if "/auth/" in page.url or "login" in page.url:
         raise RuntimeError("ChatGPT oturumu açık değil. `python -m shitpost giris` ile ChatGPT'ye giriş yap.")
     if project:
-        _open_project(page, project, log)
+        _open_project(page, project, log, fallback_url=url)
 
     box = page.locator("#prompt-textarea").first
     box.wait_for(state="visible", timeout=60_000)

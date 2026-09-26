@@ -55,7 +55,9 @@ temalar:
 senaryo:
   # chatgpt_web: senaryoyu tarayıcıdaki ChatGPT projen yazar | gemini_api: Gemini API yazar
   motor: chatgpt_web
-  chatgpt_proje: shitpost gen   # ChatGPT'de soldaki Projeler kısmındaki adı
+  chatgpt_proje: shitpost gen   # ChatGPT'deki proje adı
+  # Proje adla bulunamazsa gidilecek link (ChatGPT'de projeyi açınca adres çubuğundaki link)
+  chatgpt_url: https://chatgpt.com/g/g-p-6a88edf62bc8819180ea36996d0b832d-shitpost-gen/project
 
 modeller:
   metin: gemini-3.8-flash
