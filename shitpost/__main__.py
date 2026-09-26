@@ -11,8 +11,42 @@ def _client():
     return genai.Client()
 
 
+class _Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, data):
+        for st in self.streams:
+            st.write(data)
+            st.flush()
+
+    def flush(self):
+        for st in self.streams:
+            st.flush()
+
+
 def cmd_uret(args) -> int:
     from . import pipeline
+    from .config import OUTPUT_DIR
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    log_file = (OUTPUT_DIR / "son_calisma.txt").open("w", encoding="utf-8")
+    sys.stdout = _Tee(sys.__stdout__, log_file)
+    sys.stderr = _Tee(sys.__stderr__, log_file)
+    try:
+        return _uret(args, pipeline)
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        return 1
+    finally:
+        sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
+        log_file.close()
+
+
+def _uret(args, pipeline) -> int:
+    import traceback
 
     channel = load_channel(args.kanal)
     client = _client()
@@ -27,6 +61,7 @@ def cmd_uret(args) -> int:
             break
         except Exception as e:
             print(f"HATA: {type(e).__name__}: {e}", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
             failed += 1
             continue
         if result.errors:

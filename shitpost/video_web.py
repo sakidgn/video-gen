@@ -26,10 +26,11 @@ FETCH_BLOB_JS = """async (src) => {
 }"""
 
 VIDEO_SRC_JS = """() => {
-  const vids = document.querySelectorAll('model-response video');
-  if (!vids.length) return null;
-  const v = vids[vids.length - 1];
-  return v.currentSrc || v.src || (v.querySelector('source') || {}).src || null;
+  const srcOf = v => v.currentSrc || v.src || (v.querySelector('source') || {}).src || null;
+  const inResp = Array.from(document.querySelectorAll('model-response video')).map(srcOf).filter(Boolean);
+  if (inResp.length) return inResp[inResp.length - 1];
+  const any = Array.from(document.querySelectorAll('video')).map(srcOf).filter(Boolean);
+  return any.length ? any[any.length - 1] : null;
 }"""
 
 
@@ -76,7 +77,11 @@ CLOSE_OVERLAY_JS = """(texts) => {
 DISMISS_TEXTS = ["kapat", "close", "anladım", "got it", "hayır, teşekkürler", "no thanks", "şimdi değil",
                  "not now", "tamam", "ok", "reddet", "dismiss", "atla", "skip"]
 
-SKIP_BUTTON = ("gönder", "send", "mikrofon", "microphone", "konuş", "speak", "durdur", "stop")
+SKIP_BUTTON = (
+    "gönder", "send", "mikrofon", "microphone", "konuş", "speak", "durdur", "stop",
+    "yeni sohbet", "new chat", "ana menü", "main menu", "hesap", "account", "ayarlar", "settings",
+    "paylaş", "share", "sil", "delete", "çıkış", "sign out", "geçmiş", "history",
+)
 VIDEO_WORDS = ("video", "veo")
 SELECTED_WORDS = ("kaldır", "remove", "deselect", "seçimi")
 
@@ -176,11 +181,13 @@ def generate_video_web(profile_dir: str, prompt: str, out_path: Path, *, timeout
     with sync_playwright() as p:
         ctx = open_profile(p, profile_dir)
         page = first_page(ctx)
+        new_pages = []
+        ctx.on("page", new_pages.append)
         try:
-            return _generate(page, prompt, out_path, timeout_s, log)
+            return _generate(page, prompt, out_path, timeout_s, log, new_pages)
         except Exception as e:
             stamp = time.strftime("%H%M%S")
-            screenshot(page, out_path.parent / f"hata_gemini_{stamp}.png")
+            screenshot(new_pages[-1] if new_pages else page, out_path.parent / f"hata_gemini_{stamp}.png")
             reply = getattr(e, "reply", None)
             if reply:
                 (out_path.parent / f"gemini_cevabi_{stamp}.txt").write_text(reply, encoding="utf-8")
@@ -207,7 +214,9 @@ def _wait_until_box_has(page, box, prompt: str, timeout_s: int = 20) -> None:
     raise RuntimeError(f"Prompt yazı kutusuna tam yerleşmedi ({prev}/{expected} karakter)")
 
 
-def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
+def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages: list | None = None) -> Path:
+    new_pages = new_pages if new_pages is not None else []
+    folder = out_path.parent
     page.goto(GEMINI_URL, wait_until="domcontentloaded", timeout=90_000)
     page.wait_for_timeout(3000)
     if "accounts.google.com" in page.url:
@@ -217,6 +226,7 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
     box.wait_for(state="visible", timeout=60_000)
     page.wait_for_timeout(1500)
     _select_video_tool(page, log, out_path.parent / "gemini_arayuz.txt")
+    screenshot(page, folder / "adim_0_arac_secimi.png")
     box.focus()
     page.keyboard.insert_text(prompt)
     _wait_until_box_has(page, box, prompt)
@@ -227,14 +237,33 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
         box.focus()
         page.keyboard.press("Control+A")
         page.keyboard.press("Delete")
-    log("Prompt gönderildi, Gemini videoyu üretiyor...")
+    log(f"Prompt gönderildi, Gemini videoyu üretiyor... (adres: {page.url})")
+    screenshot(page, folder / "adim_1_gonderildi.png")
 
     start = time.time()
     responses = page.locator("model-response")
     src = None
     prev_text = None
+    last_url = page.url
+    seen_pages = 0
+    next_report = 30
     while time.time() - start < timeout_s:
         page.wait_for_timeout(5000)
+        elapsed = int(time.time() - start)
+        if len(new_pages) > seen_pages:
+            seen_pages = len(new_pages)
+            page = new_pages[-1]
+            responses = page.locator("model-response")
+            log(f"Gemini yeni bir sekme açtı, oraya geçildi: {page.url}")
+        if page.url != last_url:
+            log(f"Gemini sayfası değişti: {last_url} -> {page.url}")
+            last_url = page.url
+        if elapsed >= next_report:
+            snippet = (responses.last.inner_text() if responses.count() else "").strip().replace("\n", " ")
+            log(f"  ...{elapsed} sn geçti. Gemini ekranda: {snippet[-150:]!r}")
+            if next_report % 60 == 0:
+                screenshot(page, folder / f"adim_bekleme_{elapsed:03d}sn.png")
+            next_report += 30
         src = page.evaluate(VIDEO_SRC_JS)
         if src:
             break
