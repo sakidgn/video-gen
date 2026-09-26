@@ -29,6 +29,13 @@ def pick_theme(channel: Channel, rng: random.Random | None = None) -> str:
     return rng.choice(candidates)
 
 
+LANGUAGE_NAMES = {"tr": "Turkish", "en": "English", "de": "German", "es": "Spanish", "fr": "French", "ar": "Arabic"}
+
+
+def language_name(code: str) -> str:
+    return LANGUAGE_NAMES.get(code.lower(), code)
+
+
 def build_prompt(channel: Channel, theme: str, past: list[str]) -> str:
     chars = "\n".join(f"- {c.name}: {c.description}" for c in channel.characters)
     rules = "\n".join(f"- {r}" for r in channel.extra_rules)
@@ -45,7 +52,10 @@ TODAY'S SETTING: {theme}
 
 RULES:
 - One single 8-second scene. Hook in the first second, absurd twist, punchline at the end.
-- Max 2-3 very short dialogue lines total, spoken in language "{channel.language}".
+- Max 2-3 very short dialogue lines total, spoken in {language_name(channel.language)}. Write the video
+  prompt itself in English, but put the dialogue lines in quotes in {language_name(channel.language)} and say
+  explicitly that the characters speak {language_name(channel.language)}.
+- Write "baslik" and "aciklama" in {language_name(channel.language)}, in natural slangy social-media style.
 - Describe sound effects and ambience explicitly; no background music with lyrics.
 - No on-screen text or subtitles in the video.
 - The video model refuses anything that looks risky, so the humor must be 100% harmless: awkward, absurd,
@@ -64,6 +74,7 @@ def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
         f"Characters: {chars} Style: {channel.style.rstrip('.')}. "
         f"Opening shot: {scenario.ilk_kare} Action: {scenario.video_prompt} "
+        f"All spoken dialogue is in {language_name(channel.language)}. "
         f"Lighthearted, family-friendly comedy: everyone is safe and nobody gets hurt. "
         f"No subtitles, captions or on-screen text."
     )

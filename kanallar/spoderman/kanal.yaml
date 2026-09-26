@@ -1,6 +1,6 @@
 # Yeni kanal açmak için bu klasörü kopyala (kanallar/<yeni_ad>/) ve alanları değiştir.
 ad: Spoderman & Orange
-dil: en  # diyalog dili; Veo en iyi İngilizce konuşuyor
+dil: tr  # diyalog, başlık ve açıklama dili (tr, en, ...)
 
 karakterler:
   - ad: Spoderman
