@@ -66,6 +66,12 @@ def channel(tmp_path):
     return load_channel("spoderman", tmp_path / "kanallar")
 
 
+@pytest.fixture(autouse=True)
+def _gemini_scenarios_by_default(request):
+    if "channel" in request.fixturenames:
+        request.getfixturevalue("channel").scenario["motor"] = "gemini_api"
+
+
 @pytest.fixture
 def api_channel(channel):
     channel.video["motor"] = "api"
@@ -81,6 +87,7 @@ def test_channel_config_loads(channel):
     assert [c.name for c in channel.characters] == ["Spoderman", "Orange"]
     assert channel.video["en_boy"] == "9:16"
     assert channel.video["motor"] == "gemini_web"
+    assert load_channel("spoderman", channel.dir.parent).scenario["motor"] == "chatgpt_web"
     assert set(channel.platforms) == {"youtube", "tiktok_web", "instagram_web"}
 
 
@@ -297,3 +304,29 @@ def test_aliases_replace_real_names_in_video_prompt(channel):
     prompt = script.web_video_prompt(channel, s)
     assert "spoderman" not in prompt.lower()
     assert "Opening shot: Blocky Guy stands." in prompt
+
+
+def test_chatgpt_scenario_engine(channel, monkeypatch):
+    from shitpost import chatgpt_web
+
+    channel.scenario["motor"] = "chatgpt_web"
+    monkeypatch.setenv("CHATGPT_PROFILI", "P1")
+    sent = []
+
+    def fake_ask(profile, message, url, log, debug_dir):
+        sent.append((profile, message, url))
+        return "```\nPrompt: Spoderman slips a tomato into Orange's pocket and says 'Bu domates benim!' in a low-poly bazaar.\n```"
+
+    monkeypatch.setattr(chatgpt_web, "ask", fake_ask)
+    client = FakeClient()
+    meta = script.Meta(baslik="Spoderman pazarda", aciklama="lol", ozet="sum", hashtagler=["pazar"])
+    client.models.generate_content = lambda model, contents, config: NS(parsed=meta, text=meta.model_dump_json())
+
+    s = script.write_scenario(client, channel, "a bazaar")
+    profile, message, url = sent[0]
+    assert profile == "P1" and url == channel.scenario["chatgpt_url"]
+    assert "a bazaar" in message and "Blocky Guy" in message and "Spoderman" not in message
+    assert s.video_prompt.startswith("Spoderman slips") and s.ilk_kare == ""
+    assert s.baslik == "Spoderman pazarda"
+    prompt = script.web_video_prompt(channel, s)
+    assert "spoderman" not in prompt.lower() and "Blocky Guy slips" in prompt and "Vertical 9:16" in prompt

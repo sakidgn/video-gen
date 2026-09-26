@@ -5,7 +5,7 @@ call .venv\Scripts\activate.bat
 :menu
 echo.
 echo ================ SHITPOST MENU ================
-echo  1) Giris yap: 1. Gemini hesabi + TikTok + Instagram
+echo  1) Giris yap: 1. Gemini hesabi + ChatGPT + TikTok + Instagram
 echo  2) Giris yap: 2. Gemini hesabi
 echo  3) YouTube kanalini bagla
 echo  4) Test videosu uret (paylasmaz)

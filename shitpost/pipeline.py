@@ -25,10 +25,12 @@ class Result:
 
 
 def _video_via_api(client, channel, scenario, folder, log, **video_kwargs) -> Path:
-    frame, mime = images.make_first_frame(client, channel, scenario.ilk_kare)
+    scene = script.apply_aliases(channel, scenario.ilk_kare or scenario.video_prompt)
+    frame, mime = images.make_first_frame(client, channel, scene)
     (folder / f"ilk_kare{'.jpg' if mime == 'image/jpeg' else '.png'}").write_bytes(frame)
     log("Veo videoyu üretiyor (1-6 dk sürebilir)...")
-    return generate_video(client, channel, scenario.video_prompt, frame, mime, folder / "video.mp4", **video_kwargs)
+    prompt = script.apply_aliases(channel, scenario.video_prompt)
+    return generate_video(client, channel, prompt, frame, mime, folder / "video.mp4", **video_kwargs)
 
 
 def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
@@ -70,10 +72,10 @@ def run(
     for attempt in range(1, attempts + 1):
         theme = script.pick_theme(channel, rng)
         log(f"[{attempt}/{attempts}] Tema: {theme}")
-        scenario = script.write_scenario(client, channel, theme)
+        folder.mkdir(parents=True, exist_ok=True)
+        scenario = script.write_scenario(client, channel, theme, log=log, debug_dir=folder)
         log(f"Senaryo: {scenario.baslik}")
 
-        folder.mkdir(parents=True, exist_ok=True)
         (folder / "senaryo.json").write_text(
             json.dumps({"tema": theme, **scenario.model_dump()}, ensure_ascii=False, indent=2), encoding="utf-8"
         )

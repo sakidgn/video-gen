@@ -14,6 +14,11 @@ DEFAULT_MODELS = {
     "video": "veo-3.1-generate-preview",
 }
 
+DEFAULT_SCENARIO = {
+    "motor": "gemini_api",
+    "chatgpt_url": "https://chatgpt.com/",
+}
+
 DEFAULT_VIDEO = {
     "motor": "api",
     "en_boy": "9:16",
@@ -49,6 +54,7 @@ class Channel:
     models: dict = field(default_factory=dict)
     video: dict = field(default_factory=dict)
     platforms: dict = field(default_factory=dict)
+    scenario: dict = field(default_factory=lambda: dict(DEFAULT_SCENARIO))
 
     @property
     def history_path(self) -> Path:
@@ -98,4 +104,5 @@ def load_channel(slug: str, channels_dir: Path = CHANNELS_DIR) -> Channel:
         models=models,
         video={**DEFAULT_VIDEO, **(raw.get("video") or {})},
         platforms=raw.get("platformlar") or {},
+        scenario={**DEFAULT_SCENARIO, **(raw.get("senaryo") or {})},
     )

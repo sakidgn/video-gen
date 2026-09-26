@@ -9,6 +9,13 @@ from . import history
 from .config import Channel
 
 
+class Meta(BaseModel):
+    baslik: str = Field(description="Short, clickbait-y video title, max 70 chars, no hashtags.")
+    aciklama: str = Field(description="1-2 sentence funny caption for the post, no hashtags.")
+    ozet: str = Field(description="One sentence plot summary, used to avoid repeating ideas.")
+    hashtagler: list[str] = Field(description="3-6 extra topical hashtags without the # sign.")
+
+
 class Scenario(BaseModel):
     baslik: str = Field(description="Short, clickbait-y video title, max 70 chars, no hashtags.")
     aciklama: str = Field(description="1-2 sentence funny caption for the post, no hashtags.")
@@ -81,12 +88,57 @@ def apply_aliases(channel: Channel, text: str) -> str:
     return text
 
 
+def build_chatgpt_request(channel: Channel, theme: str, past: list[str]) -> str:
+    lang = language_name(channel.language)
+    chars = "\n".join(f"- {c.alias}: {c.description}" for c in channel.characters)
+    rules = apply_aliases(channel, "\n".join(f"- {r}" for r in channel.extra_rules))
+    past_block = apply_aliases(channel, "\n".join(f"- {s}" for s in past)) or "- (henüz yok)"
+    return f"""DİKKAT: Daha önce ürettiğin hiçbir sahneyi, konuyu, şakayı ve diyaloğu TEKRARLAMA. Tamamen yepyeni olsun.
+
+Konu teması: {theme}
+
+KARAKTERLER (videoda SADECE bu isimlerle an, başka isim kullanma):
+{chars}
+
+GÖRSEL STİL: {channel.style}
+
+KURALLAR:
+- Tek sahne, 8 saniye, dikey 9:16. İlk saniyede dikkat çek, sonda punchline ve ani kesme.
+- En fazla 2-3 çok kısa diyalog; diyaloglar {lang}, tırnak içinde, kimin söylediği belli.
+- Ses efektlerini ve ortam sesini açıkça yaz. Ekranda yazı/altyazı yok.
+- Video modeli telifli şeyleri reddediyor: hiçbir film, çizgi film, oyun, marka ya da süper kahraman
+  adı veya bunları çağrıştıran kostüm/desen yazma (örümcek ağı deseni vb. yok).
+- Mizah tamamen zararsız olsun: yaralanma, düşme, patlama, ateş, kavga, silah yok.
+{rules}
+
+DAHA ÖNCE YAPILANLAR (bunlara benzeme):
+{past_block}
+
+ÇIKTI: Hiçbir açıklama, selamlama, başlık veya kod bloğu yazma. SADECE Gemini'ye doğrudan yapıştırıp video
+ürettireceğim İngilizce video promptunu (diyaloglar {lang}) tek parça düz metin olarak ver."""
+
+
+def clean_chatgpt_output(text: str) -> str:
+    text = re.sub(r"^```[a-zA-Z]*\s*|\s*```$", "", text.strip())
+    text = re.sub(r"^(video )?prompt\s*:\s*", "", text, flags=re.IGNORECASE)
+    return text.strip()
+
+
 def _sentence(text: str) -> str:
     text = text.strip()
     return text if text.endswith((".", "!", "?")) else text + "."
 
 
 def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
+    if not scenario.ilk_kare:
+        return (
+            f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
+            f"{_sentence(apply_aliases(channel, scenario.video_prompt))} "
+            f"All characters are original and not based on any existing franchise. "
+            f"All spoken dialogue is in {language_name(channel.language)}. "
+            f"Lighthearted, family-friendly comedy: everyone is safe and nobody gets hurt. "
+            f"No subtitles, captions or on-screen text."
+        )
     chars = " ".join(f"{c.alias} is {c.description}." for c in channel.characters)
     return (
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
@@ -137,7 +189,9 @@ def _generate_with_retry(client, model: str, contents, config):
     raise last_error
 
 
-def write_scenario(client, channel: Channel, theme: str) -> Scenario:
+def write_scenario(client, channel: Channel, theme: str, *, log=print, debug_dir=None) -> Scenario:
+    if channel.scenario["motor"] == "chatgpt_web":
+        return _write_scenario_chatgpt(client, channel, theme, log=log, debug_dir=debug_dir)
     past = history.recent_summaries(channel.history_path)
     config = types.GenerateContentConfig(
         response_mime_type="application/json",
@@ -150,3 +204,36 @@ def write_scenario(client, channel: Channel, theme: str) -> Scenario:
     if isinstance(resp.parsed, Scenario):
         return resp.parsed
     return Scenario.model_validate_json(resp.text)
+
+
+def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, debug_dir=None) -> Scenario:
+    import os
+
+    from . import accounts, chatgpt_web
+
+    past = history.recent_summaries(channel.history_path)
+    profile = os.environ.get("CHATGPT_PROFILI") or accounts.publish_profile()
+    raw = chatgpt_web.ask(profile, build_chatgpt_request(channel, theme, past),
+                          url=channel.scenario["chatgpt_url"], log=log, debug_dir=debug_dir)
+    video_prompt = clean_chatgpt_output(raw)
+    if len(video_prompt) < 40:
+        raise RuntimeError(f"ChatGPT'den anlamlı bir prompt gelmedi: {raw[:200]!r}")
+
+    lang = language_name(channel.language)
+    meta_config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=Meta,
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+    )
+    names = ", ".join(f"{c.alias} = {c.name}" for c in channel.characters)
+    resp = _generate_with_retry(
+        client, channel.models["metin"],
+        f"This is the video prompt of a short shitpost video for the channel \"{channel.name}\". "
+        f"Character names in the post may use the real names ({names}). Write baslik and aciklama in "
+        f"natural slangy {lang} social-media style, ozet as one English sentence, and 3-6 hashtags.\n\n"
+        f"VIDEO PROMPT:\n{video_prompt}",
+        meta_config,
+    )
+    meta = resp.parsed if isinstance(resp.parsed, Meta) else Meta.model_validate_json(resp.text)
+    return Scenario(baslik=meta.baslik, aciklama=meta.aciklama, ozet=meta.ozet, ilk_kare="",
+                    video_prompt=video_prompt, hashtagler=meta.hashtagler)
