@@ -33,6 +33,83 @@ VIDEO_SRC_JS = """() => {
 }"""
 
 
+INPUT_BUTTONS_JS = """() => {
+  let node = document.querySelector('div[role="textbox"]');
+  for (let i = 0; i < 10 && node && node.querySelectorAll('button').length < 3; i++) node = node.parentElement;
+  if (!node) return [];
+  return Array.from(node.querySelectorAll('button')).filter(b => b.offsetParent !== null).map((b, i) => {
+    b.setAttribute('data-sp-idx', String(i));
+    return {idx: i, label: ((b.getAttribute('aria-label') || '') + ' | ' + (b.innerText || '')).trim(),
+            pressed: b.getAttribute('aria-pressed') || ''};
+  });
+}"""
+
+CLICK_VIDEO_MENU_ITEM_JS = """() => {
+  const re = /(video|veo)/i;
+  const root = document.querySelector('.cdk-overlay-container');
+  if (!root) return null;
+  const items = Array.from(root.querySelectorAll(
+    '[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], button, li'));
+  const hit = items.find(el => el.offsetParent !== null &&
+    re.test((el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '')));
+  if (!hit) return null;
+  hit.click();
+  return ((hit.innerText || hit.getAttribute('aria-label') || '').trim()).slice(0, 60);
+}"""
+
+OVERLAY_TEXT_JS = """() => {
+  const root = document.querySelector('.cdk-overlay-container');
+  return root ? root.innerText.trim().slice(0, 500) : '';
+}"""
+
+SKIP_BUTTON = ("gönder", "send", "mikrofon", "microphone", "konuş", "speak", "durdur", "stop")
+VIDEO_WORDS = ("video", "veo")
+SELECTED_WORDS = ("kaldır", "remove", "deselect", "seçimi")
+
+
+def _select_video_tool(page, log, diag_path: Path) -> bool:
+    page.on("filechooser", lambda fc: None)  # yanlış butona basılırsa dosya penceresi açılmasın
+    buttons = page.evaluate(INPUT_BUTTONS_JS)
+
+    for b in buttons:
+        low = b["label"].lower()
+        if any(w in low for w in VIDEO_WORDS):
+            if b["pressed"] == "true" or any(w in low for w in SELECTED_WORDS):
+                log("Video aracı zaten seçili.")
+                return True
+            page.locator(f'button[data-sp-idx="{b["idx"]}"]').click()
+            log(f"Video aracı seçildi: {b['label']}")
+            return True
+
+    overlays = []
+    for b in buttons:
+        low = b["label"].lower()
+        if any(w in low for w in SKIP_BUTTON):
+            continue
+        try:
+            page.locator(f'button[data-sp-idx="{b["idx"]}"]').click(timeout=3000)
+        except Exception:
+            continue
+        page.wait_for_timeout(1000)
+        picked = page.evaluate(CLICK_VIDEO_MENU_ITEM_JS)
+        if picked:
+            page.wait_for_timeout(1000)
+            log(f"Video aracı seçildi: '{b['label']}' -> '{picked}'")
+            return True
+        overlays.append(f"[{b['label']}] -> {page.evaluate(OVERLAY_TEXT_JS)!r}")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(500)
+
+    diag_path.parent.mkdir(parents=True, exist_ok=True)
+    diag_path.write_text(
+        "Yazı kutusu butonları:\n" + "\n".join(b["label"] for b in buttons)
+        + "\n\nAçılan menüler:\n" + "\n".join(overlays),
+        encoding="utf-8",
+    )
+    log(f"UYARI: Video aracı bulunamadı. Detaylar: {diag_path.name}")
+    return False
+
+
 class QuotaExceeded(RuntimeError):
     pass
 
@@ -87,6 +164,8 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
 
     box = page.locator('div[role="textbox"]').first
     box.wait_for(state="visible", timeout=60_000)
+    page.wait_for_timeout(1500)
+    _select_video_tool(page, log, out_path.parent / "gemini_arayuz.txt")
     box.click()
     page.keyboard.insert_text(prompt)
     _wait_until_box_has(page, box, prompt)
