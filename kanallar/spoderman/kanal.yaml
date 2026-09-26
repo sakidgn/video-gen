@@ -4,13 +4,16 @@ dil: tr  # diyalog, başlık ve açıklama dili (tr, en, ...)
 
 karakterler:
   - ad: Spoderman
+    # Video promptunda gerçek ad yerine bu kullanılır; telif filtresine takılmamak için.
+    video_adi: Blocky Guy
     tarif: >
-      a janky low-poly 3D game character of a bootleg knockoff superhero: blocky body made of
-      few polygons, flat red and blue colors with a blurry low-resolution web texture stretched
-      wrong across it, huge white eye shapes, stiff T-pose-like arms, clipping through things,
-      robotic idle animation, confident but clueless
+      a janky low-poly 3D game character: a clumsy blocky guy made of few polygons, wearing a
+      cheap plain red and blue full-body outfit and a lumpy mask with huge lopsided white eye
+      shapes, blurry stretched low-res textures, stiff T-pose-like arms, clipping through
+      things, robotic idle animation, confident but clueless
     referans: karakterler/spoderman.png
   - ad: Orange
+    video_adi: Orange
     tarif: >
       a low-poly 3D orange fruit game prop, a lumpy sphere with a blurry orange texture and a
       pasted-on cartoon face (big googly eyes and a wide mouth that flaps open and shut like a

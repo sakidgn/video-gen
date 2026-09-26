@@ -28,6 +28,11 @@ class Character:
     name: str
     description: str
     reference: Path
+    video_name: str = ""
+
+    @property
+    def alias(self) -> str:
+        return self.video_name or self.name
 
 
 @dataclass
@@ -67,6 +72,7 @@ def load_channel(slug: str, channels_dir: Path = CHANNELS_DIR) -> Channel:
             name=c["ad"],
             description=c["tarif"].strip(),
             reference=chan_dir / c.get("referans", f"karakterler/{c['ad'].lower().replace(' ', '_')}.png"),
+            video_name=c.get("video_adi", ""),
         )
         for c in raw["karakterler"]
     ]

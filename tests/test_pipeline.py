@@ -175,7 +175,8 @@ def test_web_engine_uses_account_and_counts_quota(channel, tmp_path, web_env):
     assert result.video.read_bytes() == b"webvideo"
     profile, prompt = web_env.calls[0]
     assert profile == "P1"
-    assert "Vertical 9:16" in prompt and "bootleg" in prompt and "first frame" in prompt
+    assert "Vertical 9:16" in prompt and "Blocky Guy" in prompt and "first frame" in prompt
+    assert "spoderman" not in prompt.lower()
     assert not any(c.reference.exists() for c in channel.characters)
 
     run(FakeClient(), channel, tmp_path, publish=False)
@@ -288,3 +289,11 @@ def test_scenario_waits_only_when_all_models_busy(channel, monkeypatch):
     client.models.generate_content = gen
     script.write_scenario(client, channel, "theme")
     assert waits == [script.RETRY_DELAYS[0]]
+
+
+def test_aliases_replace_real_names_in_video_prompt(channel):
+    s = script.Scenario(baslik="Spoderman pazarda", aciklama="a", ozet="o",
+                        ilk_kare="SPODERMAN stands", video_prompt="Spoderman says hi", hashtagler=[])
+    prompt = script.web_video_prompt(channel, s)
+    assert "spoderman" not in prompt.lower()
+    assert "Opening shot: Blocky Guy stands." in prompt

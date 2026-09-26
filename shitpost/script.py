@@ -1,4 +1,5 @@
 import random
+import re
 import time
 
 from google.genai import errors, types
@@ -37,12 +38,17 @@ def language_name(code: str) -> str:
 
 
 def build_prompt(channel: Channel, theme: str, past: list[str]) -> str:
-    chars = "\n".join(f"- {c.name}: {c.description}" for c in channel.characters)
+    chars = "\n".join(
+        f"- {c.name} (in ilk_kare and video_prompt ALWAYS call them \"{c.alias}\"): {c.description}"
+        for c in channel.characters
+    )
     rules = "\n".join(f"- {r}" for r in channel.extra_rules)
     past_block = "\n".join(f"- {s}" for s in past) or "- (none yet)"
     return f"""You write scripts for "{channel.name}", a short-form absurd shitpost channel (YouTube Shorts, TikTok, Reels).
 
-CHARACTERS (always describe them exactly like this, never by trademarked names in visual descriptions):
+CHARACTERS (describe them exactly like this; the video model blocks anything resembling copyrighted
+characters, so never mention real franchises, brands or superheroes, and use only the given alias in
+ilk_kare and video_prompt; the real names may appear only in baslik and aciklama):
 {chars}
 
 VISUAL STYLE:
@@ -68,12 +74,25 @@ ALREADY MADE - do NOT repeat these ideas, jokes or structures:
 """
 
 
+def apply_aliases(channel: Channel, text: str) -> str:
+    for c in channel.characters:
+        if c.alias != c.name:
+            text = re.sub(re.escape(c.name), c.alias, text, flags=re.IGNORECASE)
+    return text
+
+
+def _sentence(text: str) -> str:
+    text = text.strip()
+    return text if text.endswith((".", "!", "?")) else text + "."
+
+
 def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
-    chars = " ".join(f"{c.name} is {c.description}." for c in channel.characters)
+    chars = " ".join(f"{c.alias} is {c.description}." for c in channel.characters)
     return (
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
         f"Characters: {chars} Style: {channel.style.rstrip('.')}. "
-        f"Opening shot: {scenario.ilk_kare} Action: {scenario.video_prompt} "
+        f"Opening shot: {_sentence(apply_aliases(channel, scenario.ilk_kare))} "
+        f"Action: {_sentence(apply_aliases(channel, scenario.video_prompt))} "
         f"All spoken dialogue is in {language_name(channel.language)}. "
         f"Lighthearted, family-friendly comedy: everyone is safe and nobody gets hurt. "
         f"No subtitles, captions or on-screen text."

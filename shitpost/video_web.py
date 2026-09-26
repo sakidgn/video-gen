@@ -1,4 +1,5 @@
 import base64
+import re
 import time
 from pathlib import Path
 
@@ -84,6 +85,47 @@ SKIP_BUTTON = (
 )
 VIDEO_WORDS = ("video", "veo")
 SELECTED_WORDS = ("kaldır", "remove", "deselect", "seçimi")
+COPYRIGHT_PHRASES = ("third-party", "third party", "üçüncü taraf")
+
+ASPECT_BUTTON_JS = """() => {
+  const btns = Array.from(document.querySelectorAll('button')).filter(b => b.offsetParent !== null);
+  const b = btns.find(b => /^(yatay|dikey|landscape|portrait|16:9|9:16)\\b/i.test((b.innerText || '').trim()));
+  if (!b) return null;
+  b.setAttribute('data-sp-aspect', '1');
+  return (b.innerText || '').trim();
+}"""
+
+CLICK_PORTRAIT_JS = """() => {
+  const root = document.querySelector('.cdk-overlay-container');
+  if (!root) return null;
+  const items = Array.from(root.querySelectorAll('[role="menuitem"], [role="menuitemradio"], [role="option"], button, li'));
+  const hit = items.find(el => el.offsetParent !== null && /(dikey|portrait|9:16)/i.test(el.innerText || ''));
+  if (!hit) return null;
+  hit.click();
+  return (hit.innerText || '').trim().slice(0, 40);
+}"""
+
+
+def _select_portrait(page, log, notes: list) -> None:
+    current = page.evaluate(ASPECT_BUTTON_JS)
+    if not current:
+        notes.append("Format butonu bulunamadı")
+        return
+    if re.match(r"(dikey|portrait|9:16)", current, re.IGNORECASE):
+        notes.append(f"Format zaten dikey: {current!r}")
+        return
+    try:
+        page.locator('button[data-sp-aspect="1"]').click(timeout=3000)
+    except Exception:
+        page.evaluate("() => document.querySelector('button[data-sp-aspect=\"1\"]').click()")
+    page.wait_for_timeout(800)
+    picked = page.evaluate(CLICK_PORTRAIT_JS)
+    notes.append(f"Format: {current!r} -> {picked!r} (menü: {page.evaluate(OVERLAY_TEXT_JS)!r})")
+    if picked:
+        log(f"Video formatı dikey yapıldı ({picked}).")
+    else:
+        log("UYARI: Dikey format seçilemedi, video yatay çıkabilir.")
+    _clear_overlays(page, log, notes)
 
 
 def _click_button(page, idx: int, notes: list) -> bool:
@@ -119,7 +161,11 @@ def _clear_overlays(page, log, notes: list) -> None:
 def _select_video_tool(page, log, diag_path: Path) -> bool:
     notes: list[str] = []
     try:
-        return _select_video_tool_inner(page, log, notes)
+        ok = _select_video_tool_inner(page, log, notes)
+        if ok:
+            page.wait_for_timeout(1000)
+            _select_portrait(page, log, notes)
+        return ok
     finally:
         _clear_overlays(page, log, notes)
         diag_path.parent.mkdir(parents=True, exist_ok=True)
@@ -278,6 +324,9 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages:
             raise _with_reply(QuotaExceeded(raw.strip()[:300]), raw)
         if any(ph in text for ph in REFUSAL_PHRASES):
             log(f"Gemini'nin cevabı:\n{raw.strip()}")
+            if any(ph in text for ph in COPYRIGHT_PHRASES):
+                raise _with_reply(VideoFiltered(
+                    "Gemini TELİF filtresine takıldı (karakter bilinen bir markaya benzetildi)"), raw)
             raise _with_reply(VideoFiltered("Gemini bu senaryoyu reddetti"), raw)
     else:
         raise TimeoutError(f"Gemini {timeout_s} sn içinde video vermedi")
