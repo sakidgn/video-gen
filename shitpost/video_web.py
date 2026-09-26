@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 from .browser import first_page, open_profile, screenshot
-from .video import VideoFiltered
+from .video import CopyrightFiltered, VideoFiltered
 
 GEMINI_URL = "https://gemini.google.com/app"
 
@@ -325,7 +325,7 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages:
         if any(ph in text for ph in REFUSAL_PHRASES):
             log(f"Gemini'nin cevabı:\n{raw.strip()}")
             if any(ph in text for ph in COPYRIGHT_PHRASES):
-                raise _with_reply(VideoFiltered(
+                raise _with_reply(CopyrightFiltered(
                     "Gemini TELİF filtresine takıldı (karakter bilinen bir markaya benzetildi)"), raw)
             raise _with_reply(VideoFiltered("Gemini bu senaryoyu reddetti"), raw)
     else:

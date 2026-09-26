@@ -111,9 +111,10 @@ def _sentence(text: str) -> str:
     return text if text.endswith((".", "!", "?")) else text + "."
 
 
-def web_video_prompt(channel: Channel, scenario: Scenario) -> str:
+def web_video_prompt(channel: Channel, scenario: Scenario, *, aliases: bool = True) -> str:
     if not scenario.ilk_kare:
-        return apply_aliases(channel, scenario.video_prompt).strip()
+        text = scenario.video_prompt.strip()
+        return apply_aliases(channel, text) if aliases else text
     chars = " ".join(f"{c.alias} is {c.description}." for c in channel.characters)
     return (
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "

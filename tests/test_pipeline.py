@@ -10,7 +10,7 @@ from google.genai import types
 from shitpost import history, pipeline, script, video_web
 from shitpost.config import CHANNELS_DIR, load_channel
 from shitpost.publish import Post
-from shitpost.video import VideoFiltered
+from shitpost.video import CopyrightFiltered, VideoFiltered
 
 PNG = b"\x89PNG\r\n\x1a\nfake"
 
@@ -168,6 +168,8 @@ def web_env(tmp_path, monkeypatch):
             raise video_web.QuotaExceeded("daily limit")
         if behavior == "filtered":
             raise VideoFiltered("no")
+        if behavior == "copyright":
+            raise CopyrightFiltered("telif")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(b"webvideo")
         return out_path
@@ -330,3 +332,16 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
     assert s.baslik == "Spoderman pazarda"
     prompt = script.web_video_prompt(channel, s)
     assert prompt.startswith("Blocky Guy slips") and "spoderman" not in prompt.lower()
+
+
+def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, web_env, monkeypatch):
+    channel.scenario["motor"] = "chatgpt_web"
+    raw = "Spoderman hands Orange a square tomato and says 'Bu ne?'"
+    s = script.Scenario(baslik="t", aciklama="a", ozet="o", ilk_kare="", video_prompt=raw, hashtagler=[])
+    monkeypatch.setattr(script, "write_scenario", lambda *a, **k: s)
+    web_env.behavior.append("copyright")
+    result = run(FakeClient(), channel, tmp_path, publish=False)
+    prompts = [c[1] for c in web_env.calls]
+    assert prompts == [raw, raw.replace("Spoderman", "Blocky Guy")]
+    assert [c[0] for c in web_env.calls] == ["P1", "P1"]
+    assert (result.folder / "gemini_prompt_1.txt").read_text() == raw

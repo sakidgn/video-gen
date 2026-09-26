@@ -10,6 +10,10 @@ class VideoFiltered(RuntimeError):
     pass
 
 
+class CopyrightFiltered(VideoFiltered):
+    pass
+
+
 def generate_video(
     client,
     channel: Channel,

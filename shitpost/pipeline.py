@@ -7,7 +7,7 @@ from pathlib import Path
 from . import accounts, history, images, script, video_web
 from .config import OUTPUT_DIR, Channel
 from .publish import Post, publish_all
-from .video import VideoFiltered, generate_video
+from .video import CopyrightFiltered, VideoFiltered, generate_video
 
 
 class NoQuotaLeft(RuntimeError):
@@ -34,17 +34,31 @@ def _video_via_api(client, channel, scenario, folder, log, **video_kwargs) -> Pa
 
 
 def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
-    prompt = script.web_video_prompt(channel, scenario)
+    # ChatGPT promptu önce olduğu gibi denenir; sadece telif reddinde isimler değiştirilir.
+    variants = [script.web_video_prompt(channel, scenario)]
+    if not scenario.ilk_kare:
+        variants.insert(0, script.web_video_prompt(channel, scenario, aliases=False))
+    variants = list(dict.fromkeys(variants))
+    idx = 0
     for profile in accounts.available():
         log(f"Gemini hesabı: {profile}")
-        try:
-            path = video_web.generate_video_web(profile, prompt, folder / "video.mp4", log=log)
-        except video_web.QuotaExceeded:
-            log(f">>> {profile} hesabının bugünkü video hakkı dolmuş. Sıradaki hesaba geçiliyor (yeni pencere açılacak).")
-            accounts.record(profile, exhausted=True)
-            continue
-        accounts.record(profile)
-        return path
+        while True:
+            prompt = variants[idx]
+            (folder / f"gemini_prompt_{idx + 1}.txt").write_text(prompt, encoding="utf-8")
+            try:
+                path = video_web.generate_video_web(profile, prompt, folder / "video.mp4", log=log)
+            except video_web.QuotaExceeded:
+                log(f">>> {profile} hesabının bugünkü video hakkı dolmuş. Sıradaki hesaba geçiliyor (yeni pencere açılacak).")
+                accounts.record(profile, exhausted=True)
+                break
+            except CopyrightFiltered:
+                if idx + 1 >= len(variants):
+                    raise
+                idx += 1
+                log(">>> Telif filtresi: aynı prompt, karakter isimleri değiştirilerek yeni sohbette tekrar deneniyor.")
+                continue
+            accounts.record(profile)
+            return path
     raise NoQuotaLeft("Bugün tüm Gemini hesaplarının video hakkı bitti (ya da .env'de GEMINI_PROFILLER boş)")
 
 
