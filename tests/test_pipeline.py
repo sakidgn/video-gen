@@ -157,8 +157,6 @@ def web_env(tmp_path, monkeypatch):
     from shitpost import accounts
 
     monkeypatch.setenv("GEMINI_PROFILLER", "P1;P2")
-    monkeypatch.setenv("GEMINI_GUNLUK_SINIR", "2")
-    monkeypatch.setattr(accounts, "STATE_PATH", tmp_path / "yerel" / "kota.json")
     calls = []
 
     def fake_web(profile, prompt, out_path, log=print, **kw):
@@ -189,23 +187,22 @@ def test_web_engine_uses_account_and_counts_quota(channel, tmp_path, web_env):
     assert not any(c.reference.exists() for c in channel.characters)
 
     run(FakeClient(), channel, tmp_path, publish=False)
-    assert web_env.accounts.available() == ["P2"]
+    assert [c[0] for c in web_env.calls] == ["P1", "P1"]
 
 
 def test_web_engine_switches_account_on_quota(channel, tmp_path, web_env):
     web_env.behavior.append("quota")
     run(FakeClient(), channel, tmp_path, publish=False)
     assert [c[0] for c in web_env.calls] == ["P1", "P2"]
-    assert web_env.accounts.available() == ["P2"]
 
 
 def test_web_engine_stops_when_all_quota_used(channel, tmp_path, web_env):
     web_env.behavior.extend(["quota", "quota"])
     with pytest.raises(pipeline.NoQuotaLeft):
         run(FakeClient(), channel, tmp_path, publish=False)
-    with pytest.raises(pipeline.NoQuotaLeft):
-        run(FakeClient(), channel, tmp_path, publish=False)
-    assert len(web_env.calls) == 2
+    assert [c[0] for c in web_env.calls] == ["P1", "P2"]
+    run(FakeClient(), channel, tmp_path, publish=False)
+    assert [c[0] for c in web_env.calls] == ["P1", "P2", "P1"]
 
 
 def test_web_engine_retries_filtered_with_new_scenario(channel, tmp_path, web_env):
@@ -345,19 +342,3 @@ def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, 
     assert prompts == [raw, raw.replace("Spoderman", "Blocky Guy")]
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
     assert (result.folder / "gemini_prompt_1.txt").read_text() == raw
-
-
-def test_accounts_unlimited_by_default_and_reset(tmp_path, monkeypatch):
-    from shitpost import accounts
-
-    monkeypatch.setenv("GEMINI_PROFILLER", "A;B")
-    monkeypatch.delenv("GEMINI_GUNLUK_SINIR", raising=False)
-    monkeypatch.setenv("GEMINI_GUNLUK_LIMIT", "3")
-    state = tmp_path / "kota.json"
-    for _ in range(10):
-        accounts.record("A", path=state)
-    assert accounts.available(state) == ["A", "B"]
-    accounts.record("B", exhausted=True, path=state)
-    assert accounts.available(state) == ["A"]
-    accounts.reset(state)
-    assert accounts.available(state) == ["A", "B"]

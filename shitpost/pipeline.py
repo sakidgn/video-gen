@@ -40,7 +40,7 @@ def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
         variants.insert(0, script.web_video_prompt(channel, scenario, aliases=False))
     variants = list(dict.fromkeys(variants))
     idx = 0
-    for profile in accounts.available():
+    for profile in accounts.gemini_profiles():
         log(f"Gemini hesabı: {profile}")
         while True:
             prompt = variants[idx]
@@ -48,8 +48,7 @@ def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
             try:
                 path = video_web.generate_video_web(profile, prompt, folder / "video.mp4", log=log)
             except video_web.QuotaExceeded:
-                log(f">>> {profile} hesabının bugünkü video hakkı dolmuş. Sıradaki hesaba geçiliyor (yeni pencere açılacak).")
-                accounts.record(profile, exhausted=True)
+                log(f">>> {profile}: Gemini video limitinin dolduğunu söyledi. Sıradaki hesaba geçiliyor.")
                 break
             except CopyrightFiltered:
                 if idx + 1 >= len(variants):
@@ -57,9 +56,8 @@ def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
                 idx += 1
                 log(">>> Telif filtresi: aynı prompt, karakter isimleri değiştirilerek yeni sohbette tekrar deneniyor.")
                 continue
-            accounts.record(profile)
             return path
-    raise NoQuotaLeft("Bugün tüm Gemini hesaplarının video hakkı bitti (ya da .env'de GEMINI_PROFILLER boş)")
+    raise NoQuotaLeft("Gemini tüm hesaplarda video limitinin dolduğunu söyledi (ya da .env'de GEMINI_PROFILLER boş)")
 
 
 def run(
@@ -76,8 +74,8 @@ def run(
     engine = channel.video["motor"]
     if engine not in ("api", "gemini_web"):
         raise ValueError(f"Bilinmeyen video motoru: {engine} (api ya da gemini_web olmalı)")
-    if engine == "gemini_web" and not accounts.available():
-        raise NoQuotaLeft("Bugün kullanılabilir Gemini hesabı kalmadı")
+    if engine == "gemini_web" and not accounts.gemini_profiles():
+        raise NoQuotaLeft(".env içinde GEMINI_PROFILLER boş")
     if engine == "api" and (created := images.ensure_references(client, channel)):
         log(f"Karakter referansları üretildi: {', '.join(c.name for c in created)}")
 

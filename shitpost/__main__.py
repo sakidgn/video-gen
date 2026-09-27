@@ -168,14 +168,6 @@ def cmd_rapor(args) -> int:
     return 0
 
 
-def cmd_kota_sifirla(args) -> int:
-    from . import accounts
-
-    accounts.reset()
-    print("Gemini hak sayacı sıfırlandı. Tüm hesaplar tekrar denenecek.")
-    return 0
-
-
 def cmd_kanallar(args) -> int:
     for slug in list_channels():
         print(slug)
@@ -215,7 +207,6 @@ def main(argv=None) -> int:
     g.set_defaults(func=cmd_giris)
 
     sub.add_parser("guncelle", help="En son sürümü GitHub'dan indir").set_defaults(func=cmd_guncelle)
-    sub.add_parser("kota-sifirla", help="Gemini hesap sayacını sıfırla").set_defaults(func=cmd_kota_sifirla)
     sub.add_parser("rapor", help="Son çalışmanın kaydını ve klasörünü aç").set_defaults(func=cmd_rapor)
 
     sub.add_parser("kanallar", help="Kanalları listele").set_defaults(func=cmd_kanallar)
