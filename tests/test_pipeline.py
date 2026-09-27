@@ -157,7 +157,7 @@ def web_env(tmp_path, monkeypatch):
     from shitpost import accounts
 
     monkeypatch.setenv("GEMINI_PROFILLER", "P1;P2")
-    monkeypatch.setenv("GEMINI_GUNLUK_LIMIT", "2")
+    monkeypatch.setenv("GEMINI_GUNLUK_SINIR", "2")
     monkeypatch.setattr(accounts, "STATE_PATH", tmp_path / "yerel" / "kota.json")
     calls = []
 
@@ -345,3 +345,19 @@ def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, 
     assert prompts == [raw, raw.replace("Spoderman", "Blocky Guy")]
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
     assert (result.folder / "gemini_prompt_1.txt").read_text() == raw
+
+
+def test_accounts_unlimited_by_default_and_reset(tmp_path, monkeypatch):
+    from shitpost import accounts
+
+    monkeypatch.setenv("GEMINI_PROFILLER", "A;B")
+    monkeypatch.delenv("GEMINI_GUNLUK_SINIR", raising=False)
+    monkeypatch.setenv("GEMINI_GUNLUK_LIMIT", "3")
+    state = tmp_path / "kota.json"
+    for _ in range(10):
+        accounts.record("A", path=state)
+    assert accounts.available(state) == ["A", "B"]
+    accounts.record("B", exhausted=True, path=state)
+    assert accounts.available(state) == ["A"]
+    accounts.reset(state)
+    assert accounts.available(state) == ["A", "B"]

@@ -54,7 +54,7 @@ python -m shitpost uret spoderman --adet 3
 3. Eylem: Program başlat → `calistir.bat` dosyasını seç. "Başlangıç yeri" alanına proje klasörünü yaz.
 4. Bilgisayar o saatte açık ve senin kullanıcın oturum açmış olmalı, çünkü tarayıcı görünür modda çalışıyor.
 
-Günde kaç video çıkacağını hesap sayısı × `GEMINI_GUNLUK_LIMIT` belirler. Kota dolmuşsa görev hiçbir şey yapmadan çıkar.
+Bir hesap Gemini "limit doldu" deyince sıradaki hesaba geçilir; hepsi dolunca görev o gün hiçbir şey yapmadan çıkar. İsteğe bağlı sabit sınır: `.env` içinde `GEMINI_GUNLUK_SINIR`.
 
 ## Yeni kanal açmak
 

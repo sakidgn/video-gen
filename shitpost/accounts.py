@@ -20,7 +20,8 @@ def publish_profile() -> str:
 
 
 def daily_limit() -> int:
-    return int(os.environ.get("GEMINI_GUNLUK_LIMIT", "3"))
+    # 0 = sınırsız; hesap sadece Gemini "limit doldu" deyince atlanır.
+    return int(os.environ.get("GEMINI_GUNLUK_SINIR", "0") or 0)
 
 
 def _today_state(path: Path) -> tuple[dict, str]:
@@ -34,7 +35,7 @@ def available(path: Path | None = None) -> list[str]:
     limit = daily_limit()
     return [
         p for p in gemini_profiles()
-        if not state.get(p, {}).get("bitti") and state.get(p, {}).get("adet", 0) < limit
+        if not state.get(p, {}).get("bitti") and (not limit or state.get(p, {}).get("adet", 0) < limit)
     ]
 
 
@@ -48,3 +49,7 @@ def record(profile: str, *, exhausted: bool = False, path: Path | None = None) -
         entry["adet"] += 1
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def reset(path: Path | None = None) -> None:
+    (path or STATE_PATH).unlink(missing_ok=True)
