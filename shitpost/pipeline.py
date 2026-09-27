@@ -84,8 +84,12 @@ def run(
     folder = out_root / channel.slug / datetime.now().strftime("%Y%m%d-%H%M%S")
     last_error = None
     for attempt in range(1, attempts + 1):
-        theme = script.pick_theme(channel, rng)
-        log(f"[{attempt}/{attempts}] Tema: {theme}")
+        if channel.scenario["motor"] == "chatgpt_web":
+            theme = "chatgpt"
+            log(f"[{attempt}/{attempts}] Konuyu ChatGPT projesi seçiyor")
+        else:
+            theme = script.pick_theme(channel, rng)
+            log(f"[{attempt}/{attempts}] Tema: {theme}")
         folder.mkdir(parents=True, exist_ok=True)
         scenario = script.write_scenario(client, channel, theme, log=log, debug_dir=folder)
         log(f"Senaryo: {scenario.baslik}")

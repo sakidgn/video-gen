@@ -18,6 +18,7 @@ DEFAULT_SCENARIO = {
     "motor": "gemini_api",
     "chatgpt_url": "https://chatgpt.com/",
     "chatgpt_proje": "",
+    "chatgpt_mesaj": "Daha önce yapmadığın komik bir prompt yaz.",
 }
 
 DEFAULT_VIDEO = {

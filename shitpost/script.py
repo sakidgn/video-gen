@@ -88,16 +88,8 @@ def apply_aliases(channel: Channel, text: str) -> str:
     return text
 
 
-def build_chatgpt_request(channel: Channel, theme: str, past: list[str]) -> str:
-    names = " ve ".join(c.name for c in channel.characters)
-    lines = [f"Tema: {names}, {theme}."]
-    if past:
-        lines.append("Daha önce ürettiklerini tekrarlama:")
-        lines += [f"- {s}" for s in past]
-    else:
-        lines.append("Daha önce ürettiklerini tekrarlama.")
-    lines.append("Sadece video promptunu yaz.")
-    return "\n".join(lines)
+def build_chatgpt_request(channel: Channel) -> str:
+    return channel.scenario["chatgpt_mesaj"]
 
 
 def clean_chatgpt_output(text: str) -> str:
@@ -187,9 +179,8 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
 
     from . import accounts, chatgpt_web
 
-    past = history.recent_summaries(channel.history_path)
     profile = os.environ.get("CHATGPT_PROFILI") or accounts.publish_profile()
-    raw = chatgpt_web.ask(profile, build_chatgpt_request(channel, theme, past),
+    raw = chatgpt_web.ask(profile, build_chatgpt_request(channel),
                           url=channel.scenario["chatgpt_url"], project=channel.scenario.get("chatgpt_proje", ""),
                           log=log, debug_dir=debug_dir)
     video_prompt = clean_chatgpt_output(raw)
