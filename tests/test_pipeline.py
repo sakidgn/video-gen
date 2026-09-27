@@ -88,7 +88,7 @@ def test_channel_config_loads(channel):
     assert channel.video["en_boy"] == "9:16"
     assert channel.video["motor"] == "gemini_web"
     assert load_channel("spoderman", channel.dir.parent).scenario["motor"] == "chatgpt_web"
-    assert set(channel.platforms) == {"youtube", "tiktok_web", "instagram_web"}
+    assert set(channel.platforms) == {"youtube_web", "tiktok_web", "instagram_web"}
 
 
 def test_pick_theme_skips_recent(channel):

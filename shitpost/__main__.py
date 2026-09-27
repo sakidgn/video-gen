@@ -96,7 +96,12 @@ def cmd_giris(args) -> int:
 
     urls = ["https://gemini.google.com/app"]
     if not args.sadece_gemini:
-        urls += ["https://chatgpt.com/", "https://www.tiktok.com/login", "https://www.instagram.com/accounts/login/"]
+        urls += [
+            "https://chatgpt.com/",
+            "https://studio.youtube.com/",
+            "https://www.tiktok.com/login",
+            "https://www.instagram.com/accounts/login/",
+        ]
 
     chrome = find_chrome()
     if not chrome:

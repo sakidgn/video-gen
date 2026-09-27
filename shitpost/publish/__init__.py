@@ -16,10 +16,11 @@ class Post:
 
 
 def publish_all(channel: Channel, video_path: Path, post: Post) -> tuple[dict, dict]:
-    from . import ayrshare, instagram_web, tiktok_web, youtube
+    from . import ayrshare, instagram_web, tiktok_web, youtube, youtube_web
 
     publishers = {
         "youtube": youtube.publish,
+        "youtube_web": youtube_web.publish,
         "tiktok_web": tiktok_web.publish,
         "instagram_web": instagram_web.publish,
         "ayrshare": ayrshare.publish,

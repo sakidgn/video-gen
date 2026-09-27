@@ -71,9 +71,11 @@ video:
   sure: 8
 
 platformlar:
-  youtube:
-    token_env: YOUTUBE_TOKEN_SPODERMAN
-    gizlilik: public   # ilk testlerde "private" yapabilirsin
+  youtube_web: {}   # YouTube Studio'ya tarayıcıdan yükler (Google Cloud kurulumu gerekmez)
+  # Google Cloud'dan client_secret.json alırsan resmi API ile:
+  # youtube:
+  #   token_env: YOUTUBE_TOKEN_SPODERMAN
+  #   gizlilik: public
   tiktok_web: {}
   instagram_web: {}
   # Kartın olursa TikTok/IG için tarayıcı yerine Ayrshare:
