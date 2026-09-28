@@ -4,7 +4,9 @@ import re
 import time
 from pathlib import Path
 
-from .browser import ProfileSession, first_page, launch_unattached, open_profile, os_paste_and_enter, screenshot
+from .browser import (
+    ProfileSession, first_page, key_steps_for, launch_unattached, open_profile, os_paste_and_enter, screenshot,
+)
 from .video import CopyrightFiltered, VideoFiltered
 
 GEMINI_URL = "https://gemini.google.com/app"
@@ -326,6 +328,68 @@ DETACHED_POLL_SECONDS = 20
 PAGE_LOAD_SECONDS = 10
 
 
+ACTIVE_INFO_JS = """() => {
+  const a = document.activeElement;
+  if (!a) return null;
+  return {
+    text: (a.innerText || a.getAttribute('aria-label') || '').trim().slice(0, 40),
+    textbox: a.getAttribute('role') === 'textbox' || !!(a.closest && a.closest('[role="textbox"]')),
+    aspect: a.hasAttribute('data-sp-aspect'),
+  };
+}"""
+PORTRAIT_RE = re.compile(r"(dikey|portrait|9:16)", re.IGNORECASE)
+
+
+def learn_portrait_keys(page, box, notes: list) -> dict | None:
+    """Yazı kutusundan Dikey seçimine klavyeyle nasıl gidildiğini öğrenir (bağlantısız aşamada tekrarlanır)."""
+    if not page.evaluate(ASPECT_BUTTON_JS):
+        notes.append("Klavye planı: format butonu yok")
+        return None
+    box.focus()
+    for tab in range(1, 31):
+        page.keyboard.press("Tab")
+        info = page.evaluate(ACTIVE_INFO_JS)
+        if info and info["aspect"]:
+            break
+    else:
+        notes.append("Klavye planı: Tab ile format butonuna ulaşılamadı")
+        return None
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(900)
+    for down in range(0, 8):
+        info = page.evaluate(ACTIVE_INFO_JS)
+        if info and PORTRAIT_RE.search(info["text"]):
+            break
+        page.keyboard.press("ArrowDown")
+        page.wait_for_timeout(250)
+    else:
+        page.keyboard.press("Escape")
+        notes.append("Klavye planı: menüde Dikey'e ok tuşuyla gidilemedi")
+        return None
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(900)
+    if not PORTRAIT_RE.search(page.evaluate(ASPECT_BUTTON_JS) or ""):
+        notes.append("Klavye planı: Enter sonrası format Dikey olmadı")
+        return None
+    for back in range(1, 31):
+        page.keyboard.press("Shift+Tab")
+        info = page.evaluate(ACTIVE_INFO_JS)
+        if info and info["textbox"]:
+            break
+    else:
+        notes.append("Klavye planı: yazı kutusuna geri dönülemedi")
+        return None
+    plan = {"tab": tab, "down": down, "back": back}
+    notes.append(f"Klavye planı: {plan}")
+    return plan
+
+
+def replay_keys_cdp(page, keys: list[str]) -> None:
+    for key in keys:
+        page.keyboard.press(key)
+        page.wait_for_timeout(900 if key == "Enter" else 250)
+
+
 def _open_gemini(page, log, out_path: Path):
     page.goto(GEMINI_URL, wait_until="domcontentloaded", timeout=90_000)
     page.wait_for_timeout(3000)
@@ -368,11 +432,19 @@ def _generate_hands_off(p, profile_dir: str, prompt: str, out_path: Path, timeou
     prep = open_profile(p, profile_dir)
     prep_state = {"page": first_page(prep)}
 
-    def prepare() -> str:
-        _open_gemini(prep_state["page"], log, out_path)
-        return prep_state["page"].url
+    def prepare() -> tuple[str, dict | None]:
+        page = prep_state["page"]
+        box = _open_gemini(page, log, out_path)
+        notes: list[str] = []
+        plan = learn_portrait_keys(page, box, notes)
+        with (out_path.parent / "gemini_arayuz.txt").open("a", encoding="utf-8") as f:
+            f.write("\n" + "\n".join(notes))
+        if not plan:
+            log("UYARI: Dikey seçimi için klavye yolu öğrenilemedi; video yatay gelirse dikeye çevrilecek.")
+        return page.url, plan
 
-    video_url = _guarded(prep, prep_state, out_path, prepare)
+    video_url, plan = _guarded(prep, prep_state, out_path, prepare)
+    keys = key_steps_for(plan)
     if "gemini.google.com" not in video_url:
         video_url = GEMINI_URL
     log(f"Hazırlık bitti. Chrome bağlantısız yeniden açılıyor: {video_url}")
@@ -383,8 +455,8 @@ def _generate_hands_off(p, profile_dir: str, prompt: str, out_path: Path, timeou
 
     def send_and_wait() -> Path:
         time.sleep(PAGE_LOAD_SECONDS)
-        log("Prompt panoya kopyalanıp Ctrl+V ve Enter gerçek klavyeyle basılıyor (birkaç saniye klavyeye dokunma)...")
-        sent = os_paste_and_enter(ctx.pid, prompt)
+        log("Dikey seçiliyor ve prompt gerçek klavyeyle yapıştırılıp gönderiliyor (birkaç saniye klavyeye dokunma)...")
+        sent = os_paste_and_enter(ctx.pid, prompt, keys)
         time.sleep(6)
         ctx.attach()
         page = state["page"] = ctx.find_page("gemini.google.com")
@@ -395,6 +467,8 @@ def _generate_hands_off(p, profile_dir: str, prompt: str, out_path: Path, timeou
             else:
                 log("UYARI: Klavyeyle yapıştırılan prompt gitmemiş görünüyor; program üzerinden gönderiliyor.")
             box.wait_for(state="visible", timeout=30_000)
+            box.focus()
+            replay_keys_cdp(page, keys)
             box.focus()
             page.keyboard.press("Control+A")
             page.keyboard.press("Delete")

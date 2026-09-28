@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from . import accounts, history, images, script, video_web
+from . import accounts, history, images, postprocess, script, video_web
 from .config import OUTPUT_DIR, Channel
 from .publish import Post, publish_all
 from .video import CopyrightFiltered, VideoFiltered, generate_video
@@ -129,6 +129,11 @@ def run(
     else:
         raise RuntimeError(f"{attempts} denemede video üretilemedi: {last_error}")
 
+    if channel.video.get("en_boy") == "9:16":
+        try:
+            video = postprocess.ensure_vertical(video, log)
+        except Exception as e:
+            log(f"UYARI: Dikey çevirme başarısız ({type(e).__name__}: {str(e)[:100]}), orijinal video kullanılıyor.")
     result = Result(folder=folder, video=video, scenario=scenario, theme=theme)
     log(f"Video hazır: {video}")
     if not publish:

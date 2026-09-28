@@ -190,16 +190,30 @@ def os_press_enter(pid: int) -> bool:
     return True
 
 
-def os_paste_and_enter(pid: int, text: str) -> bool:
-    """Metni panoya koyup Chrome'da gerçek klavyeyle Ctrl+V ve Enter basar."""
+VK = {"Tab": 0x09, "Enter": 0x0D, "Shift": 0x10, "Control": 0x11, "ArrowDown": 0x28, "V": 0x56}
+
+
+def key_steps_for(plan: dict | None) -> list[str]:
+    """Hazırlıkta öğrenilen plana göre Dikey seçimi ve yazı kutusuna dönüş tuşları."""
+    if not plan:
+        return []
+    return (["Tab"] * plan["tab"] + ["Enter"] + ["ArrowDown"] * plan["down"] + ["Enter"]
+            + ["Shift+Tab"] * plan["back"])
+
+
+def os_paste_and_enter(pid: int, text: str, pre_keys: list[str] | None = None) -> bool:
+    """Chrome'u öne getirip gerçek klavyeyle önce pre_keys'i, sonra Ctrl+V ve Enter'ı basar."""
     if os.name != "nt":
         return False
     _set_clipboard(text)
     if not _focus_window(pid):
         return False
-    _tap(0x11, 0x56)  # Ctrl+V
+    for key in pre_keys or []:
+        _tap(*[VK[k] for k in key.split("+")])
+        time.sleep(0.9 if key == "Enter" else 0.25)
+    _tap(VK["Control"], VK["V"])
     time.sleep(2.5)
-    _tap(0x0D)
+    _tap(VK["Enter"])
     return True
 
 
