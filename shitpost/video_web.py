@@ -4,7 +4,7 @@ import re
 import time
 from pathlib import Path
 
-from .browser import ProfileSession, first_page, open_profile, os_press_enter, screenshot
+from .browser import ProfileSession, first_page, launch_unattached, open_profile, os_paste_and_enter, screenshot
 from .video import CopyrightFiltered, VideoFiltered
 
 GEMINI_URL = "https://gemini.google.com/app"
@@ -264,29 +264,44 @@ def _with_reply(exc: Exception, reply: str) -> Exception:
     return exc
 
 
+def _hands_off_mode() -> bool:
+    # Gemini, sayfa bir otomasyon bağlıyken yüklenip gönderilen video isteklerini "yoğunum" diye
+    # reddediyordu. Windows'ta sayfa bağlantısız açılır ve prompt gerçek klavyeyle gönderilir.
+    if os.environ.get("TARAYICI_MODU", "normal") == "playwright" or os.environ.get("CDP_ILE_GONDER") == "1":
+        return False
+    return os.name == "nt" or os.environ.get("AYRIK_MOD_TEST") == "1"
+
+
+def _guarded(ctx, state: dict, out_path: Path, fn):
+    try:
+        return fn()
+    except Exception as e:
+        try:
+            if isinstance(ctx, ProfileSession):
+                ctx.attach()
+                state["page"] = ctx.find_page("gemini.google.com")
+        except Exception:
+            pass
+        stamp = time.strftime("%H%M%S")
+        if state.get("page") is not None:
+            screenshot(state["page"], out_path.parent / f"hata_gemini_{stamp}.png")
+        reply = getattr(e, "reply", None)
+        if reply:
+            (out_path.parent / f"gemini_cevabi_{stamp}.txt").write_text(reply, encoding="utf-8")
+        raise
+    finally:
+        ctx.close()
+
+
 def generate_video_web(profile_dir: str, prompt: str, out_path: Path, *, timeout_s: int = 600, log=print) -> Path:
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:
+        if _hands_off_mode():
+            return _generate_hands_off(p, profile_dir, prompt, out_path, timeout_s, log)
         ctx = open_profile(p, profile_dir)
         state = {"page": first_page(ctx)}
-        try:
-            return _generate(ctx, prompt, out_path, timeout_s, log, state)
-        except Exception as e:
-            try:
-                if isinstance(ctx, ProfileSession):
-                    ctx.attach()
-                    state["page"] = ctx.find_page("gemini.google.com")
-            except Exception:
-                pass
-            stamp = time.strftime("%H%M%S")
-            screenshot(state["page"], out_path.parent / f"hata_gemini_{stamp}.png")
-            reply = getattr(e, "reply", None)
-            if reply:
-                (out_path.parent / f"gemini_cevabi_{stamp}.txt").write_text(reply, encoding="utf-8")
-            raise
-        finally:
-            ctx.close()
+        return _guarded(ctx, state, out_path, lambda: _generate(ctx, prompt, out_path, timeout_s, log, state))
 
 
 def _norm_len(text: str) -> int:
@@ -308,68 +323,99 @@ def _wait_until_box_has(page, box, prompt: str, timeout_s: int = 20) -> None:
 
 
 DETACHED_POLL_SECONDS = 20
+PAGE_LOAD_SECONDS = 10
 
 
-def _detached_mode(ctx) -> bool:
-    # Gemini, CDP bağlıyken gönderilen video isteklerini "yoğunum/hata" diye reddediyordu. Gönderim ve
-    # bekleme sırasında bağlantı kopuk tutulur, Enter gerçek klavyeyle basılır.
-    if not isinstance(ctx, ProfileSession) or os.environ.get("CDP_ILE_GONDER") == "1":
-        return False
-    return os.name == "nt" or os.environ.get("AYRIK_MOD_TEST") == "1"
-
-
-def _send(ctx, page, box, detached: bool, log):
-    if not detached:
-        page.keyboard.press("Enter")
-        page.wait_for_timeout(3000)
-        return page, box
-    page.bring_to_front()
-    box.focus()
-    ctx.detach()
-    log("Bağlantı koparıldı; Chrome öne getirilip Enter gerçek klavyeyle basılıyor (birkaç saniye klavyeye dokunma)...")
-    pressed = os_press_enter(ctx.pid)
-    time.sleep(4)
-    ctx.attach()
-    page = ctx.find_page("gemini.google.com")
-    box = page.locator('div[role="textbox"]').first
-    if not pressed:
-        log("UYARI: Windows üzerinden Enter basılamadı (Chrome öne gelmedi), program üzerinden gönderiliyor.")
-        box.focus()
-        page.keyboard.press("Enter")
-        page.wait_for_timeout(3000)
-    return page, box
-
-
-def _generate(ctx, prompt: str, out_path: Path, timeout_s: int, log, state: dict) -> Path:
-    page = state["page"]
-    detached = _detached_mode(ctx)
-    new_pages: list = []
-    if not detached:
-        ctx.on("page", lambda pg: new_pages.append(pg))
-    folder = out_path.parent
+def _open_gemini(page, log, out_path: Path):
     page.goto(GEMINI_URL, wait_until="domcontentloaded", timeout=90_000)
     page.wait_for_timeout(3000)
     if "accounts.google.com" in page.url:
         raise RuntimeError("Bu profilde Google oturumu açık değil. `python -m shitpost giris <profil>` ile giriş yap.")
-
     box = page.locator('div[role="textbox"]').first
     box.wait_for(state="visible", timeout=60_000)
     page.wait_for_timeout(1500)
     _select_video_tool(page, log, out_path.parent / "gemini_arayuz.txt")
-    screenshot(page, folder / "adim_0_arac_secimi.png")
+    screenshot(page, out_path.parent / "adim_0_arac_secimi.png")
+    return box
+
+
+def _type_and_send(page, box, prompt: str, log) -> None:
     box.focus()
     page.keyboard.insert_text(prompt)
     _wait_until_box_has(page, box, prompt)
-    page, box = _send(ctx, page, box, detached, log)
-    state["page"] = page
+    page.keyboard.press("Enter")
+    page.wait_for_timeout(3000)
     if box.inner_text().strip():
         log("UYARI: Gönderdikten sonra yazı kutusunda metin kaldı, prompt yarım gitmiş olabilir.")
         box.focus()
         page.keyboard.press("Control+A")
         page.keyboard.press("Delete")
-    log(f"Prompt gönderildi, Gemini videoyu üretiyor... (adres: {page.url})")
-    screenshot(page, folder / "adim_1_gonderildi.png")
 
+
+def _generate(ctx, prompt: str, out_path: Path, timeout_s: int, log, state: dict) -> Path:
+    page = state["page"]
+    new_pages: list = []
+    ctx.on("page", lambda pg: new_pages.append(pg))
+    box = _open_gemini(page, log, out_path)
+    _type_and_send(page, box, prompt, log)
+    log(f"Prompt gönderildi, Gemini videoyu üretiyor... (adres: {page.url})")
+    screenshot(page, out_path.parent / "adim_1_gonderildi.png")
+    return _await_video(ctx, page, out_path, timeout_s, log, state, detached=False, new_pages=new_pages)
+
+
+def _generate_hands_off(p, profile_dir: str, prompt: str, out_path: Path, timeout_s: int, log) -> Path:
+    # 1) Hazırlık (bağlı): Videolar bölümünün adresi bulunur, Dikey seçilir (Gemini tercihi hatırlar).
+    prep = open_profile(p, profile_dir)
+    prep_state = {"page": first_page(prep)}
+
+    def prepare() -> str:
+        _open_gemini(prep_state["page"], log, out_path)
+        return prep_state["page"].url
+
+    video_url = _guarded(prep, prep_state, out_path, prepare)
+    if "gemini.google.com" not in video_url:
+        video_url = GEMINI_URL
+    log(f"Hazırlık bitti. Chrome bağlantısız yeniden açılıyor: {video_url}")
+
+    # 2) Gönderim (bağlantısız): sayfa hiçbir otomasyon bağlı değilken yüklenir, prompt gerçek klavyeyle gider.
+    ctx = launch_unattached(p, profile_dir, video_url)
+    state: dict = {"page": None}
+
+    def send_and_wait() -> Path:
+        time.sleep(PAGE_LOAD_SECONDS)
+        log("Prompt panoya kopyalanıp Ctrl+V ve Enter gerçek klavyeyle basılıyor (birkaç saniye klavyeye dokunma)...")
+        sent = os_paste_and_enter(ctx.pid, prompt)
+        time.sleep(6)
+        ctx.attach()
+        page = state["page"] = ctx.find_page("gemini.google.com")
+        box = page.locator('div[role="textbox"]').first
+        if page.locator("model-response").count() == 0:
+            if not sent:
+                log("UYARI: Windows klavyesiyle gönderilemedi (Chrome öne gelmedi); program üzerinden gönderiliyor.")
+            else:
+                log("UYARI: Klavyeyle yapıştırılan prompt gitmemiş görünüyor; program üzerinden gönderiliyor.")
+            box.wait_for(state="visible", timeout=30_000)
+            box.focus()
+            page.keyboard.press("Control+A")
+            page.keyboard.press("Delete")
+            _type_and_send(page, box, prompt, log)
+        chip = any(any(w in b["label"].lower() for w in VIDEO_WORDS) for b in page.evaluate(INPUT_BUTTONS_JS))
+        if not (chip or page.evaluate(VIDEO_MODE_JS) or page.locator("model-response").count()):
+            log("UYARI: Yeniden açılan Gemini sayfasında Video modu görünmüyor; video yerine yazı cevabı gelebilir.")
+        aspect = page.evaluate(ASPECT_BUTTON_JS)
+        if aspect and not re.match(r"(dikey|portrait|9:16)", aspect, re.IGNORECASE):
+            log(f"UYARI: Gemini formatı '{aspect}' görünüyor, video dikey olmayabilir.")
+        log(f"Prompt gönderildi, Gemini videoyu üretiyor... (adres: {page.url})")
+        screenshot(page, out_path.parent / "adim_1_gonderildi.png")
+        return _await_video(ctx, page, out_path, timeout_s, log, state, detached=True)
+
+    return _guarded(ctx, state, out_path, send_and_wait)
+
+
+def _await_video(ctx, page, out_path: Path, timeout_s: int, log, state: dict, *, detached: bool,
+                 new_pages: list | None = None) -> Path:
+    new_pages = new_pages if new_pages is not None else []
+    folder = out_path.parent
     start = time.time()
     src = None
     prev_text = None

@@ -86,7 +86,7 @@ class ProfileSession:
             self._process.kill()
 
 
-def _open_real_chrome(p, profile_dir: str) -> ProfileSession:
+def _open_real_chrome(p, profile_dir: str, url: str = "about:blank", connect: bool = True) -> ProfileSession:
     import subprocess
     import urllib.request
 
@@ -104,7 +104,7 @@ def _open_real_chrome(p, profile_dir: str) -> ProfileSession:
         "--disable-renderer-backgrounding",
         *_window_args(),
         *os.environ.get("TARAYICI_EK_ARGS", "").split(),
-        "about:blank",
+        url,
     ]
     process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     endpoint = f"http://127.0.0.1:{port}"
@@ -121,15 +121,18 @@ def _open_real_chrome(p, profile_dir: str) -> ProfileSession:
                     f"olabilir; Görev Yöneticisi'nden Chrome'u kapatıp tekrar dene."
                 )
             time.sleep(0.5)
-    browser = p.chromium.connect_over_cdp(endpoint)
-    context = browser.contexts[0] if browser.contexts else browser.new_context()
-    return ProfileSession(p, endpoint, browser, context, process)
+    session = ProfileSession(p, endpoint, None, None, process)
+    if connect:
+        session.attach()
+    return session
 
 
-def os_press_enter(pid: int) -> bool:
-    """Chrome penceresini öne getirip Windows üzerinden gerçek bir Enter basar."""
-    if os.name != "nt":
-        return False
+def launch_unattached(p, profile_dir: str, url: str) -> ProfileSession:
+    """Chrome'u verilen adresle açar ama bağlanmaz; sayfa hiçbir otomasyon bağlıyken yüklenir."""
+    return _open_real_chrome(p, profile_dir, url=url, connect=False)
+
+
+def _focus_window(pid: int) -> bool:
     import ctypes
     from ctypes import wintypes
 
@@ -147,16 +150,56 @@ def os_press_enter(pid: int) -> bool:
     user32.EnumWindows(_collect, 0)
     if not hwnds:
         return False
-    alt, enter, keyup = 0x12, 0x0D, 0x0002
-    user32.keybd_event(alt, 0, 0, 0)  # Windows'un pencereyi öne almasına izin vermesi için
-    user32.keybd_event(alt, 0, keyup, 0)
+    user32.keybd_event(0x12, 0, 0, 0)  # ALT: Windows'un pencereyi öne almasına izin vermesi için
+    user32.keybd_event(0x12, 0, 0x0002, 0)
     user32.ShowWindow(hwnds[0], 9)
     user32.SetForegroundWindow(hwnds[0])
     time.sleep(1.0)
-    if user32.GetForegroundWindow() != hwnds[0]:
+    return user32.GetForegroundWindow() == hwnds[0]
+
+
+def _tap(*keys: int) -> None:
+    import ctypes
+
+    user32 = ctypes.windll.user32
+    for k in keys:
+        user32.keybd_event(k, 0, 0, 0)
+    for k in reversed(keys):
+        user32.keybd_event(k, 0, 0x0002, 0)
+    time.sleep(0.2)
+
+
+def _set_clipboard(text: str) -> None:
+    import subprocess
+    import tempfile
+
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as f:
+        f.write(text)
+    subprocess.run(
+        ["powershell", "-NoProfile", "-Command", f"Get-Content -Raw -Encoding UTF8 '{f.name}' | Set-Clipboard"],
+        check=True, capture_output=True, timeout=30,
+    )
+    os.unlink(f.name)
+
+
+def os_press_enter(pid: int) -> bool:
+    """Chrome penceresini öne getirip Windows üzerinden gerçek bir Enter basar."""
+    if os.name != "nt" or not _focus_window(pid):
         return False
-    user32.keybd_event(enter, 0, 0, 0)
-    user32.keybd_event(enter, 0, keyup, 0)
+    _tap(0x0D)
+    return True
+
+
+def os_paste_and_enter(pid: int, text: str) -> bool:
+    """Metni panoya koyup Chrome'da gerçek klavyeyle Ctrl+V ve Enter basar."""
+    if os.name != "nt":
+        return False
+    _set_clipboard(text)
+    if not _focus_window(pid):
+        return False
+    _tap(0x11, 0x56)  # Ctrl+V
+    time.sleep(2.5)
+    _tap(0x0D)
     return True
 
 
