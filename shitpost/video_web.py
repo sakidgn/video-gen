@@ -10,7 +10,8 @@ GEMINI_URL = "https://gemini.google.com/app"
 
 BUSY_PHRASES = [
     "high traffic", "full capacity", "at capacity", "try again later", "try again in a few",
-    "yoğunluk", "kapasite", "daha sonra tekrar",
+    "encountering an error", "something went wrong", "an error occurred",
+    "yoğunluk", "kapasite", "daha sonra tekrar", "bir hata", "hatayla karşılaştım", "bir sorun oluştu",
 ]
 QUOTA_PHRASES = [
     "daily limit", "reached your limit", "limit reached", "try again tomorrow", "come back tomorrow",
