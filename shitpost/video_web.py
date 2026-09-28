@@ -1,9 +1,10 @@
 import base64
+import os
 import re
 import time
 from pathlib import Path
 
-from .browser import first_page, open_profile, screenshot
+from .browser import ProfileSession, first_page, open_profile, os_press_enter, screenshot
 from .video import CopyrightFiltered, VideoFiltered
 
 GEMINI_URL = "https://gemini.google.com/app"
@@ -235,14 +236,18 @@ def generate_video_web(profile_dir: str, prompt: str, out_path: Path, *, timeout
 
     with sync_playwright() as p:
         ctx = open_profile(p, profile_dir)
-        page = first_page(ctx)
-        new_pages = []
-        ctx.on("page", lambda pg: new_pages.append(pg))
+        state = {"page": first_page(ctx)}
         try:
-            return _generate(page, prompt, out_path, timeout_s, log, new_pages)
+            return _generate(ctx, prompt, out_path, timeout_s, log, state)
         except Exception as e:
+            try:
+                if isinstance(ctx, ProfileSession):
+                    ctx.attach()
+                    state["page"] = ctx.find_page("gemini.google.com")
+            except Exception:
+                pass
             stamp = time.strftime("%H%M%S")
-            screenshot(new_pages[-1] if new_pages else page, out_path.parent / f"hata_gemini_{stamp}.png")
+            screenshot(state["page"], out_path.parent / f"hata_gemini_{stamp}.png")
             reply = getattr(e, "reply", None)
             if reply:
                 (out_path.parent / f"gemini_cevabi_{stamp}.txt").write_text(reply, encoding="utf-8")
@@ -269,8 +274,45 @@ def _wait_until_box_has(page, box, prompt: str, timeout_s: int = 20) -> None:
     raise RuntimeError(f"Prompt yazı kutusuna tam yerleşmedi ({prev}/{expected} karakter)")
 
 
-def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages: list | None = None) -> Path:
-    new_pages = new_pages if new_pages is not None else []
+DETACHED_POLL_SECONDS = 20
+
+
+def _detached_mode(ctx) -> bool:
+    # Gemini, CDP bağlıyken gönderilen video isteklerini "yoğunum/hata" diye reddediyordu. Gönderim ve
+    # bekleme sırasında bağlantı kopuk tutulur, Enter gerçek klavyeyle basılır.
+    if not isinstance(ctx, ProfileSession) or os.environ.get("CDP_ILE_GONDER") == "1":
+        return False
+    return os.name == "nt" or os.environ.get("AYRIK_MOD_TEST") == "1"
+
+
+def _send(ctx, page, box, detached: bool, log):
+    if not detached:
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(3000)
+        return page, box
+    page.bring_to_front()
+    box.focus()
+    ctx.detach()
+    log("Bağlantı koparıldı; Chrome öne getirilip Enter gerçek klavyeyle basılıyor (birkaç saniye klavyeye dokunma)...")
+    pressed = os_press_enter(ctx.pid)
+    time.sleep(4)
+    ctx.attach()
+    page = ctx.find_page("gemini.google.com")
+    box = page.locator('div[role="textbox"]').first
+    if not pressed:
+        log("UYARI: Windows üzerinden Enter basılamadı (Chrome öne gelmedi), program üzerinden gönderiliyor.")
+        box.focus()
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(3000)
+    return page, box
+
+
+def _generate(ctx, prompt: str, out_path: Path, timeout_s: int, log, state: dict) -> Path:
+    page = state["page"]
+    detached = _detached_mode(ctx)
+    new_pages: list = []
+    if not detached:
+        ctx.on("page", lambda pg: new_pages.append(pg))
     folder = out_path.parent
     page.goto(GEMINI_URL, wait_until="domcontentloaded", timeout=90_000)
     page.wait_for_timeout(3000)
@@ -285,8 +327,8 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages:
     box.focus()
     page.keyboard.insert_text(prompt)
     _wait_until_box_has(page, box, prompt)
-    page.keyboard.press("Enter")
-    page.wait_for_timeout(3000)
+    page, box = _send(ctx, page, box, detached, log)
+    state["page"] = page
     if box.inner_text().strip():
         log("UYARI: Gönderdikten sonra yazı kutusunda metin kaldı, prompt yarım gitmiş olabilir.")
         box.focus()
@@ -296,20 +338,25 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages:
     screenshot(page, folder / "adim_1_gonderildi.png")
 
     start = time.time()
-    responses = page.locator("model-response")
     src = None
     prev_text = None
     last_url = page.url
     seen_pages = 0
     next_report = 30
     while time.time() - start < timeout_s:
-        page.wait_for_timeout(5000)
+        if detached:
+            ctx.detach()
+            time.sleep(DETACHED_POLL_SECONDS)
+            ctx.attach()
+            page = state["page"] = ctx.find_page("gemini.google.com")
+        else:
+            page.wait_for_timeout(5000)
+            if len(new_pages) > seen_pages:
+                seen_pages = len(new_pages)
+                page = state["page"] = new_pages[-1]
+                log(f"Gemini yeni bir sekme açtı, oraya geçildi: {page.url}")
+        responses = page.locator("model-response")
         elapsed = int(time.time() - start)
-        if len(new_pages) > seen_pages:
-            seen_pages = len(new_pages)
-            page = new_pages[-1]
-            responses = page.locator("model-response")
-            log(f"Gemini yeni bir sekme açtı, oraya geçildi: {page.url}")
         if page.url != last_url:
             log(f"Gemini sayfası değişti: {last_url} -> {page.url}")
             last_url = page.url
@@ -318,7 +365,8 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages:
             log(f"  ...{elapsed} sn geçti. Gemini ekranda: {snippet[-150:]!r}")
             if next_report % 60 == 0:
                 screenshot(page, folder / f"adim_bekleme_{elapsed:03d}sn.png")
-            next_report += 30
+            while next_report <= elapsed:
+                next_report += 30
         src = page.evaluate(VIDEO_SRC_JS)
         if src:
             break

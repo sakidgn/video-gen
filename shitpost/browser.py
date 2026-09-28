@@ -38,7 +38,9 @@ class ProfileSession:
     """Normal başlatılmış bir Chrome'a CDP ile bağlı oturum; Playwright'ın kendi başlattığı
     Chrome'dan farkı, otomasyon parametreleri olmaması (Google buna farklı davranıyordu)."""
 
-    def __init__(self, browser, context, process):
+    def __init__(self, p, endpoint, browser, context, process):
+        self._p = p
+        self._endpoint = endpoint
         self._browser = browser
         self._context = context
         self._process = process
@@ -46,16 +48,37 @@ class ProfileSession:
     def __getattr__(self, name):
         return getattr(self._context, name)
 
+    @property
+    def pid(self) -> int:
+        return self._process.pid
+
+    def detach(self) -> None:
+        # Sadece CDP bağlantısını koparır; Chrome ve sekmeler açık kalır.
+        if self._browser is not None:
+            try:
+                self._browser.close()
+            except Exception:
+                pass
+        self._browser = self._context = None
+
+    def attach(self) -> None:
+        if self._browser is None:
+            self._browser = self._p.chromium.connect_over_cdp(self._endpoint)
+            self._context = self._browser.contexts[0]
+
+    def find_page(self, url_part: str):
+        pages = self._context.pages
+        matches = [pg for pg in pages if url_part in pg.url]
+        return (matches or pages)[-1]
+
     def close(self):
         try:
+            self.attach()
             for pg in list(self._context.pages):
                 pg.close()
         except Exception:
             pass
-        try:
-            self._browser.close()
-        except Exception:
-            pass
+        self.detach()
         try:
             self._process.terminate()
             self._process.wait(timeout=10)
@@ -100,7 +123,41 @@ def _open_real_chrome(p, profile_dir: str) -> ProfileSession:
             time.sleep(0.5)
     browser = p.chromium.connect_over_cdp(endpoint)
     context = browser.contexts[0] if browser.contexts else browser.new_context()
-    return ProfileSession(browser, context, process)
+    return ProfileSession(p, endpoint, browser, context, process)
+
+
+def os_press_enter(pid: int) -> bool:
+    """Chrome penceresini öne getirip Windows üzerinden gerçek bir Enter basar."""
+    if os.name != "nt":
+        return False
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    hwnds = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def _collect(hwnd, _):
+        owner = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        if owner.value == pid and user32.IsWindowVisible(hwnd) and user32.GetWindowTextLengthW(hwnd) > 0:
+            hwnds.append(hwnd)
+        return True
+
+    user32.EnumWindows(_collect, 0)
+    if not hwnds:
+        return False
+    alt, enter, keyup = 0x12, 0x0D, 0x0002
+    user32.keybd_event(alt, 0, 0, 0)  # Windows'un pencereyi öne almasına izin vermesi için
+    user32.keybd_event(alt, 0, keyup, 0)
+    user32.ShowWindow(hwnds[0], 9)
+    user32.SetForegroundWindow(hwnds[0])
+    time.sleep(1.0)
+    if user32.GetForegroundWindow() != hwnds[0]:
+        return False
+    user32.keybd_event(enter, 0, 0, 0)
+    user32.keybd_event(enter, 0, keyup, 0)
+    return True
 
 
 def open_profile(p, profile_dir: str, headless: bool = False):
