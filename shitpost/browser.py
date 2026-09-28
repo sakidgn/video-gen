@@ -17,6 +17,13 @@ def find_chrome() -> str | None:
     return shutil.which("chrome") or shutil.which("google-chrome") or shutil.which("chromium")
 
 
+def _window_args() -> list[str]:
+    # Headless'a göre bot tespitine daha az takılır: normal pencere, ama ekranın dışında.
+    if os.environ.get("TARAYICIYI_GOSTER", "").strip() in ("1", "evet", "true"):
+        return []
+    return ["--window-position=-32000,-32000"]
+
+
 def open_profile(p, profile_dir: str, headless: bool = False):
     channel = os.environ.get("TARAYICI_KANALI", "chrome") or None
     return p.chromium.launch_persistent_context(
@@ -26,7 +33,7 @@ def open_profile(p, profile_dir: str, headless: bool = False):
         headless=headless,
         accept_downloads=True,
         viewport={"width": 1280, "height": 900},
-        args=["--disable-blink-features=AutomationControlled"],
+        args=["--disable-blink-features=AutomationControlled", *_window_args()],
         ignore_default_args=["--enable-automation", "--no-sandbox"],
     )
 
