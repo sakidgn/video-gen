@@ -342,3 +342,22 @@ def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, 
     assert prompts == [raw, raw.replace("Spoderman", "Blocky Guy")]
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
     assert (result.folder / "gemini_prompt_1.txt").read_text() == raw
+
+
+def test_chatgpt_scenario_survives_gemini_api_outage(channel, monkeypatch):
+    from google.genai import errors
+
+    from shitpost import chatgpt_web
+
+    channel.scenario["motor"] = "chatgpt_web"
+    monkeypatch.setenv("CHATGPT_PROFILI", "P1")
+    monkeypatch.setattr(script, "_sleep", lambda s: (_ for _ in ()).throw(AssertionError("should not wait")))
+    monkeypatch.setattr(chatgpt_web, "ask", lambda *a, **k: "Spoderman and Orange argue about a very long pineapple.")
+    client = FakeClient()
+
+    def busy(model, contents, config):
+        raise errors.ClientError(429, {"error": {"code": 429, "message": "quota", "status": "RESOURCE_EXHAUSTED"}})
+
+    client.models.generate_content = busy
+    s = script.write_scenario(client, channel, "x", log=lambda *a: None)
+    assert s.baslik == channel.name and s.video_prompt.startswith("Spoderman and Orange")

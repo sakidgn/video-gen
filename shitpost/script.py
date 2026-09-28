@@ -134,10 +134,10 @@ def _is_temporary(e: errors.APIError) -> bool:
     return isinstance(e, errors.ServerError) or e.code == 429
 
 
-def _generate_with_retry(client, model: str, contents, config):
+def _generate_with_retry(client, model: str, contents, config, delays=None):
     models = [model] + [m for m in FALLBACK_TEXT_MODELS if m != model]
     last_error = None
-    for delay in [0, *RETRY_DELAYS]:
+    for delay in [0, *(RETRY_DELAYS if delays is None else delays)]:
         if delay:
             print(f"Tüm modeller yoğun, {delay} sn bekleniyor...")
             _sleep(delay)
@@ -194,14 +194,19 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
     names = ", ".join(f"{c.alias} = {c.name}" for c in channel.characters)
-    resp = _generate_with_retry(
-        client, channel.models["metin"],
-        f"This is the video prompt of a short shitpost video for the channel \"{channel.name}\". "
-        f"Character names in the post may use the real names ({names}). Write baslik and aciklama in "
-        f"natural slangy {lang} social-media style, ozet as one English sentence, and 3-6 hashtags.\n\n"
-        f"VIDEO PROMPT:\n{video_prompt}",
-        meta_config,
-    )
-    meta = resp.parsed if isinstance(resp.parsed, Meta) else Meta.model_validate_json(resp.text)
+    try:
+        resp = _generate_with_retry(
+            client, channel.models["metin"],
+            f"This is the video prompt of a short shitpost video for the channel \"{channel.name}\". "
+            f"Character names in the post may use the real names ({names}). Write baslik and aciklama in "
+            f"natural slangy {lang} social-media style, ozet as one English sentence, and 3-6 hashtags.\n\n"
+            f"VIDEO PROMPT:\n{video_prompt}",
+            meta_config,
+            delays=[],
+        )
+        meta = resp.parsed if isinstance(resp.parsed, Meta) else Meta.model_validate_json(resp.text)
+    except Exception as e:
+        log(f"Başlık/açıklama yazılamadı (Gemini API: {str(e)[:80]}), basit başlıkla devam ediliyor.")
+        meta = Meta(baslik=channel.name, aciklama="", ozet=video_prompt[:200], hashtagler=[])
     return Scenario(baslik=meta.baslik, aciklama=meta.aciklama, ozet=meta.ozet, ilk_kare="",
                     video_prompt=video_prompt, hashtagler=meta.hashtagler)
