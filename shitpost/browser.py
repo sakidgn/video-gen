@@ -20,9 +20,10 @@ def find_chrome() -> str | None:
 
 
 def _window_args() -> list[str]:
-    if os.environ.get("TARAYICIYI_GOSTER", "").strip() in ("1", "evet", "true"):
-        return []
-    return ["--window-position=-32000,-32000"]
+    # Ekran dışı pencerede Gemini video üretimini yarıda kesip "yoğunum" diyordu; varsayılan görünür.
+    if os.environ.get("TARAYICIYI_GIZLE", "").strip() in ("1", "evet", "true"):
+        return ["--window-position=-32000,-32000"]
+    return []
 
 
 def _free_port() -> int:
