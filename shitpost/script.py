@@ -134,7 +134,7 @@ def _is_temporary(e: errors.APIError) -> bool:
     return isinstance(e, errors.ServerError) or e.code == 429
 
 
-def _generate_with_retry(client, model: str, contents, config, delays=None):
+def _generate_with_retry(client, model: str, contents, config, delays=None, quiet=False):
     models = [model] + [m for m in FALLBACK_TEXT_MODELS if m != model]
     last_error = None
     for delay in [0, *(RETRY_DELAYS if delays is None else delays)]:
@@ -149,7 +149,8 @@ def _generate_with_retry(client, model: str, contents, config, delays=None):
                 if e.code == 404:
                     models.remove(m)
                 elif _is_temporary(e):
-                    print(f"'{m}' yoğun ({e.code}), başka model deneniyor...")
+                    if not quiet:
+                        print(f"'{m}' yoğun ({e.code}), başka model deneniyor...")
                 else:
                     raise
         if not models:
@@ -203,10 +204,11 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
             f"VIDEO PROMPT:\n{video_prompt}",
             meta_config,
             delays=[],
+            quiet=True,
         )
         meta = resp.parsed if isinstance(resp.parsed, Meta) else Meta.model_validate_json(resp.text)
     except Exception as e:
-        log(f"Başlık/açıklama yazılamadı (Gemini API: {str(e)[:80]}), basit başlıkla devam ediliyor.")
+        log(f"(Başlık yazan API şu an yoğun, basit başlık kullanılıyor. Videoyu etkilemez.) [{str(e)[:60]}]")
         meta = Meta(baslik=channel.name, aciklama="", ozet=video_prompt[:200], hashtagler=[])
     return Scenario(baslik=meta.baslik, aciklama=meta.aciklama, ozet=meta.ozet, ilk_kare="",
                     video_prompt=video_prompt, hashtagler=meta.hashtagler)

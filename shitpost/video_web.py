@@ -178,9 +178,42 @@ def _select_video_tool(page, log, diag_path: Path) -> bool:
         diag_path.write_text("\n".join(notes), encoding="utf-8")
 
 
+VIDEO_MODE_JS = """() => {
+  const tb = document.querySelector('div[role="textbox"]');
+  const attrs = tb ? [tb.getAttribute('aria-label'), tb.getAttribute('data-placeholder'),
+    tb.getAttribute('placeholder'), tb.parentElement && tb.parentElement.getAttribute('data-placeholder')].join(' ') : '';
+  return /video/i.test(attrs) || /videonuzu açıklayın|describe your video/i.test(document.body.innerText);
+}"""
+
+
+def _open_videos_section(page, log, notes: list) -> bool:
+    # Kullanıcının elle yaptığı yol: soldaki "Videolar" bölümü.
+    for name in ("Videolar", "Videos"):
+        loc = page.get_by_role("link", name=name, exact=True)
+        if not loc.count():
+            loc = page.get_by_text(name, exact=True)
+        if not loc.count() or not loc.first.is_visible():
+            continue
+        try:
+            loc.first.click(timeout=5000)
+        except Exception as e:
+            notes.append(f"'{name}' tıklanamadı: {str(e).splitlines()[0][:100]}")
+            continue
+        page.wait_for_timeout(3000)
+        chip = any(any(w in b["label"].lower() for w in VIDEO_WORDS) for b in page.evaluate(INPUT_BUTTONS_JS))
+        if chip or page.evaluate(VIDEO_MODE_JS):
+            notes.append(f"SONUÇ: soldaki '{name}' bölümü")
+            log(f"Soldaki '{name}' bölümü açıldı.")
+            return True
+        notes.append(f"'{name}' tıklandı ama video modu görünmedi")
+    return False
+
+
 def _select_video_tool_inner(page, log, notes: list) -> bool:
     page.on("filechooser", lambda fc: None)  # yanlış butona basılırsa dosya penceresi açılmasın
     _clear_overlays(page, log, notes)
+    if _open_videos_section(page, log, notes):
+        return True
     buttons = page.evaluate(INPUT_BUTTONS_JS)
     notes.append("Yazı kutusu butonları:\n" + "\n".join(f"  {b['label']} (pressed={b['pressed']})" for b in buttons))
 
