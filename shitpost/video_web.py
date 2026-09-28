@@ -8,6 +8,10 @@ from .video import CopyrightFiltered, VideoFiltered
 
 GEMINI_URL = "https://gemini.google.com/app"
 
+BUSY_PHRASES = [
+    "high traffic", "full capacity", "at capacity", "try again later", "try again in a few",
+    "yoğunluk", "kapasite", "daha sonra tekrar",
+]
 QUOTA_PHRASES = [
     "daily limit", "reached your limit", "limit reached", "try again tomorrow", "come back tomorrow",
     "günlük limit", "günlük sınır", "limitine ulaştın", "sınırına ulaştın", "yarın tekrar",
@@ -216,6 +220,10 @@ class QuotaExceeded(RuntimeError):
     pass
 
 
+class GeminiBusy(RuntimeError):
+    pass
+
+
 def _with_reply(exc: Exception, reply: str) -> Exception:
     exc.reply = reply
     return exc
@@ -322,6 +330,9 @@ def _generate(page, prompt: str, out_path: Path, timeout_s: int, log, new_pages:
         if any(ph in text for ph in QUOTA_PHRASES):
             log(f"Gemini'nin cevabı:\n{raw.strip()}")
             raise _with_reply(QuotaExceeded(raw.strip()[:300]), raw)
+        if any(ph in text for ph in BUSY_PHRASES):
+            log(f"Gemini'nin cevabı:\n{raw.strip()}")
+            raise _with_reply(GeminiBusy(raw.strip()[:300]), raw)
         if any(ph in text for ph in REFUSAL_PHRASES):
             log(f"Gemini'nin cevabı:\n{raw.strip()}")
             if any(ph in text for ph in COPYRIGHT_PHRASES):

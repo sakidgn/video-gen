@@ -168,6 +168,8 @@ def web_env(tmp_path, monkeypatch):
             raise VideoFiltered("no")
         if behavior == "copyright":
             raise CopyrightFiltered("telif")
+        if behavior == "busy":
+            raise video_web.GeminiBusy("full capacity")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(b"webvideo")
         return out_path
@@ -361,3 +363,21 @@ def test_chatgpt_scenario_survives_gemini_api_outage(channel, monkeypatch):
     client.models.generate_content = busy
     s = script.write_scenario(client, channel, "x", log=lambda *a: None)
     assert s.baslik == channel.name and s.video_prompt.startswith("Spoderman and Orange")
+
+
+def test_web_engine_busy_tries_other_account_then_waits(channel, tmp_path, web_env, monkeypatch):
+    waits = []
+    monkeypatch.setattr(pipeline, "_sleep", waits.append)
+    web_env.behavior.extend(["busy", "busy", "busy"])
+    result = run(FakeClient(), channel, tmp_path, publish=False)
+    assert [c[0] for c in web_env.calls] == ["P1", "P2", "P1", "P2"]
+    assert waits == [pipeline.BUSY_WAIT_SECONDS]
+    assert result.video.read_bytes() == b"webvideo"
+
+
+def test_web_engine_gives_up_when_always_busy(channel, tmp_path, web_env, monkeypatch):
+    monkeypatch.setattr(pipeline, "_sleep", lambda s: None)
+    web_env.behavior.extend(["busy"] * 20)
+    with pytest.raises(pipeline.GeminiBusyAll):
+        run(FakeClient(), channel, tmp_path, publish=False)
+    assert len(web_env.calls) == 2 * pipeline.BUSY_ROUNDS

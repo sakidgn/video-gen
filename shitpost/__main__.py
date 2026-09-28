@@ -56,7 +56,7 @@ def _uret(args, pipeline) -> int:
             print(f"\n=== Video {i + 1}/{args.adet} ===")
         try:
             result = pipeline.run(client, channel, publish=not args.kuru)
-        except pipeline.NoQuotaLeft as e:
+        except (pipeline.NoQuotaLeft, pipeline.GeminiBusyAll) as e:
             print(f"Durduruldu: {e}")
             break
         except Exception as e:

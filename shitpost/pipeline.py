@@ -1,4 +1,5 @@
 import json
+import time
 import random
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -33,6 +34,15 @@ def _video_via_api(client, channel, scenario, folder, log, **video_kwargs) -> Pa
     return generate_video(client, channel, prompt, frame, mime, folder / "video.mp4", **video_kwargs)
 
 
+class GeminiBusyAll(RuntimeError):
+    pass
+
+
+BUSY_WAIT_SECONDS = 300
+BUSY_ROUNDS = 3
+_sleep = time.sleep
+
+
 def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
     # ChatGPT promptu önce olduğu gibi denenir; sadece telif reddinde isimler değiştirilir.
     variants = [script.web_video_prompt(channel, scenario)]
@@ -40,23 +50,35 @@ def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
         variants.insert(0, script.web_video_prompt(channel, scenario, aliases=False))
     variants = list(dict.fromkeys(variants))
     idx = 0
-    for profile in accounts.gemini_profiles():
-        log(f"Gemini hesabı: {profile}")
-        while True:
-            prompt = variants[idx]
-            (folder / f"gemini_prompt_{idx + 1}.txt").write_text(prompt, encoding="utf-8")
-            try:
-                path = video_web.generate_video_web(profile, prompt, folder / "video.mp4", log=log)
-            except video_web.QuotaExceeded:
-                log(f">>> {profile}: Gemini video limitinin dolduğunu söyledi. Sıradaki hesaba geçiliyor.")
-                break
-            except CopyrightFiltered:
-                if idx + 1 >= len(variants):
-                    raise
-                idx += 1
-                log(">>> Telif filtresi: aynı prompt, karakter isimleri değiştirilerek yeni sohbette tekrar deneniyor.")
-                continue
-            return path
+    profiles = accounts.gemini_profiles()
+    for round_no in range(1, BUSY_ROUNDS + 1):
+        busy = 0
+        for profile in profiles:
+            log(f"Gemini hesabı: {profile}")
+            while True:
+                prompt = variants[idx]
+                (folder / f"gemini_prompt_{idx + 1}.txt").write_text(prompt, encoding="utf-8")
+                try:
+                    return video_web.generate_video_web(profile, prompt, folder / "video.mp4", log=log)
+                except video_web.QuotaExceeded:
+                    log(f">>> {profile}: Gemini video limitinin dolduğunu söyledi. Sıradaki hesaba geçiliyor.")
+                    break
+                except video_web.GeminiBusy:
+                    busy += 1
+                    log(f">>> {profile}: Gemini şu an yoğun olduğunu söyledi. Sıradaki hesap deneniyor.")
+                    break
+                except CopyrightFiltered:
+                    if idx + 1 >= len(variants):
+                        raise
+                    idx += 1
+                    log(">>> Telif filtresi: aynı prompt, karakter isimleri değiştirilerek yeni sohbette tekrar deneniyor.")
+        if not busy:
+            break
+        if round_no < BUSY_ROUNDS:
+            log(f">>> Gemini yoğun. {BUSY_WAIT_SECONDS // 60} dakika bekleyip tekrar denenecek ({round_no}/{BUSY_ROUNDS - 1})...")
+            _sleep(BUSY_WAIT_SECONDS)
+        else:
+            raise GeminiBusyAll("Gemini'nin video sunucuları şu an çok yoğun. Biraz sonra tekrar dene.")
     raise NoQuotaLeft("Gemini tüm hesaplarda video limitinin dolduğunu söyledi (ya da .env'de GEMINI_PROFILLER boş)")
 
 
