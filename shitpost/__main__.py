@@ -11,6 +11,25 @@ def _client():
     return genai.Client()
 
 
+def _idle_seconds() -> float:
+    if sys.platform != "win32":
+        return 0.0
+    import ctypes
+
+    class LASTINPUTINFO(ctypes.Structure):
+        _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+
+    info = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
+    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info))
+    return (ctypes.windll.kernel32.GetTickCount() - info.dwTime) / 1000.0
+
+
+def _sleep_pc() -> None:
+    import ctypes
+
+    ctypes.windll.powrprof.SetSuspendState(False, False, False)
+
+
 def _keep_awake(on: bool) -> None:
     # Zamanlanmış görev bilgisayarı uykudan uyandırınca, iş bitmeden tekrar uykuya geçmesin.
     if sys.platform != "win32":
@@ -41,6 +60,8 @@ def cmd_uret(args) -> int:
     from .config import OUTPUT_DIR
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    # Zamanlanmış çalışmada kimse bilgisayar başında değilse iş bitince tekrar uyutulur.
+    sleep_after = getattr(args, "uyut", False) and _idle_seconds() > 120
     _keep_awake(True)
     log_file = (OUTPUT_DIR / "son_calisma.txt").open("w", encoding="utf-8")
     sys.stdout = _Tee(sys.__stdout__, log_file)
@@ -56,6 +77,9 @@ def cmd_uret(args) -> int:
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
         log_file.close()
         _keep_awake(False)
+        if sleep_after and _idle_seconds() > 60:
+            print("İş bitti, kimse bilgisayar başında değil: uyku moduna alınıyor.")
+            _sleep_pc()
 
 
 def _uret(args, pipeline) -> int:
@@ -202,6 +226,7 @@ def main(argv=None) -> int:
     u.add_argument("kanal")
     u.add_argument("--adet", type=int, default=1)
     u.add_argument("--kuru", action="store_true", help="Üret ama paylaşma")
+    u.add_argument("--uyut", action="store_true", help="Bitince, kimse başında değilse bilgisayarı uyut")
     u.set_defaults(func=cmd_uret)
 
     k = sub.add_parser("karakter", help="Karakter referans görsellerini üret")
