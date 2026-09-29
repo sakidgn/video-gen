@@ -55,6 +55,7 @@ python -m shitpost uret spoderman --adet 3
   çünkü program Chrome'a gerçek klavyeyle yazıyor. Denetim Masası → Güç Seçenekleri → "Uyandırma zamanlayıcılarına izin ver" açık olmalı.
 - Gönderim sırasında birkaç saniye klavyeye/fareye dokunulmamalı.
 - Her çalışmanın çıktısı `kayit.txt` dosyasına eklenir.
+- **9 → 3** uyandırma testi: X dakika sonra bir kere, paylaşmadan çalışır. Bilgisayarı uyutup uyanıp uyanmadığını görmek için.
 
 ## Yeni kanal açmak
 
