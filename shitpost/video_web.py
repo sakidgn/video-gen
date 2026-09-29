@@ -391,6 +391,38 @@ def replay_keys_cdp(page, keys: list[str]) -> None:
         page.wait_for_timeout(900 if key == "Enter" else 250)
 
 
+INPUT_STATE_JS = r"""() => {
+  const tb = document.querySelector('div[role="textbox"]');
+  if (!tb) return {found: false};
+  let opacity = 1;
+  for (let n = tb, i = 0; n && i < 6; n = n.parentElement, i++) {
+    const o = parseFloat(getComputedStyle(n).opacity);
+    if (!isNaN(o)) opacity = Math.min(opacity, o);
+  }
+  const disabled = tb.getAttribute('contenteditable') === 'false' || tb.getAttribute('aria-disabled') === 'true'
+    || !!tb.closest('[aria-disabled="true"], [disabled]') || getComputedStyle(tb).pointerEvents === 'none'
+    || opacity < 0.6;
+  const lines = document.body.innerText.split('\n').map(l => l.trim())
+    .filter(l => /limit|sınır|yarın|tomorrow|kota|quota|hakk/i.test(l)).slice(0, 5);
+  return {found: true, disabled, opacity, notice: lines.join(' | ')};
+}"""
+
+
+def ensure_input_enabled(page, log, wait_s: int = 10) -> None:
+    """Gemini günlük video hakkı dolunca kutuyu soluklaştırıp kilitliyor; bunu hak doldu diye bildirir."""
+    deadline = time.time() + wait_s
+    while True:
+        state = page.evaluate(INPUT_STATE_JS)
+        if not state.get("found") or not state.get("disabled"):
+            return
+        if time.time() >= deadline:
+            break
+        page.wait_for_timeout(1000)
+    notice = state.get("notice") or "sayfada açıklama yok"
+    log(f"Gemini yazı kutusu kilitli/soluk (video hakkı dolmuş olabilir). Sayfadaki not: {notice}")
+    raise _with_reply(QuotaExceeded(f"Yazı kutusu kilitli: {notice}"), notice)
+
+
 def _open_gemini(page, log, out_path: Path):
     page.goto(GEMINI_URL, wait_until="domcontentloaded", timeout=90_000)
     page.wait_for_timeout(3000)
@@ -401,6 +433,7 @@ def _open_gemini(page, log, out_path: Path):
     page.wait_for_timeout(1500)
     _select_video_tool(page, log, out_path.parent / "gemini_arayuz.txt")
     screenshot(page, out_path.parent / "adim_0_arac_secimi.png")
+    ensure_input_enabled(page, log)
     return box
 
 
@@ -472,6 +505,7 @@ def _generate_hands_off(p, profile_dir: str, prompt: str, out_path: Path, timeou
             else:
                 log("UYARI: Klavyeyle yapıştırılan prompt gitmemiş görünüyor; program üzerinden gönderiliyor.")
             box.wait_for(state="visible", timeout=30_000)
+            ensure_input_enabled(page, log)
             page.bring_to_front()
             try:
                 box.click(timeout=5000)
