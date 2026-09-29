@@ -45,16 +45,14 @@ python -m shitpost uret spoderman --adet 3
 
 Çalışırken Chrome penceresi açılıp kapanacak, bu normal. Videonun üretilmesi birkaç dakika sürüyor.
 
-## Otomatik çalıştırma (Windows Görev Zamanlayıcı)
+## Otomatik çalıştırma (günde 3 kere)
 
-`calistir.bat` üretir ve paylaşır, çıktıyı `kayit.txt` dosyasına yazar.
+`menu.bat` → **9** → **1**. Saatleri sorar (varsayılan 12:00, 17:00, 21:00) ve Windows Görev Zamanlayıcı'ya
+`calistir.bat` için üç görev ekler. Kaldırmak için yine **9** → **2**.
 
-1. Başlat → "Görev Zamanlayıcı" → Temel Görev Oluştur.
-2. Tetikleyici: Günlük, örneğin 10:00. Aynı görevi farklı saatler için (15:00, 20:00) tekrar ekle.
-3. Eylem: Program başlat → `calistir.bat` dosyasını seç. "Başlangıç yeri" alanına proje klasörünü yaz.
-4. Bilgisayar o saatte açık ve senin kullanıcın oturum açmış olmalı, çünkü tarayıcı görünür modda çalışıyor.
-
-Bir hesapta Gemini "limit doldu" derse sıradaki hesaba geçilir; hepsinde derse görev hiçbir şey yapmadan çıkar.
+- O saatlerde bilgisayar **açık ve kilitsiz** olmalı: program Chrome'u açıp promptu gerçek klavyeyle gönderiyor.
+- Gönderim sırasında birkaç saniye klavyeye/fareye dokunulmamalı.
+- Her çalışmanın çıktısı `kayit.txt` dosyasına eklenir.
 
 ## Yeni kanal açmak
 
