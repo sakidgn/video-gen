@@ -4,21 +4,18 @@ dil: tr  # diyalog, başlık ve açıklama dili (tr, en, ...)
 
 karakterler:
   - ad: Spoderman
-    # Video promptunda gerçek ad yerine bu kullanılır; telif filtresine takılmamak için.
-    video_adi: Blocky Guy
+    # Gemini telif yüzünden reddederse promptta ad bununla değiştirilir ve tarif başa eklenir.
+    video_adi: the costume guy
     tarif: >
-      a janky low-poly 3D game character: a clumsy blocky guy made of few polygons, wearing a
-      cheap plain red and blue full-body outfit and a lumpy mask with huge lopsided white eye
-      shapes, blurry stretched low-res textures, stiff T-pose-like arms, clipping through
-      things, robotic idle animation, confident but clueless
+      a skinny goofy guy in a cheap, badly homemade red and blue full-body suit with a saggy
+      red mask that has huge lopsided white eye patches, like a bootleg party-store superhero
+      costume from an old internet meme; confident but clueless body language
     referans: karakterler/spoderman.png
   - ad: Orange
     video_adi: Orange
     tarif: >
-      a low-poly 3D orange fruit game prop, a lumpy sphere with a blurry orange texture and a
-      pasted-on cartoon face (big googly eyes and a wide mouth that flaps open and shut like a
-      bad lip-sync), bounces around with broken physics, high-pitched annoying voice,
-      constantly laughing at its own jokes
+      a real orange fruit with a cartoonish human face (big expressive eyes and a wide mouth),
+      high-pitched annoying voice, constantly laughing at its own jokes
     referans: karakterler/orange.png
 
 stil: >

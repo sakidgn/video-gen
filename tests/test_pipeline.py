@@ -184,7 +184,7 @@ def test_web_engine_uses_account_and_counts_quota(channel, tmp_path, web_env):
     assert result.video.read_bytes() == b"webvideo"
     profile, prompt = web_env.calls[0]
     assert profile == "P1"
-    assert "Vertical 9:16" in prompt and "Blocky Guy" in prompt and "first frame" in prompt
+    assert "Vertical 9:16" in prompt and "the costume guy" in prompt and "first frame" in prompt
     assert "spoderman" not in prompt.lower()
     assert not any(c.reference.exists() for c in channel.characters)
 
@@ -304,7 +304,7 @@ def test_aliases_replace_real_names_in_video_prompt(channel):
                         ilk_kare="SPODERMAN stands", video_prompt="Spoderman says hi", hashtagler=[])
     prompt = script.web_video_prompt(channel, s)
     assert "spoderman" not in prompt.lower()
-    assert "Opening shot: Blocky Guy stands." in prompt
+    assert "Opening shot: the costume guy stands." in prompt
 
 
 def test_chatgpt_scenario_engine(channel, monkeypatch):
@@ -330,7 +330,7 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
     assert s.video_prompt.startswith("Spoderman slips") and s.ilk_kare == ""
     assert s.baslik == "Spoderman pazarda"
     prompt = script.web_video_prompt(channel, s)
-    assert prompt.startswith("Blocky Guy slips") and "spoderman" not in prompt.lower()
+    assert "the costume guy slips" in prompt and "spoderman" not in prompt.lower()
 
 
 def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, web_env, monkeypatch):
@@ -341,7 +341,10 @@ def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, 
     web_env.behavior.append("copyright")
     result = run(FakeClient(), channel, tmp_path, publish=False)
     prompts = [c[1] for c in web_env.calls]
-    assert prompts == [raw, raw.replace("Spoderman", "Blocky Guy")]
+    assert prompts[0] == raw
+    assert prompts[1].startswith("The costume guy is a skinny goofy guy")
+    assert prompts[1].endswith("the costume guy hands Orange a square tomato and says 'Bu ne?'")
+    assert "spoderman" not in prompts[1].lower()
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
     assert (result.folder / "gemini_prompt_1.txt").read_text() == raw
 

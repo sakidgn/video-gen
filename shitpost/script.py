@@ -106,7 +106,11 @@ def _sentence(text: str) -> str:
 def web_video_prompt(channel: Channel, scenario: Scenario, *, aliases: bool = True) -> str:
     if not scenario.ilk_kare:
         text = scenario.video_prompt.strip()
-        return apply_aliases(channel, text) if aliases else text
+        if not aliases:
+            return text
+        renamed = [c for c in channel.characters if c.alias != c.name]
+        intro = " ".join(f"{c.alias[:1].upper() + c.alias[1:]} is {c.description.rstrip('.')}." for c in renamed)
+        return f"{intro} {apply_aliases(channel, text)}".strip()
     chars = " ".join(f"{c.alias} is {c.description}." for c in channel.characters)
     return (
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
