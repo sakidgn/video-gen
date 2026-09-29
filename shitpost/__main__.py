@@ -11,6 +11,17 @@ def _client():
     return genai.Client()
 
 
+def _keep_awake(on: bool) -> None:
+    # Zamanlanmış görev bilgisayarı uykudan uyandırınca, iş bitmeden tekrar uykuya geçmesin.
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    es_continuous, es_system, es_display = 0x80000000, 0x00000001, 0x00000002
+    flags = es_continuous | es_system | es_display if on else es_continuous
+    ctypes.windll.kernel32.SetThreadExecutionState(flags)
+
+
 class _Tee:
     def __init__(self, *streams):
         self.streams = streams
@@ -30,6 +41,7 @@ def cmd_uret(args) -> int:
     from .config import OUTPUT_DIR
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _keep_awake(True)
     log_file = (OUTPUT_DIR / "son_calisma.txt").open("w", encoding="utf-8")
     sys.stdout = _Tee(sys.__stdout__, log_file)
     sys.stderr = _Tee(sys.__stderr__, log_file)
@@ -43,6 +55,7 @@ def cmd_uret(args) -> int:
     finally:
         sys.stdout, sys.stderr = sys.__stdout__, sys.__stderr__
         log_file.close()
+        _keep_awake(False)
 
 
 def _uret(args, pipeline) -> int:

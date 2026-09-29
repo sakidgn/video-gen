@@ -50,7 +50,9 @@ python -m shitpost uret spoderman --adet 3
 `menu.bat` → **9** → **1**. Saatleri sorar (varsayılan 12:00, 17:00, 21:00) ve Windows Görev Zamanlayıcı'ya
 `calistir.bat` için üç görev ekler. Kaldırmak için yine **9** → **2**.
 
-- O saatlerde bilgisayar **açık ve kilitsiz** olmalı: program Chrome'u açıp promptu gerçek klavyeyle gönderiyor.
+- Bilgisayar **uyku modunda** olabilir (kapatılmamalı): görev onu uyandırır, iş bitince Windows normal ayarına göre tekrar uyur.
+- Uyandığında **şifre sormamalı** (Ayarlar → Hesaplar → Oturum açma seçenekleri → "Uzaktaysanız…" = Hiçbir zaman),
+  çünkü program Chrome'a gerçek klavyeyle yazıyor. Denetim Masası → Güç Seçenekleri → "Uyandırma zamanlayıcılarına izin ver" açık olmalı.
 - Gönderim sırasında birkaç saniye klavyeye/fareye dokunulmamalı.
 - Her çalışmanın çıktısı `kayit.txt` dosyasına eklenir.
 
