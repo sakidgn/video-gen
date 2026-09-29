@@ -63,6 +63,9 @@ def cmd_uret(args) -> int:
     # Zamanlanmış çalışmada kimse bilgisayar başında değilse iş bitince tekrar uyutulur.
     sleep_after = getattr(args, "uyut", False) and _idle_seconds() > 120
     _keep_awake(True)
+    from .browser import wake_display
+
+    wake_display()
     log_file = (OUTPUT_DIR / "son_calisma.txt").open("w", encoding="utf-8")
     sys.stdout = _Tee(sys.__stdout__, log_file)
     sys.stderr = _Tee(sys.__stderr__, log_file)

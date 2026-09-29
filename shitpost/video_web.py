@@ -5,7 +5,8 @@ import time
 from pathlib import Path
 
 from .browser import (
-    ProfileSession, first_page, key_steps_for, launch_unattached, open_profile, os_paste_and_enter, screenshot,
+    ProfileSession, first_page, foreground_title, key_steps_for, launch_unattached, open_profile,
+    os_paste_and_enter, screenshot,
 )
 from .video import CopyrightFiltered, VideoFiltered
 
@@ -404,7 +405,10 @@ def _open_gemini(page, log, out_path: Path):
 
 
 def _type_and_send(page, box, prompt: str, log) -> None:
-    box.focus()
+    try:
+        box.click(timeout=5000)
+    except Exception:
+        box.focus()
     page.keyboard.insert_text(prompt)
     _wait_until_box_has(page, box, prompt)
     page.keyboard.press("Enter")
@@ -463,11 +467,16 @@ def _generate_hands_off(p, profile_dir: str, prompt: str, out_path: Path, timeou
         box = page.locator('div[role="textbox"]').first
         if page.locator("model-response").count() == 0:
             if not sent:
-                log("UYARI: Windows klavyesiyle gönderilemedi (Chrome öne gelmedi); program üzerinden gönderiliyor.")
+                log("UYARI: Windows klavyesiyle gönderilemedi (Chrome öne gelmedi; önde olan pencere: "
+                    f"{foreground_title() or '?'}); program üzerinden gönderiliyor.")
             else:
                 log("UYARI: Klavyeyle yapıştırılan prompt gitmemiş görünüyor; program üzerinden gönderiliyor.")
             box.wait_for(state="visible", timeout=30_000)
-            box.focus()
+            page.bring_to_front()
+            try:
+                box.click(timeout=5000)
+            except Exception:
+                box.focus()
             replay_keys_cdp(page, keys)
             box.focus()
             page.keyboard.press("Control+A")

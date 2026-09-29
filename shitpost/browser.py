@@ -132,30 +132,88 @@ def launch_unattached(p, profile_dir: str, url: str) -> ProfileSession:
     return _open_real_chrome(p, profile_dir, url=url, connect=False)
 
 
-def _focus_window(pid: int) -> bool:
+def _window_info(hwnd) -> dict:
     import ctypes
     from ctypes import wintypes
 
     user32 = ctypes.windll.user32
-    hwnds = []
+    owner = wintypes.DWORD()
+    user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+    cls = ctypes.create_unicode_buffer(256)
+    user32.GetClassNameW(hwnd, cls, 256)
+    title = ctypes.create_unicode_buffer(512)
+    user32.GetWindowTextW(hwnd, title, 512)
+    rect = wintypes.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    area = max(0, rect.right - rect.left) * max(0, rect.bottom - rect.top)
+    return {"hwnd": hwnd, "pid": owner.value, "cls": cls.value, "title": title.value, "area": area}
+
+
+def _is_bot_chrome(info: dict, pid: int) -> bool:
+    return info["cls"] == "Chrome_WidgetWin_1" and bool(info["title"]) and (
+        info["pid"] == pid or "gemini" in info["title"].lower()
+    )
+
+
+def _focus_window(pid: int) -> bool:
+    """Botun Chrome penceresini öne getirir. Windows'un öne alma kilidini AttachThreadInput ile aşar."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32, kernel32 = ctypes.windll.user32, ctypes.windll.kernel32
+    found = []
 
     @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
     def _collect(hwnd, _):
-        owner = wintypes.DWORD()
-        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
-        if owner.value == pid and user32.IsWindowVisible(hwnd) and user32.GetWindowTextLengthW(hwnd) > 0:
-            hwnds.append(hwnd)
+        if user32.IsWindowVisible(hwnd):
+            info = _window_info(hwnd)
+            if _is_bot_chrome(info, pid):
+                found.append(info)
         return True
 
     user32.EnumWindows(_collect, 0)
-    if not hwnds:
+    if not found:
         return False
-    user32.keybd_event(0x12, 0, 0, 0)  # ALT: Windows'un pencereyi öne almasına izin vermesi için
-    user32.keybd_event(0x12, 0, 0x0002, 0)
-    user32.ShowWindow(hwnds[0], 9)
-    user32.SetForegroundWindow(hwnds[0])
-    time.sleep(1.0)
-    return user32.GetForegroundWindow() == hwnds[0]
+    hwnd = max(found, key=lambda w: w["area"])["hwnd"]
+
+    for _ in range(3):
+        fg = user32.GetForegroundWindow()
+        fg_thread = user32.GetWindowThreadProcessId(fg, None)
+        me = kernel32.GetCurrentThreadId()
+        attached = bool(fg_thread and fg_thread != me and user32.AttachThreadInput(me, fg_thread, True))
+        user32.keybd_event(0x12, 0, 0, 0)  # ALT: öne alma izni için
+        user32.keybd_event(0x12, 0, 0x0002, 0)
+        user32.ShowWindow(hwnd, 9 if user32.IsIconic(hwnd) else 5)
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        if attached:
+            user32.AttachThreadInput(me, fg_thread, False)
+        time.sleep(1.0)
+        if _is_bot_chrome(_window_info(user32.GetForegroundWindow()), pid):
+            return True
+    return False
+
+
+def foreground_title() -> str:
+    if os.name != "nt":
+        return ""
+    import ctypes
+
+    info = _window_info(ctypes.windll.user32.GetForegroundWindow())
+    return f"{info['title'][:60]} ({info['cls']})"
+
+
+def wake_display() -> None:
+    """Zamanlayıcıyla uyanan Windows ekranı kapalı tutar; fareyi 1 piksel oynatıp ekranı açar."""
+    if os.name != "nt":
+        return
+    import ctypes
+
+    move = 0x0001
+    ctypes.windll.user32.mouse_event(move, 1, 0, 0, 0)
+    time.sleep(0.1)
+    ctypes.windll.user32.mouse_event(move, -1, 0, 0, 0)
+    time.sleep(2)
 
 
 def _tap(*keys: int) -> None:
