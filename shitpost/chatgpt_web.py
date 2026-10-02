@@ -126,15 +126,25 @@ def _ask(page, message: str, url: str, timeout_s: int, log, project: str = "") -
     log("ChatGPT senaryoyu yazıyor...")
 
     start = time.time()
-    prev, stable = "", 0
+    prev, same = "", 0
+    next_log = 20
     while time.time() - start < timeout_s:
         page.wait_for_timeout(2000)
         if page.evaluate(ASSISTANT_COUNT_JS) <= before:
             continue
         text = page.evaluate(LAST_ASSISTANT_JS)
         generating = page.evaluate(GENERATING_JS)
-        stable = stable + 1 if (text and text == prev and not generating and _is_final(text)) else 0
+        same = same + 1 if (text and text == prev) else 0
         prev = text
-        if stable >= 3:
+        final = _is_final(text)
+        # "Yazıyor" işaretlerine tam güvenilmiyor (sayfada kalıcı olabiliyor): metin uzun süre sabitse bitti say.
+        if final and ((same >= 3 and not generating) or same >= 6):
             return text
+        elapsed = time.time() - start
+        if elapsed >= next_log:
+            log(f"  ChatGPT hâlâ yazıyor... ({len(text)} karakter, {int(elapsed)} sn)")
+            next_log += 20
+    if _is_final(prev):
+        log("UYARI: ChatGPT'nin bittiği kesin anlaşılamadı, mevcut cevap kullanılıyor.")
+        return prev
     raise TimeoutError(f"ChatGPT {timeout_s} sn içinde cevabı bitirmedi")
