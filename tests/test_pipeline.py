@@ -384,3 +384,15 @@ def test_web_engine_gives_up_when_always_busy(channel, tmp_path, web_env, monkey
     with pytest.raises(pipeline.GeminiBusyAll):
         run(FakeClient(), channel, tmp_path, publish=False)
     assert len(web_env.calls) == 2 * pipeline.BUSY_ROUNDS
+
+
+def test_chatgpt_placeholder_and_thought_header():
+    from shitpost import chatgpt_web
+
+    assert not chatgpt_web._is_final("Düşünüyor")
+    assert not chatgpt_web._is_final("Thinking…")
+    assert chatgpt_web._is_final("Spoderman tries to pay for a single tomato with a 500 lira note at the bazaar.")
+    assert chatgpt_web._is_final("Thought for 8s\nSpoderman tries to pay for a single tomato with a 500 lira note.")
+    assert not chatgpt_web._is_final("Thought for 8s\nDüşünüyor")
+    raw = "Thought for 12s\nSpoderman tries to pay for a single tomato with a 500 lira note."
+    assert script.clean_chatgpt_output(raw).startswith("Spoderman tries")

@@ -1,3 +1,4 @@
+import re
 import time
 
 from .browser import first_page, open_profile, screenshot
@@ -34,7 +35,23 @@ FIND_PROJECT_JS = r"""(name) => {
 EXPAND_TEXTS = ["Daha fazla", "Daha fazlasını gör", "See more", "Show more", "Tümünü göster", "See all", "View all"]
 
 GENERATING_JS = """() => !!document.querySelector(
-  'button[data-testid="stop-button"], button[aria-label*="Stop" i], button[aria-label*="Durdur" i]')"""
+  'button[data-testid="stop-button"], button[data-testid="composer-stop-button"], button[aria-label*="Stop" i], '
+  + 'button[aria-label*="Durdur" i], .result-streaming, .result-thinking, [data-testid*="streaming"]')"""
+
+# ChatGPT cevaptan önce "Düşünüyor…/Thinking…" gibi ara ekranlar gösteriyor; bunlar cevap sayılmaz.
+PLACEHOLDER_RE = re.compile(
+    r"^(thinking|reasoning|searching|analy[sz]ing|düşünüyor|düşünülüyor|araştırıyor|aranıyor|inceleniyor|"
+    r"thought for|.*için düşündü|.*saniye düşündü)",
+    re.IGNORECASE,
+)
+MIN_ANSWER_CHARS = 40
+
+
+def _is_final(text: str) -> bool:
+    lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip()]
+    while lines and PLACEHOLDER_RE.match(lines[0]) and len(lines[0]) < 120:
+        lines.pop(0)
+    return len(" ".join(lines)) >= MIN_ANSWER_CHARS
 
 
 def ask(profile_dir: str, message: str, *, url: str = DEFAULT_URL, project: str = "", timeout_s: int = 240,
@@ -116,8 +133,8 @@ def _ask(page, message: str, url: str, timeout_s: int, log, project: str = "") -
             continue
         text = page.evaluate(LAST_ASSISTANT_JS)
         generating = page.evaluate(GENERATING_JS)
-        stable = stable + 1 if (text and text == prev and not generating) else 0
+        stable = stable + 1 if (text and text == prev and not generating and _is_final(text)) else 0
         prev = text
-        if stable >= 2:
+        if stable >= 3:
             return text
     raise TimeoutError(f"ChatGPT {timeout_s} sn içinde cevabı bitirmedi")

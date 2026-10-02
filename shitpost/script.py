@@ -93,6 +93,11 @@ def build_chatgpt_request(channel: Channel) -> str:
 
 
 def clean_chatgpt_output(text: str) -> str:
+    lines = text.strip().splitlines()
+    while lines and re.match(r"^\s*(thought for .*|.*için düşündü.*|.*saniye düşündü.*|düşünme süresi.*)$",
+                             lines[0], re.IGNORECASE):
+        lines.pop(0)
+    text = "\n".join(lines)
     text = re.sub(r"^```[a-zA-Z]*\s*|\s*```$", "", text.strip())
     text = re.sub(r"^(video )?prompt\s*:\s*", "", text, flags=re.IGNORECASE)
     return text.strip()
@@ -191,6 +196,7 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
     video_prompt = clean_chatgpt_output(raw)
     if len(video_prompt) < 40:
         raise RuntimeError(f"ChatGPT'den anlamlı bir prompt gelmedi: {raw[:200]!r}")
+    log(f"ChatGPT promptu ({len(video_prompt)} karakter): {video_prompt[:150]}...")
 
     lang = language_name(channel.language)
     meta_config = types.GenerateContentConfig(
