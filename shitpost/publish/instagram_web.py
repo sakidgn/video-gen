@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from .. import accounts
-from ..browser import click_first, first_page, open_profile, screenshot, wait_for_text
+from ..browser import click_first, click_text, first_page, open_profile, screenshot, turn_on_ai_label, wait_for_text
 from ..config import Channel
 
 
@@ -56,11 +56,17 @@ def publish(channel: Channel, video_path: Path, post) -> dict:
             page.keyboard.insert_text(post.caption_with_tags())
             page.wait_for_timeout(1000)
 
+            click_text(page, r"^(gelişmiş ayarlar|advanced settings)$")
+            page.wait_for_timeout(1000)
+            ai = turn_on_ai_label(page, r"AI (etiketi|label)|yapay zek[aâ] etiket|AI info|yapay zek[aâ] bilgi")
+            print(f"Instagram AI etiketi: {ai or 'BULUNAMADI'}")
+
             if not click_first(page, _dialog_button(["Paylaş", "Share"]), timeout_ms=10_000):
                 raise RuntimeError("Instagram 'Paylaş' butonu bulunamadı")
 
-            if not wait_for_text(page, ["paylaşıldı", "has been shared", "reel shared", "post shared"], 240):
+            if not wait_for_text(page, ["paylaşıldı", "has been shared", "reel shared", "post shared"], 600):
                 raise RuntimeError("Instagram paylaşımı onaylanmadı")
+            page.wait_for_timeout(5000)
             return {"instagram": "yayınlandı"}
         except Exception:
             screenshot(page, video_path.parent / "hata_instagram.png")

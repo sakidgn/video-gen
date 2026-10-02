@@ -325,3 +325,81 @@ def wait_for_text(page, needles: list[str], timeout_s: int) -> str | None:
                 return n
         page.wait_for_timeout(2000)
     return None
+
+
+AI_TOGGLE_JS = r"""(pattern) => {
+  const re = new RegExp(pattern, 'i');
+  const els = Array.from(document.querySelectorAll('span, div, label, p, h2, h3'))
+    .filter(el => el.offsetParent !== null && re.test(el.textContent || '') && (el.textContent || '').length < 160);
+  els.sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
+  for (const label of els) {
+    let node = label;
+    for (let i = 0; i < 6 && node; i++, node = node.parentElement) {
+      const sw = node.querySelector('[role="switch"], input[type="checkbox"]');
+      if (sw) {
+        const on = () => sw.getAttribute('aria-checked') === 'true' || sw.checked === true;
+        if (on()) return 'zaten açık';
+        (sw.closest('label') || sw).click();
+        return on() ? 'açıldı' : 'tıklandı';
+      }
+    }
+  }
+  return null;
+}"""
+
+
+def turn_on_ai_label(page, pattern: str) -> str | None:
+    """Metni pattern'e uyan etiketin yanındaki anahtarı açar; sonucu döndürür (None: bulunamadı)."""
+    return page.evaluate(AI_TOGGLE_JS, pattern)
+
+
+def click_text(page, pattern: str, timeout_ms: int = 3000) -> bool:
+    import re
+
+    loc = page.get_by_text(re.compile(pattern, re.IGNORECASE))
+    deadline = time.time() + timeout_ms / 1000
+    while True:
+        for i in range(min(loc.count(), 5)):
+            el = loc.nth(i)
+            try:
+                if el.is_visible():
+                    el.click(timeout=3000)
+                    return True
+            except Exception:
+                pass
+        if time.time() >= deadline:
+            return False
+        page.wait_for_timeout(500)
+
+
+def upload_busy(page, words: list[str]) -> bool:
+    """Sayfada yükleme yüzdesi (<%100) ya da 'yükleniyor' gibi bir ifade varsa True."""
+    import re
+
+    text = page.evaluate("document.body.innerText")
+    low = text.lower()
+    for m in re.finditer(r"(\d{1,3})(?:[.,]\d+)?\s?%", text):
+        around = low[max(0, m.start() - 80): m.end() + 80]
+        if int(m.group(1)) < 100 and any(w in around for w in words):
+            return True
+    return False
+
+
+def wait_until_idle(page, words: list[str], timeout_s: int, what: str) -> bool:
+    """Yükleme göstergesi kaybolana kadar bekler (2 ardışık kontrol); süre dolarsa False."""
+    deadline = time.time() + timeout_s
+    calm = 0
+    last_log = 0.0
+    while time.time() < deadline:
+        if upload_busy(page, words):
+            calm = 0
+            if time.time() - last_log > 30:
+                print(f"  {what}: yükleme sürüyor, bekleniyor...")
+                last_log = time.time()
+        else:
+            calm += 1
+            if calm >= 2:
+                return True
+        page.wait_for_timeout(3000)
+    print(f"UYARI: {what}: yükleme {timeout_s} sn içinde bitmedi.")
+    return False

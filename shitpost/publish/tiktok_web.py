@@ -2,28 +2,17 @@ import time
 from pathlib import Path
 
 from .. import accounts
-from ..browser import click_first, first_page, open_profile, screenshot, wait_for_text
+from ..browser import (
+    click_first, click_text, first_page, open_profile, screenshot, turn_on_ai_label, wait_for_text,
+    wait_until_idle,
+)
 from ..config import Channel
 
 UPLOAD_URL = "https://www.tiktok.com/tiktokstudio/upload"
 
-AI_LABEL_JS = """() => {
-  const re = /AI-generated|yapay zeka/i;
-  const labels = Array.from(document.querySelectorAll('span, div, label, p'))
-    .filter(el => re.test(el.textContent || '') && (el.textContent || '').length < 80);
-  for (const label of labels) {
-    let node = label;
-    for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
-      const sw = node.querySelector('[role="switch"], input[type="checkbox"]');
-      if (sw) {
-        const on = sw.getAttribute('aria-checked') === 'true' || sw.checked === true;
-        if (!on) sw.click();
-        return true;
-      }
-    }
-  }
-  return false;
-}"""
+AI_PATTERN = r"AI[- ]generated|AI ile oluşturul|yapay zek[aâ]"
+BUSY_WORDS = ["yükleniyor", "uploading", "gönderiliyor", "posting", "işleniyor", "processing", "yükleme", "upload"]
+DONE_TEXTS = ["yayınlandı", "gönderildi", "been posted", "published", "paylaşıldı"]
 
 
 def _wait_post_enabled(page, timeout_s: int = 240):
@@ -50,6 +39,8 @@ def publish(channel: Channel, video_path: Path, post) -> dict:
             file_input = page.locator('input[type="file"]').first
             file_input.wait_for(state="attached", timeout=60_000)
             file_input.set_input_files(str(video_path))
+            page.wait_for_timeout(5000)
+            wait_until_idle(page, BUSY_WORDS, 600, "TikTok video yükleme")
 
             caption = page.locator('div[contenteditable="true"]').first
             caption.wait_for(state="visible", timeout=90_000)
@@ -60,17 +51,22 @@ def publish(channel: Channel, video_path: Path, post) -> dict:
             page.wait_for_timeout(1500)
             page.mouse.click(5, 5)
 
-            click_first(page, ['div:has-text("Daha fazla göster") >> nth=-1', 'div:has-text("Show more") >> nth=-1'])
+            click_text(page, r"^(daha fazla göster|daha fazla|show more|more options)$")
             page.wait_for_timeout(1000)
-            if page.evaluate(AI_LABEL_JS):
-                click_first(page, ['button:text-is("Aç")', 'button:text-is("Turn on")'], timeout_ms=3000)
+            ai = turn_on_ai_label(page, AI_PATTERN)
+            if ai in ("açıldı", "tıklandı"):
+                click_first(page, ['button:text-is("Aç")', 'button:text-is("Turn on")', 'button:text-is("Açık")'],
+                            timeout_ms=4000)
+            print(f"TikTok AI etiketi: {ai or 'BULUNAMADI'}")
 
             _wait_post_enabled(page).click()
             click_first(page, ['button:has-text("Şimdi yayınla")', 'button:has-text("Post now")'], timeout_ms=5000)
 
-            ok = wait_for_text(page, ["yayınlandı", "yüklendi", "been posted", "been uploaded", "published"], 90)
+            ok = wait_for_text(page, DONE_TEXTS, 300)
             if not ok and "/tiktokstudio/content" not in page.url:
                 raise RuntimeError("TikTok paylaşımı onaylanmadı")
+            wait_until_idle(page, BUSY_WORDS, 600, "TikTok paylaşım")
+            page.wait_for_timeout(10_000)
             return {"tiktok": "yayınlandı"}
         except Exception:
             screenshot(page, video_path.parent / "hata_tiktok.png")
