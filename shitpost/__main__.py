@@ -7,8 +7,10 @@ from .config import list_channels, load_channel
 
 def _client():
     from google import genai
+    from google.genai import types
 
-    return genai.Client()
+    # Zaman aşımı olmazsa API cevap vermediğinde program sonsuza kadar bekliyor.
+    return genai.Client(http_options=types.HttpOptions(timeout=60_000))
 
 
 def _idle_seconds() -> float:

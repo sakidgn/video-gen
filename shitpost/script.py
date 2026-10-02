@@ -175,6 +175,31 @@ def _generate_with_retry(client, model: str, contents, config, delays=None, quie
     raise last_error
 
 
+META_TIMEOUT_SECONDS = 90
+
+
+def _with_deadline(fn, seconds: float):
+    """fn'i en fazla `seconds` saniye bekler; takılırsa TimeoutError (iş arka planda bırakılır)."""
+    import threading
+
+    box = {}
+
+    def run():
+        try:
+            box["value"] = fn()
+        except BaseException as e:
+            box["error"] = e
+
+    t = threading.Thread(target=run, daemon=True)
+    t.start()
+    t.join(seconds)
+    if t.is_alive():
+        raise TimeoutError(f"{int(seconds)} sn içinde cevap gelmedi")
+    if "error" in box:
+        raise box["error"]
+    return box["value"]
+
+
 def write_scenario(client, channel: Channel, theme: str, *, log=print, debug_dir=None) -> Scenario:
     if channel.scenario["motor"] == "chatgpt_web":
         return _write_scenario_chatgpt(client, channel, theme, log=log, debug_dir=debug_dir)
@@ -213,17 +238,16 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
         automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
     )
     names = ", ".join(f"{c.alias} = {c.name}" for c in channel.characters)
+    prompt = (
+        f"This is the video prompt of a short shitpost video for the channel \"{channel.name}\". "
+        f"Character names in the post may use the real names ({names}). Write baslik and aciklama in "
+        f"natural slangy {lang} social-media style, ozet as one English sentence, and 3-6 hashtags.\n\n"
+        f"VIDEO PROMPT:\n{video_prompt}"
+    )
+    log("Başlık/açıklama yazılıyor (en fazla 90 sn)...")
     try:
-        resp = _generate_with_retry(
-            client, channel.models["metin"],
-            f"This is the video prompt of a short shitpost video for the channel \"{channel.name}\". "
-            f"Character names in the post may use the real names ({names}). Write baslik and aciklama in "
-            f"natural slangy {lang} social-media style, ozet as one English sentence, and 3-6 hashtags.\n\n"
-            f"VIDEO PROMPT:\n{video_prompt}",
-            meta_config,
-            delays=[],
-            quiet=True,
-        )
+        resp = _with_deadline(lambda: _generate_with_retry(client, channel.models["metin"], prompt, meta_config,
+                                                           delays=[], quiet=True), META_TIMEOUT_SECONDS)
         meta = resp.parsed if isinstance(resp.parsed, Meta) else Meta.model_validate_json(resp.text)
     except Exception as e:
         log(f"(Başlık yazan API şu an yoğun, basit başlık kullanılıyor. Videoyu etkilemez.) [{str(e)[:60]}]")

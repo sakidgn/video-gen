@@ -427,3 +427,15 @@ def test_generic_gemini_error_retries_with_aliases_first(channel, tmp_path, web_
     run(FakeClient(), channel, tmp_path, publish=False)
     assert [c[0] for c in calls] == ["P1", "P1"]
     assert calls[0][1] == raw and "spoderman" not in calls[1][1].lower()
+
+
+def test_with_deadline_gives_up_on_hung_call():
+    import threading
+
+    from shitpost import script
+
+    hang = threading.Event()
+    with pytest.raises(TimeoutError):
+        script._with_deadline(lambda: hang.wait(5), 0.2)
+    hang.set()
+    assert script._with_deadline(lambda: 7, 1) == 7
