@@ -82,10 +82,18 @@ ALREADY MADE - do NOT repeat these ideas, jokes or structures:
 
 
 def apply_aliases(channel: Channel, text: str) -> str:
-    for c in channel.characters:
-        if c.alias != c.name:
-            text = re.sub(re.escape(c.name), c.alias, text, flags=re.IGNORECASE)
-    return text
+    pairs = [
+        (name, c.alias)
+        for c in channel.characters
+        if c.alias != c.name
+        for name in [c.name, *c.other_names]
+    ]
+    if not pairs:
+        return text
+    pairs.sort(key=lambda x: len(x[0]), reverse=True)
+    lookup = {name.lower(): alias for name, alias in pairs}
+    pattern = re.compile(r"(?<![\w-])(" + "|".join(re.escape(n) for n, _ in pairs) + r")(?![\w-])", re.IGNORECASE)
+    return pattern.sub(lambda m: lookup[m.group(1).lower()], text)
 
 
 def build_chatgpt_request(channel: Channel) -> str:

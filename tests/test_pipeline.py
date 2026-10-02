@@ -343,7 +343,7 @@ def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, 
     prompts = [c[1] for c in web_env.calls]
     assert prompts[0] == raw
     assert prompts[1].startswith("The costume guy is a skinny goofy guy")
-    assert prompts[1].endswith("the costume guy hands Orange a square tomato and says 'Bu ne?'")
+    assert prompts[1].endswith("the costume guy hands the talking orange a square tomato and says 'Bu ne?'")
     assert "spoderman" not in prompts[1].lower()
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
     assert (result.folder / "gemini_prompt_1.txt").read_text() == raw
@@ -396,3 +396,34 @@ def test_chatgpt_placeholder_and_thought_header():
     assert not chatgpt_web._is_final("Thought for 8s\nDüşünüyor")
     raw = "Thought for 12s\nSpoderman tries to pay for a single tomato with a 500 lira note."
     assert script.clean_chatgpt_output(raw).startswith("Spoderman tries")
+
+
+def test_aliases_cover_other_names(channel):
+    s = script.Scenario(baslik="t", aciklama="a", ozet="o", ilk_kare="",
+                        video_prompt="Spoderman and Annoying Orange fight. Orange laughs at Spider-Man.", hashtagler=[])
+    prompt = script.web_video_prompt(channel, s)
+    low = prompt.lower()
+    assert "spoderman" not in low and "annoying orange" not in low and "spider-man" not in low
+    assert "the costume guy and the talking orange fight" in low
+
+
+def test_generic_gemini_error_retries_with_aliases_first(channel, tmp_path, web_env, monkeypatch):
+    channel.scenario["motor"] = "chatgpt_web"
+    raw = "Spoderman meets Annoying Orange."
+    s = script.Scenario(baslik="t", aciklama="a", ozet="o", ilk_kare="", video_prompt=raw, hashtagler=[])
+    monkeypatch.setattr(script, "write_scenario", lambda *a, **k: s)
+    monkeypatch.setattr(pipeline, "_sleep", lambda s: None)
+    calls = []
+
+    def fake(profile, prompt, out_path, log=print, **kw):
+        calls.append((profile, prompt))
+        if len(calls) == 1:
+            raise video_web.GeminiBusy("Sorry, something went wrong. Please try your request again.")
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"ok")
+        return out_path
+
+    monkeypatch.setattr(video_web, "generate_video_web", fake)
+    run(FakeClient(), channel, tmp_path, publish=False)
+    assert [c[0] for c in calls] == ["P1", "P1"]
+    assert calls[0][1] == raw and "spoderman" not in calls[1][1].lower()

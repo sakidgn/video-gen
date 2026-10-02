@@ -63,7 +63,13 @@ def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
                 except video_web.QuotaExceeded:
                     log(f">>> {profile}: Gemini video limitinin dolduğunu söyledi. Sıradaki hesaba geçiliyor.")
                     break
-                except video_web.GeminiBusy:
+                except video_web.GeminiBusy as e:
+                    generic_error = any(w in str(e).lower() for w in ("went wrong", "error", "hata", "sorun"))
+                    if generic_error and idx + 1 < len(variants):
+                        # "Something went wrong" bazen marka/karakter adından geliyor: önce adları değiştirip dene.
+                        idx += 1
+                        log(">>> Gemini 'bir hata oldu' dedi; marka/karakter adları değiştirilerek tekrar deneniyor.")
+                        continue
                     busy += 1
                     log(f">>> {profile}: Gemini şu an yoğun olduğunu söyledi. Sıradaki hesap deneniyor.")
                     break

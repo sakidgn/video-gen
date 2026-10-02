@@ -6,13 +6,15 @@ karakterler:
   - ad: Spoderman
     # Gemini telif yüzünden reddederse promptta ad bununla değiştirilir ve tarif başa eklenir.
     video_adi: the costume guy
+    diger_adlar: [Spider-Man, Spiderman, Spider Man, Örümcek Adam]
     tarif: >
       a skinny goofy guy in a cheap, badly homemade red and blue full-body suit with a saggy
       red mask that has huge lopsided white eye patches, like a bootleg party-store superhero
       costume from an old internet meme; confident but clueless body language
     referans: karakterler/spoderman.png
   - ad: Orange
-    video_adi: Orange
+    video_adi: the talking orange
+    diger_adlar: [Annoying Orange]
     tarif: >
       a real orange fruit with a cartoonish human face (big expressive eyes and a wide mouth),
       high-pitched annoying voice, constantly laughing at its own jokes

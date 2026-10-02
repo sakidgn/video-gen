@@ -191,7 +191,33 @@ def _focus_window(pid: int) -> bool:
         time.sleep(1.0)
         if _is_bot_chrome(_window_info(user32.GetForegroundWindow()), pid):
             return True
-    return False
+    try:
+        user32.SwitchToThisWindow(hwnd, True)
+        time.sleep(1.0)
+        if _is_bot_chrome(_window_info(user32.GetForegroundWindow()), pid):
+            return True
+    except Exception:
+        pass
+    return _click_title_strip(hwnd, pid)
+
+
+def _click_title_strip(hwnd, pid: int) -> bool:
+    """Son çare: pencerenin üstteki boş sekme şeridine gerçek fare tıklaması (Windows her zaman öne alır)."""
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    rect = wintypes.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+    old = wintypes.POINT()
+    user32.GetCursorPos(ctypes.byref(old))
+    x, y = rect.right - 280, rect.top + 14
+    user32.SetCursorPos(x, y)
+    user32.mouse_event(0x0002, 0, 0, 0, 0)  # sol tuş bas
+    user32.mouse_event(0x0004, 0, 0, 0, 0)  # bırak
+    time.sleep(0.8)
+    user32.SetCursorPos(old.x, old.y)
+    return _is_bot_chrome(_window_info(user32.GetForegroundWindow()), pid)
 
 
 def foreground_title() -> str:

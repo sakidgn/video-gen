@@ -36,6 +36,7 @@ class Character:
     description: str
     reference: Path
     video_name: str = ""
+    other_names: list[str] = field(default_factory=list)
 
     @property
     def alias(self) -> str:
@@ -81,6 +82,7 @@ def load_channel(slug: str, channels_dir: Path = CHANNELS_DIR) -> Channel:
             description=c["tarif"].strip(),
             reference=chan_dir / c.get("referans", f"karakterler/{c['ad'].lower().replace(' ', '_')}.png"),
             video_name=c.get("video_adi", ""),
+            other_names=list(c.get("diger_adlar") or []),
         )
         for c in raw["karakterler"]
     ]
