@@ -73,11 +73,13 @@ def _video_via_gemini_web(channel, scenario, folder, log) -> Path:
                     busy += 1
                     log(f">>> {profile}: Gemini şu an yoğun olduğunu söyledi. Sıradaki hesap deneniyor.")
                     break
-                except CopyrightFiltered:
+                except VideoFiltered:
+                    # Telif ya da genel ret: önce aynı promptu karakter adları değiştirilmiş haliyle dene,
+                    # o da reddedilirse run() ChatGPT'den yeni prompt ister.
                     if idx + 1 >= len(variants):
                         raise
                     idx += 1
-                    log(">>> Telif filtresi: aynı prompt, karakter isimleri değiştirilerek yeni sohbette tekrar deneniyor.")
+                    log(">>> Gemini reddetti: aynı prompt, karakter isimleri değiştirilerek yeni sohbette tekrar deneniyor.")
         if not busy:
             break
         if round_no < BUSY_ROUNDS:

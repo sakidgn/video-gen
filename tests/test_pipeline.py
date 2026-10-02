@@ -439,3 +439,10 @@ def test_with_deadline_gives_up_on_hung_call():
         script._with_deadline(lambda: hang.wait(5), 0.2)
     hang.set()
     assert script._with_deadline(lambda: 7, 1) == 7
+
+
+def test_hard_time_reply_counts_as_refusal():
+    from shitpost import video_web
+
+    text = "i'm having a hard time fulfilling your request. can i help you with something else instead?"
+    assert any(ph in text for ph in video_web.REFUSAL_PHRASES)

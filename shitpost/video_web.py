@@ -23,7 +23,9 @@ QUOTA_PHRASES = [
 ]
 REFUSAL_PHRASES = [
     "i can't", "i cannot", "i'm unable", "i am unable", "can't create", "can't generate", "can't help",
-    "yapamıyorum", "oluşturamıyorum", "üretemiyorum", "yardımcı olamam",
+    "hard time fulfilling", "having a hard time", "something else instead", "not able to",
+    "yapamıyorum", "oluşturamıyorum", "üretemiyorum", "yardımcı olamam", "yerine getiremiyorum",
+    "yerine getirmekte zorlan", "başka bir konuda",
 ]
 
 FETCH_BLOB_JS = """async (src) => {
