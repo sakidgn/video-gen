@@ -18,7 +18,7 @@ DEFAULT_SCENARIO = {
     "motor": "gemini_api",
     "chatgpt_url": "https://chatgpt.com/",
     "chatgpt_proje": "",
-    "chatgpt_mesaj": "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür ve filigran olmasın.",
+    "chatgpt_mesaj": "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür, filigran ve ekranda kullanıcı adı olmasın.",
 }
 
 DEFAULT_VIDEO = {

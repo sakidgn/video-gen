@@ -336,7 +336,7 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
     s = script.write_scenario(client, channel, "a bazaar")
     profile, message, project = sent[0]
     assert profile == "P1" and project == "shitpost gen"
-    assert message == "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür ve filigran olmasın."
+    assert message == "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür, filigran ve ekranda kullanıcı adı olmasın."
     assert s.video_prompt.startswith("Spoderman slips") and s.ilk_kare == ""
     assert s.baslik == "Spoderman pazarda"
     prompt = script.web_video_prompt(channel, s)
@@ -351,9 +351,9 @@ def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, 
     web_env.behavior.append("copyright")
     result = run(FakeClient(), channel, tmp_path, publish=False)
     prompts = [c[1] for c in web_env.calls]
-    assert prompts[0] == raw
+    assert prompts[0].startswith(raw) and prompts[0].endswith(script.CLEAN_FRAME)
     assert prompts[1].startswith("The costume guy is a skinny goofy guy")
-    assert prompts[1].endswith("the costume guy hands the talking orange a square tomato and says 'Bu ne?'")
+    assert "the costume guy hands the talking orange a square tomato and says 'Bu ne?'" in prompts[1]
     assert "spoderman" not in prompts[1].lower()
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
     assert (result.folder / "gemini_prompt_1.txt").read_text() == raw
@@ -436,7 +436,7 @@ def test_generic_gemini_error_retries_with_aliases_first(channel, tmp_path, web_
     monkeypatch.setattr(video_web, "generate_video_web", fake)
     run(FakeClient(), channel, tmp_path, publish=False)
     assert [c[0] for c in calls] == ["P1", "P1"]
-    assert calls[0][1] == raw and "spoderman" not in calls[1][1].lower()
+    assert calls[0][1].startswith(raw) and "spoderman" not in calls[1][1].lower()
 
 
 def test_with_deadline_gives_up_on_hung_call():

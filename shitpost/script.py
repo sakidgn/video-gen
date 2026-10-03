@@ -116,14 +116,19 @@ def _sentence(text: str) -> str:
     return text if text.endswith((".", "!", "?")) else text + "."
 
 
+# Veo bazen videonun altına uydurma kullanıcı adı / TikTok arayüzü çiziyor; "çalıntı video" gibi duruyor.
+CLEAN_FRAME = ("Clean frame: no watermark, no logo, no usernames or @handles, no social media interface, "
+               "no subtitles or on-screen text.")
+
+
 def web_video_prompt(channel: Channel, scenario: Scenario, *, aliases: bool = True) -> str:
     if not scenario.ilk_kare:
         text = scenario.video_prompt.strip()
-        if not aliases:
-            return text
-        renamed = [c for c in channel.characters if c.alias != c.name]
-        intro = " ".join(f"{c.alias[:1].upper() + c.alias[1:]} is {c.description.rstrip('.')}." for c in renamed)
-        return f"{intro} {apply_aliases(channel, text)}".strip()
+        if aliases:
+            renamed = [c for c in channel.characters if c.alias != c.name]
+            intro = " ".join(f"{c.alias[:1].upper() + c.alias[1:]} is {c.description.rstrip('.')}." for c in renamed)
+            text = f"{intro} {apply_aliases(channel, text)}".strip()
+        return f"{text}\n\n{CLEAN_FRAME}"
     chars = " ".join(f"{c.alias} is {c.description}." for c in channel.characters)
     return (
         f"Generate a video. Vertical 9:16, 8 seconds, with sound. "
@@ -132,7 +137,7 @@ def web_video_prompt(channel: Channel, scenario: Scenario, *, aliases: bool = Tr
         f"Action: {_sentence(apply_aliases(channel, scenario.video_prompt))} "
         f"All spoken dialogue is in {language_name(channel.language)}. "
         f"Lighthearted, family-friendly comedy: everyone is safe and nobody gets hurt. "
-        f"No subtitles, captions or on-screen text."
+        f"{CLEAN_FRAME}"
     )
 
 
