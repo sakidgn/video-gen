@@ -37,11 +37,15 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   en yakın anahtar seçilip gerçek fare tıklamasıyla açılıyor (`browser.turn_on_ai_label`). Paylaşım öncesi
   `*_paylasim_oncesi.png` ekran görüntüsü kaydediliyor. Çıkan soru pencerelerine `browser.answer_dialogs` zararsız
   cevap veriyor (Tamam/Şimdi değil/Yine de paylaş...; "At/Sil/Kapat" asla).
-- Video üretimi çalışıyor, video kalitesi iyi.
-- Son düzeltmeler henüz gerçek Windows'ta doğrulanmadı: Chrome'u öne getirme (`browser._focus_window`, önceden hep
-  "Chrome öne gelmedi" veriyordu → hep CDP yedeğiyle gönderiliyordu), uyanınca ekranı açma, kilitli kutu algılama.
-- **Sıradaki adımlar:** 1) Menü 5 ile ilk gerçek paylaşım (YouTube/TikTok/IG hiç gerçekte denenmedi).
-  2) 9→3 uyandırma testi. 3) 9→1 ile günde 3 otomatik çalıştırma.
+- Her şey çalışıyor ve OTOMATİKTE: uyandırıp üretip 3 platforma paylaşma gerçek PC'de doğrulandı.
+  Menü başında `zamanla.ps1 -Durum` satırı "OTOMATIK: AKTIF (5 video/gun ...) Siradaki: ..." gösteriyor.
+- Hata dayanıklılığı: tüm çalışma 3 kere baştan denenir (`__main__._uret`, 80 dk bütçe), paylaşılamayan platform
+  2 kere daha denenir (`pipeline.PUBLISH_RETRIES`). 3'ünde de olmazsa Türkçe açıklama `cikti/sorunlar.txt`'ye yazılır
+  (menü 8 bunu da açar). Gemini "hard time fulfilling" = ret → isimler değiştirilmiş prompt → yeni ChatGPT promptu.
+- Başlık/açıklama kısa ve emojili (kalın Unicode yazı bilerek yok: Türkçe harf yok, aramada görünmüyor).
+- Veo videoya uydurma @kullanıcı adı çiziyordu: Gemini promptunun sonuna `script.CLEAN_FRAME` ekleniyor.
+  Köşedeki Google "Veo" logosu kaldırılmıyor (AI işareti).
+- **Sıradaki:** İlk günlerin paylaşımlarını izle; `sorunlar.txt`'ye bak. Kullanıcı sonra başka kanallar/işler isteyebilir.
 
 ## Geliştirme notları
 - Testler: `python -m pytest -q` (sahte Gemini client). Tarayıcı akışları için scratchpad'de sahte Gemini/ChatGPT/Studio
