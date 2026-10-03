@@ -285,10 +285,40 @@ def key_steps_for(plan: dict | None) -> list[str]:
             + ["Shift+Tab"] * plan["back"])
 
 
+USER_QUIET_SECONDS = 5
+USER_MAX_WAIT_SECONDS = 180
+
+
+def idle_seconds() -> float:
+    """Kullanıcının klavye/fareye en son dokunmasından beri geçen süre (Windows dışında 0)."""
+    if os.name != "nt":
+        return 0.0
+    import ctypes
+
+    class LASTINPUTINFO(ctypes.Structure):
+        _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+
+    info = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
+    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info))
+    return ((ctypes.windll.kernel32.GetTickCount() - info.dwTime) & 0xFFFFFFFF) / 1000.0
+
+
+def wait_user_idle(quiet_s: float = USER_QUIET_SECONDS, max_wait_s: float = USER_MAX_WAIT_SECONDS) -> None:
+    """Bilgisayar başındaki kişi klavye/fareyi bırakana kadar bekler; gerçek tuşlar onun yazısına karışmasın."""
+    if os.name != "nt" or idle_seconds() >= quiet_s:
+        return
+    print(f"Biri bilgisayarı kullanıyor: {int(quiet_s)} sn klavyeye/fareye dokunulmaması bekleniyor "
+          f"(Gemini'ye prompt yapıştırılacak)...")
+    deadline = time.time() + max_wait_s
+    while time.time() < deadline and idle_seconds() < quiet_s:
+        time.sleep(0.5)
+
+
 def os_paste_and_enter(pid: int, text: str, pre_keys: list[str] | None = None) -> bool:
     """Chrome'u öne getirip gerçek klavyeyle önce pre_keys'i, sonra Ctrl+V ve Enter'ı basar."""
     if os.name != "nt":
         return False
+    wait_user_idle()
     _set_clipboard(text)
     if not _focus_window(pid):
         return False

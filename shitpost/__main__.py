@@ -14,16 +14,9 @@ def _client():
 
 
 def _idle_seconds() -> float:
-    if sys.platform != "win32":
-        return 0.0
-    import ctypes
+    from .browser import idle_seconds
 
-    class LASTINPUTINFO(ctypes.Structure):
-        _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
-
-    info = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
-    ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info))
-    return (ctypes.windll.kernel32.GetTickCount() - info.dwTime) / 1000.0
+    return idle_seconds()
 
 
 def _sleep_pc() -> None:
