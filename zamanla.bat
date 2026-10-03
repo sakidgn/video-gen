@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 echo.
 echo ============ OTOMATIK CALISTIRMA ============
-echo  1) Kur (gunde 3 kere uret ve paylas)
+echo  1) Kur (gunde 5 video uret ve paylas)
 echo  2) Kaldir
 echo  3) Uyandirma testi (X dakika sonra bir kere, PAYLASMAZ)
 echo =============================================
@@ -16,15 +16,16 @@ if "%z%"=="2" (
 if not "%z%"=="1" exit /b 0
 
 echo.
-echo Saatleri SS:DD seklinde yaz. Bos birakirsan parantezdeki kullanilir.
-set /p s1=1. saat (12:00): 
-set /p s2=2. saat (17:00): 
-set /p s3=3. saat (21:00): 
-if "%s1%"=="" set s1=12:00
-if "%s2%"=="" set s2=17:00
-if "%s3%"=="" set s3=21:00
+echo Saatleri SS:DD seklinde, aralarinda bosluk birakarak yaz.
+echo Bos birakirsan onerilen saatler kullanilir.
+set saatler=
+set ig=
+set /p saatler=Video saatleri [09:45 12:45 15:45 18:45 21:15]: 
+if "%saatler%"=="" set saatler=09:45 12:45 15:45 18:45 21:15
+set /p ig=Bunlardan hangileri Instagram'a da gitsin [12:45 18:45 21:15]: 
+if "%ig%"=="" set ig=12:45 18:45 21:15
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0zamanla.ps1" -S1 %s1% -S2 %s2% -S3 %s3%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0zamanla.ps1" -Saatler "%saatler%" -IgSaatler "%ig%"
 echo.
 echo ONEMLI: Bilgisayari KAPATMA, uyku moduna al. Uyandiginda sifre sormamasi gerekiyor
 echo (Ayarlar - Hesaplar - Oturum acma secenekleri - "Uzaktaysaniz..." = Hicbir zaman).

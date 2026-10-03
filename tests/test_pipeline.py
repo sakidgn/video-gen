@@ -1,3 +1,4 @@
+import argparse
 import json
 import random
 import shutil
@@ -134,7 +135,7 @@ def test_gives_up_after_attempts(api_channel, tmp_path):
 def test_publish_records_history(api_channel, tmp_path, monkeypatch):
     posts = []
 
-    def fake_publish_all(ch, video, post):
+    def fake_publish_all(ch, video, post, skip=None):
         posts.append(post)
         return {"youtube": "https://youtube.com/shorts/x"}, {"ayrshare": "boom"}
 
@@ -446,3 +447,24 @@ def test_hard_time_reply_counts_as_refusal():
 
     text = "i'm having a hard time fulfilling your request. can i help you with something else instead?"
     assert any(ph in text for ph in video_web.REFUSAL_PHRASES)
+
+
+def test_publish_all_skips_platforms(monkeypatch):
+    from types import SimpleNamespace
+
+    from shitpost import publish
+    from shitpost.publish import instagram_web, tiktok_web
+
+    called = []
+    monkeypatch.setattr(tiktok_web, "publish", lambda ch, v, p: called.append("tt") or {"tiktok": "ok"})
+    monkeypatch.setattr(instagram_web, "publish", lambda ch, v, p: called.append("ig") or {"instagram": "ok"})
+    ch = SimpleNamespace(platforms={"tiktok_web": {}, "instagram_web": {}})
+    links, errors = publish.publish_all(ch, None, None, skip=["instagram_web"])
+    assert called == ["tt"] and links == {"tiktok": "ok"} and not errors
+
+
+def test_atla_flag_parsed():
+    from shitpost.__main__ import _skip_list
+
+    assert _skip_list(argparse.Namespace(atla="instagram_web, tiktok_web")) == ["instagram_web", "tiktok_web"]
+    assert _skip_list(argparse.Namespace(atla="")) == []

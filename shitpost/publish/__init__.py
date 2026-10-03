@@ -15,7 +15,7 @@ class Post:
         return f"{self.caption}\n\n{tags}".strip()
 
 
-def publish_all(channel: Channel, video_path: Path, post: Post) -> tuple[dict, dict]:
+def publish_all(channel: Channel, video_path: Path, post: Post, skip=None) -> tuple[dict, dict]:
     from . import ayrshare, instagram_web, tiktok_web, youtube, youtube_web
 
     publishers = {
@@ -27,6 +27,8 @@ def publish_all(channel: Channel, video_path: Path, post: Post) -> tuple[dict, d
     }
     links, errors = {}, {}
     for name in channel.platforms:
+        if skip and name in skip:
+            continue
         if name not in publishers:
             errors[name] = "bilinmeyen platform"
             continue

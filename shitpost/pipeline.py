@@ -95,6 +95,7 @@ def run(
     channel: Channel,
     *,
     publish: bool = True,
+    skip_platforms: list[str] | None = None,
     attempts: int = 3,
     out_root: Path = OUTPUT_DIR,
     rng: random.Random | None = None,
@@ -148,7 +149,9 @@ def run(
         return result
 
     post = Post(title=scenario.baslik, caption=scenario.aciklama, hashtags=channel.hashtags + scenario.hashtagler)
-    result.links, result.errors = publish_all(channel, video, post)
+    if skip_platforms:
+        log(f"Bu sefer paylaşılmayacak: {', '.join(skip_platforms)}")
+    result.links, result.errors = publish_all(channel, video, post, skip=skip_platforms)
     for name, link in result.links.items():
         log(f"Paylaşıldı: {name} -> {link}")
     for name, err in result.errors.items():

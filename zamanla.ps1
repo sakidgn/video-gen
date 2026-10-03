@@ -1,4 +1,9 @@
-param([string]$S1 = "12:00", [string]$S2 = "17:00", [string]$S3 = "21:00", [switch]$Kaldir, [int]$Test = 0)
+param(
+    [string]$Saatler = "09:45 12:45 15:45 18:45 21:15",
+    [string]$IgSaatler = "12:45 18:45 21:15",
+    [switch]$Kaldir,
+    [int]$Test = 0
+)
 
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # WakeToRun: bilgisayar uykudaysa uyandirir. StartWhenAvailable: kacirilan gorev bilgisayar acilinca calisir.
@@ -14,7 +19,7 @@ if ($Test -gt 0) {
     exit 0
 }
 
-foreach ($i in 1..3) {
+foreach ($i in 1..20) {
     Unregister-ScheduledTask -TaskName "Shitpost $i" -Confirm:$false -ErrorAction SilentlyContinue
 }
 Unregister-ScheduledTask -TaskName "Shitpost Test" -Confirm:$false -ErrorAction SilentlyContinue
@@ -23,12 +28,21 @@ if ($Kaldir) {
     exit 0
 }
 
-$action = New-ScheduledTaskAction -Execute "$dir\calistir.bat" -WorkingDirectory $dir
+$liste = @($Saatler -split '[\s,;]+' | Where-Object { $_ })
+$igListe = @($IgSaatler -split '[\s,;]+' | Where-Object { $_ })
 
 $i = 1
-foreach ($saat in @($S1, $S2, $S3)) {
+foreach ($saat in $liste) {
+    if ($igListe -contains $saat) {
+        $action = New-ScheduledTaskAction -Execute "$dir\calistir.bat" -WorkingDirectory $dir
+        $not = "YouTube + TikTok + Instagram"
+    } else {
+        $action = New-ScheduledTaskAction -Execute "$dir\calistir.bat" -Argument "--atla instagram_web" -WorkingDirectory $dir
+        $not = "YouTube + TikTok"
+    }
     $trigger = New-ScheduledTaskTrigger -Daily -At $saat
     Register-ScheduledTask -TaskName "Shitpost $i" -Action $action -Trigger $trigger -Settings $settings -Force | Out-Null
+    Write-Host ("  " + $saat + "  ->  " + $not)
     $i++
 }
-Write-Host "Kuruldu: her gun $S1, $S2 ve $S3 (bilgisayar uykudaysa uyandirilir)."
+Write-Host ("Kuruldu: her gun " + $liste.Count + " video (bilgisayar uykudaysa uyandirilir).")

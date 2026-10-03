@@ -28,7 +28,7 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
    - Yatay gelen video ffmpeg (imageio-ffmpeg) ile 1080x1920 bulanık arka planlı dikeye çevrilir (`postprocess.py`).
 3. **Paylaşım (tarayıcı, PAYLASIM_PROFILI):** `youtube_web` (Studio: #shorts, çocuklara değil, AI etiketi, herkese açık),
    `tiktok_web`, `instagram_web`. Google Cloud kurulumunu kullanıcı yapamadı, API yolu kullanılmıyor.
-4. **Zamanlama:** menü 9 → `zamanla.bat`/`zamanla.ps1`: günde 3 görev (WakeToRun, uykudan uyandırır), 9→3 tek seferlik
+4. **Zamanlama:** menü 9 → `zamanla.bat`/`zamanla.ps1`: günde 5 görev (09:45 12:45 15:45 18:45 21:15; Instagram sadece 12:45 18:45 21:15, diğerleri `--atla instagram_web`) (WakeToRun, uykudan uyandırır), 9→3 tek seferlik
    paylaşmayan uyandırma testi. `--uyut`: kimse başında değilse iş bitince bilgisayarı uyutur. Başta fare 1 px oynatılıp
    ekran açılır. Kullanıcı "uyanınca şifre sorma"yı kapattı (kilit ekranına program yazamaz).
 

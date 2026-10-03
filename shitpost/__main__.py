@@ -87,6 +87,10 @@ def cmd_uret(args) -> int:
             _sleep_pc()
 
 
+def _skip_list(args) -> list[str]:
+    return [x.strip() for x in (getattr(args, "atla", "") or "").split(",") if x.strip()]
+
+
 def _uret(args, pipeline) -> int:
     import traceback
 
@@ -97,7 +101,7 @@ def _uret(args, pipeline) -> int:
         if args.adet > 1:
             print(f"\n=== Video {i + 1}/{args.adet} ===")
         try:
-            result = pipeline.run(client, channel, publish=not args.kuru)
+            result = pipeline.run(client, channel, publish=not args.kuru, skip_platforms=_skip_list(args))
         except (pipeline.NoQuotaLeft, pipeline.GeminiBusyAll) as e:
             print(f"Durduruldu: {e}")
             break
@@ -232,6 +236,7 @@ def main(argv=None) -> int:
     u.add_argument("--adet", type=int, default=1)
     u.add_argument("--kuru", action="store_true", help="Üret ama paylaşma")
     u.add_argument("--uyut", action="store_true", help="Bitince, kimse başında değilse bilgisayarı uyut")
+    u.add_argument("--atla", default="", help="Bu sefer paylaşılmayacak platformlar, virgülle (örn. instagram_web)")
     u.set_defaults(func=cmd_uret)
 
     k = sub.add_parser("karakter", help="Karakter referans görsellerini üret")
