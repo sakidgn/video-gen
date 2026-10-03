@@ -2,7 +2,8 @@ param(
     [string]$Saatler = "09:45 12:45 15:45 18:45 21:15",
     [string]$IgSaatler = "12:45 18:45 21:15",
     [switch]$Kaldir,
-    [int]$Test = 0
+    [int]$Test = 0,
+    [switch]$Paylas
 )
 
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -12,10 +13,13 @@ $settings = New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -AllowSt
 
 if ($Test -gt 0) {
     $when = (Get-Date).AddMinutes($Test)
-    $testAction = New-ScheduledTaskAction -Execute "$dir\calistir_test.bat" -WorkingDirectory $dir
+    $bat = "calistir_test.bat"
+    $not = "paylasmaz"
+    if ($Paylas) { $bat = "calistir.bat"; $not = "PAYLASIR" }
+    $testAction = New-ScheduledTaskAction -Execute "$dir\$bat" -WorkingDirectory $dir
     $trigger = New-ScheduledTaskTrigger -Once -At $when
     Register-ScheduledTask -TaskName "Shitpost Test" -Action $testAction -Trigger $trigger -Settings $settings -Force | Out-Null
-    Write-Host ("Test kuruldu: saat " + $when.ToString("HH:mm") + " civarinda bir kere calisacak (paylasmaz).")
+    Write-Host ("Test kuruldu: saat " + $when.ToString("HH:mm") + " civarinda bir kere calisacak (" + $not + ").")
     exit 0
 }
 

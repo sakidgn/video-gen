@@ -5,8 +5,12 @@ echo ============ OTOMATIK CALISTIRMA ============
 echo  1) Kur (gunde 5 video uret ve paylas)
 echo  2) Kaldir
 echo  3) Uyandirma testi (X dakika sonra bir kere, PAYLASMAZ)
+echo  4) Uyandirma testi (X dakika sonra bir kere, GERCEKTEN PAYLASIR)
 echo =============================================
-set /p z=Secimin (1-3): 
+set /p z=Secimin (1-4): 
+set paylas=
+if "%z%"=="4" set paylas=-Paylas
+if "%z%"=="4" goto test
 if "%z%"=="3" goto test
 if "%z%"=="2" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0zamanla.ps1" -Kaldir
@@ -37,10 +41,10 @@ exit /b 0
 set dk=
 set /p dk=Kac dakika sonra? [5]: 
 if "%dk%"=="" set dk=5
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0zamanla.ps1" -Test %dk%
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0zamanla.ps1" -Test %dk% %paylas%
 echo.
 echo Simdi bilgisayari UYKU moduna al (Baslat - Guc - Uyku).
-echo %dk% dakika sonra kendi uyanip bir test videosu uretecek (paylasmaz).
+echo %dk% dakika sonra kendi uyanip bir video uretecek (4 sectiysen paylasacak da).
 echo Sonra kayit.txt dosyasinin en altina ve cikti\spoderman klasorune bak.
 pause
 exit /b 0
