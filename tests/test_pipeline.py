@@ -356,7 +356,7 @@ def test_chatgpt_prompt_sent_as_is_then_aliased_on_copyright(channel, tmp_path, 
     assert "the costume guy hands the talking orange a square tomato and says 'Bu ne?'" in prompts[1]
     assert "spoderman" not in prompts[1].lower()
     assert [c[0] for c in web_env.calls] == ["P1", "P1"]
-    assert (result.folder / "gemini_prompt_1.txt").read_text() == raw
+    assert (result.folder / "gemini_prompt_1.txt").read_text() == prompts[0]
 
 
 def test_chatgpt_scenario_survives_gemini_api_outage(channel, monkeypatch):
