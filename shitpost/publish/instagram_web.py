@@ -1,8 +1,13 @@
 from pathlib import Path
 
 from .. import accounts
-from ..browser import click_first, click_text, first_page, open_profile, screenshot, turn_on_ai_label, wait_for_text
+from ..browser import (
+    answer_dialogs, click_first, click_text, first_page, open_profile, screenshot, turn_on_ai_label, wait_for_text,
+)
 from ..config import Channel
+
+
+AI_PATTERN = r"AI etiketi|AI label|yapay zek[aâ] etiket|yapay zek[aâ] ile oluşturul|made with AI|AI info"
 
 
 def _dialog_button(texts: list[str]) -> list[str]:
@@ -56,10 +61,15 @@ def publish(channel: Channel, video_path: Path, post) -> dict:
             page.keyboard.insert_text(post.caption_with_tags())
             page.wait_for_timeout(1000)
 
-            click_text(page, r"^(gelişmiş ayarlar|advanced settings)$")
-            page.wait_for_timeout(1000)
-            ai = turn_on_ai_label(page, r"AI (etiketi|label)|yapay zek[aâ] etiket|AI info|yapay zek[aâ] bilgi")
+            answer_dialogs(page)
+            ai = turn_on_ai_label(page, AI_PATTERN)
+            if not ai:
+                # AI anahtarı "Gelişmiş ayarlar" bölümünün içinde (kapalı geliyor)
+                click_text(page, r"^(gelişmiş ayarlar|advanced settings)$")
+                page.wait_for_timeout(1500)
+                ai = turn_on_ai_label(page, AI_PATTERN)
             print(f"Instagram AI etiketi: {ai or 'BULUNAMADI'}")
+            screenshot(page, video_path.parent / "instagram_paylasim_oncesi.png")
 
             if not click_first(page, _dialog_button(["Paylaş", "Share"]), timeout_ms=10_000):
                 raise RuntimeError("Instagram 'Paylaş' butonu bulunamadı")

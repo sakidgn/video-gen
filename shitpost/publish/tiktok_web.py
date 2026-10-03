@@ -3,7 +3,7 @@ from pathlib import Path
 
 from .. import accounts
 from ..browser import (
-    click_first, click_text, first_page, open_profile, screenshot, turn_on_ai_label, wait_for_text,
+    answer_dialogs, click_first, click_text, first_page, open_profile, screenshot, turn_on_ai_label, wait_for_text,
     wait_until_idle,
 )
 from ..config import Channel
@@ -54,10 +54,12 @@ def publish(channel: Channel, video_path: Path, post) -> dict:
             click_text(page, r"^(daha fazla göster|daha fazla|show more|more options)$")
             page.wait_for_timeout(1000)
             ai = turn_on_ai_label(page, AI_PATTERN)
-            if ai in ("açıldı", "tıklandı"):
+            if ai and ai != "zaten açık":
                 click_first(page, ['button:text-is("Aç")', 'button:text-is("Turn on")', 'button:text-is("Açık")'],
                             timeout_ms=4000)
             print(f"TikTok AI etiketi: {ai or 'BULUNAMADI'}")
+            answer_dialogs(page)
+            screenshot(page, video_path.parent / "tiktok_paylasim_oncesi.png")
 
             _wait_post_enabled(page).click()
             click_first(page, ['button:has-text("Şimdi yayınla")', 'button:has-text("Post now")'], timeout_ms=5000)

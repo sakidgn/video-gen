@@ -338,6 +338,7 @@ def click_first(page, selectors: list[str], timeout_ms: int = 0) -> bool:
                 return True
         if time.time() >= deadline:
             return False
+        answer_dialogs(page)
         page.wait_for_timeout(500)
 
 
@@ -349,34 +350,122 @@ def wait_for_text(page, needles: list[str], timeout_s: int) -> str | None:
         for n in needles:
             if n in body:
                 return n
+        answer_dialogs(page)
         page.wait_for_timeout(2000)
     return None
 
 
 AI_TOGGLE_JS = r"""(pattern) => {
   const re = new RegExp(pattern, 'i');
-  const els = Array.from(document.querySelectorAll('span, div, label, p, h2, h3'))
-    .filter(el => el.offsetParent !== null && re.test(el.textContent || '') && (el.textContent || '').length < 160);
-  els.sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
-  for (const label of els) {
-    let node = label;
-    for (let i = 0; i < 6 && node; i++, node = node.parentElement) {
-      const sw = node.querySelector('[role="switch"], input[type="checkbox"]');
-      if (sw) {
-        const on = () => sw.getAttribute('aria-checked') === 'true' || sw.checked === true;
-        if (on()) return 'zaten açık';
-        (sw.closest('label') || sw).click();
-        return on() ? 'açıldı' : 'tıklandı';
-      }
+  const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const labels = Array.from(document.querySelectorAll('span, div, label, p, h2, h3'))
+    .filter(el => visible(el) && re.test(el.textContent || '') && (el.textContent || '').length < 160);
+  labels.sort((a, b) => (a.textContent || '').length - (b.textContent || '').length);
+  const switches = Array.from(document.querySelectorAll('[role="switch"], input[type="checkbox"]'))
+    .map(sw => {
+      // Görünmez checkbox'ın yerine görünen kutusunu ölç
+      let box = sw;
+      while (box && !visible(box)) box = box.parentElement;
+      return {sw, box};
+    })
+    .filter(x => x.box);
+  for (const label of labels) {
+    const lr = label.getBoundingClientRect();
+    const ly = lr.top + lr.height / 2;
+    let best = null, bestD = 1e9;
+    for (const x of switches) {
+      const r = x.box.getBoundingClientRect();
+      const d = Math.abs(r.top + r.height / 2 - ly);
+      // Aynı satırda (dikeyde 40px içinde) en yakın anahtar = bu etiketin anahtarı
+      if (d < 40 && d < bestD) { best = x; bestD = d; }
+    }
+    if (!best) continue;
+    document.querySelectorAll('[data-sp-ai]').forEach(e => e.removeAttribute('data-sp-ai'));
+    best.box.setAttribute('data-sp-ai', '1');
+    best.sw.setAttribute('data-sp-ai-input', '1');
+    best.box.scrollIntoView({block: 'center'});
+    return (label.textContent || '').trim().slice(0, 80);
+  }
+  return null;
+}"""
+
+SCROLL_PANELS_JS = r"""() => {
+  for (const el of document.querySelectorAll('*')) {
+    const st = getComputedStyle(el);
+    if (/(auto|scroll)/.test(st.overflowY) && el.scrollHeight > el.clientHeight + 20) el.scrollTop += 400;
+  }
+  window.scrollBy(0, 400);
+}"""
+
+AI_STATE_JS = r"""() => {
+  const sw = document.querySelector('[data-sp-ai-input]');
+  if (!sw) return null;
+  return sw.getAttribute('aria-checked') === 'true' || sw.checked === true;
+}"""
+
+
+def turn_on_ai_label(page, pattern: str) -> str | None:
+    """Metni pattern'e uyan etiketin aynı satırındaki anahtarı açar; sonucu döndürür (None: bulunamadı)."""
+    label = None
+    for _ in range(6):
+        label = page.evaluate(AI_TOGGLE_JS, pattern)
+        if label:
+            break
+        # Anahtar aşağıda kalmış olabilir: kaydırılabilen panelleri biraz aşağı kaydır
+        page.evaluate(SCROLL_PANELS_JS)
+        page.wait_for_timeout(800)
+    if not label:
+        return None
+    print(f"  AI etiketi satırı bulundu: {label!r}")
+    if page.evaluate(AI_STATE_JS):
+        return "zaten açık"
+    page.wait_for_timeout(500)
+    try:
+        page.locator('[data-sp-ai]').first.click(timeout=5000)  # gerçek fare tıklaması
+    except Exception:
+        page.evaluate("() => document.querySelector('[data-sp-ai-input]')?.click()")
+    page.wait_for_timeout(1500)
+    if page.evaluate(AI_STATE_JS):
+        return "açıldı"
+    page.evaluate("() => document.querySelector('[data-sp-ai-input]')?.click()")
+    page.wait_for_timeout(1500)
+    return "açıldı" if page.evaluate(AI_STATE_JS) else "tıklandı (açıldığı doğrulanamadı)"
+
+
+# Paylaşım sırasında çıkan "Tamam / Şimdi değil / Yine de paylaş" gibi soruları cevaplar.
+# Sadece zararsız cevaplar var: "At", "Sil", "Vazgeç", "Kapat" gibi gönderiyi bozan butonlar ASLA tıklanmaz.
+SAFE_ANSWERS = [
+    "Tamam", "OK", "Anladım", "Got it", "Şimdi değil", "Not now", "Daha sonra", "Later",
+    "Devam", "Devam et", "Continue", "Şimdi yayınla", "Post now", "Yine de yayınla", "Yine de paylaş",
+    "Post anyway", "Share anyway", "Tümünü kabul et", "Accept all", "Kabul et", "Accept", "Allow all cookies",
+    "Tüm çerezlere izin ver",
+]
+
+ANSWER_DIALOG_JS = r"""(answers) => {
+  const visible = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const dialogs = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"], [aria-modal="true"]'))
+    .filter(visible);
+  for (const d of dialogs.reverse()) {
+    const btns = Array.from(d.querySelectorAll('button, [role="button"]')).filter(visible);
+    for (const want of answers) {
+      const b = btns.find(b => (b.innerText || '').trim().toLowerCase() === want.toLowerCase());
+      if (b) { b.click(); return want; }
     }
   }
   return null;
 }"""
 
 
-def turn_on_ai_label(page, pattern: str) -> str | None:
-    """Metni pattern'e uyan etiketin yanındaki anahtarı açar; sonucu döndürür (None: bulunamadı)."""
-    return page.evaluate(AI_TOGGLE_JS, pattern)
+def answer_dialogs(page, answers: list[str] | None = None) -> str | None:
+    """Ekranda bir soru penceresi varsa zararsız cevabı tıklar; tıkladığı cevabı döndürür."""
+    try:
+        hit = page.evaluate(ANSWER_DIALOG_JS, answers or SAFE_ANSWERS)
+    except Exception:
+        return None
+    if hit:
+        print(f"  Çıkan soruya '{hit}' denildi.")
+        page.wait_for_timeout(1000)
+    return hit
 
 
 def click_text(page, pattern: str, timeout_ms: int = 3000) -> bool:
@@ -422,6 +511,7 @@ def wait_until_idle(page, words: list[str], timeout_s: int, what: str) -> bool:
             if time.time() - last_log > 30:
                 print(f"  {what}: yükleme sürüyor, bekleniyor...")
                 last_log = time.time()
+            answer_dialogs(page)
         else:
             calm += 1
             if calm >= 2:

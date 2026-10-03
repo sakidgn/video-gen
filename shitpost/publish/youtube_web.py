@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 
 from .. import accounts
-from ..browser import click_first, first_page, open_profile, screenshot, wait_until_idle
+from ..browser import answer_dialogs, click_first, first_page, open_profile, screenshot, wait_until_idle
 from ..config import Channel
 
 UPLOAD_URL = "https://www.youtube.com/upload"
@@ -76,9 +76,12 @@ def publish(channel: Channel, video_path: Path, post) -> dict:
 
             if not click_first(page, PUBLIC, timeout_ms=15_000):
                 raise RuntimeError("'Herkese açık' seçeneği bulunamadı")
+            answer_dialogs(page)
+            screenshot(page, video_path.parent / "youtube_paylasim_oncesi.png")
             _wait_enabled(page, "#done-button", 600)
             page.locator("#done-button").first.click()
             page.wait_for_timeout(3000)
+            answer_dialogs(page)
             wait_until_idle(page, ["yükleniyor", "yükleme", "uploading", "upload"], 900, "YouTube yükleme")
 
             link = None

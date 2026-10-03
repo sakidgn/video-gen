@@ -33,6 +33,10 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
    ekran açılır. Kullanıcı "uyanınca şifre sorma"yı kapattı (kilit ekranına program yazamaz).
 
 ## Durum (son konuşma)
+- Paylaşım çalışıyor (kullanıcı "gayet iyi" dedi). IG AI etiketi açılmamıştı: anahtar artık etiketle aynı satırdaki
+  en yakın anahtar seçilip gerçek fare tıklamasıyla açılıyor (`browser.turn_on_ai_label`). Paylaşım öncesi
+  `*_paylasim_oncesi.png` ekran görüntüsü kaydediliyor. Çıkan soru pencerelerine `browser.answer_dialogs` zararsız
+  cevap veriyor (Tamam/Şimdi değil/Yine de paylaş...; "At/Sil/Kapat" asla).
 - Video üretimi çalışıyor, video kalitesi iyi.
 - Son düzeltmeler henüz gerçek Windows'ta doğrulanmadı: Chrome'u öne getirme (`browser._focus_window`, önceden hep
   "Chrome öne gelmedi" veriyordu → hep CDP yedeğiyle gönderiliyordu), uyanınca ekranı açma, kilitli kutu algılama.
