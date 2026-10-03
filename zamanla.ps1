@@ -3,13 +3,30 @@ param(
     [string]$IgSaatler = "12:45 18:45 21:15",
     [switch]$Kaldir,
     [int]$Test = 0,
-    [switch]$Paylas
+    [switch]$Paylas,
+    [switch]$Durum
 )
 
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # WakeToRun: bilgisayar uykudaysa uyandirir. StartWhenAvailable: kacirilan gorev bilgisayar acilinca calisir.
 $settings = New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2)
+
+if ($Durum) {
+    $gorevler = @(Get-ScheduledTask -TaskName "Shitpost *" -ErrorAction SilentlyContinue |
+        Where-Object { $_.TaskName -match '^Shitpost \d+$' -and $_.State -ne 'Disabled' })
+    if ($gorevler.Count -eq 0) {
+        Write-Host " OTOMATIK: KAPALI  (9 -> 1 ile kur)" -ForegroundColor Red
+        exit 0
+    }
+    $sonraki = $gorevler | ForEach-Object { (Get-ScheduledTaskInfo -InputObject $_).NextRunTime } |
+        Where-Object { $_ } | Sort-Object | Select-Object -First 1
+    $kurulu = ($gorevler | ForEach-Object { try { $_.Triggers[0].StartBoundary.Substring(11, 5) } catch { "?" } } | Sort-Object) -join " "
+    $msg = " OTOMATIK: AKTIF  (" + $gorevler.Count + " video/gun: " + $kurulu + ")"
+    if ($sonraki) { $msg += "  Siradaki: " + $sonraki.ToString("dd.MM HH:mm") }
+    Write-Host $msg -ForegroundColor Green
+    exit 0
+}
 
 if ($Test -gt 0) {
     $when = (Get-Date).AddMinutes($Test)

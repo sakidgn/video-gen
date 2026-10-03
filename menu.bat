@@ -5,6 +5,7 @@ call .venv\Scripts\activate.bat
 :menu
 echo.
 echo ================ SHITPOST MENU ================
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0zamanla.ps1" -Durum
 echo  1) Giris yap: Gemini + ChatGPT + YouTube + TikTok + Instagram
 echo  2) Giris yap: 2. Gemini hesabi
 echo  3) YouTube API bagla (gerek yok, 1 ile giris yeterli)
@@ -13,7 +14,7 @@ echo  5) Video uret ve paylas
 echo  6) Cikis
 echo  7) Guncelle
 echo  8) Hata raporunu ac (son denemenin kaydi ve resimleri)
-echo  9) Otomatik calistirma (gunde 3 kere) kur / kaldir
+echo  9) Otomatik calistirma kur / kaldir / test
 echo ===============================================
 set /p secim=Secimin (1-9):
 if "%secim%"=="1" python -m shitpost giris C:\BotProfil1
