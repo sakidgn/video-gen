@@ -336,7 +336,7 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
     s = script.write_scenario(client, channel, "a bazaar")
     profile, message, project = sent[0]
     assert profile == "P1" and project == "shitpost gen"
-    assert message == "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür olmasın."
+    assert message == "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür ve filigran olmasın."
     assert s.video_prompt.startswith("Spoderman slips") and s.ilk_kare == ""
     assert s.baslik == "Spoderman pazarda"
     prompt = script.web_video_prompt(channel, s)
@@ -375,7 +375,7 @@ def test_chatgpt_scenario_survives_gemini_api_outage(channel, monkeypatch):
 
     client.models.generate_content = busy
     s = script.write_scenario(client, channel, "x", log=lambda *a: None)
-    assert s.baslik == channel.name and s.video_prompt.startswith("Spoderman and Orange")
+    assert s.baslik.startswith(channel.name) and s.video_prompt.startswith("Spoderman and Orange")
 
 
 def test_web_engine_busy_tries_other_account_then_waits(channel, tmp_path, web_env, monkeypatch):

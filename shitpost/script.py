@@ -10,8 +10,8 @@ from .config import Channel
 
 
 class Meta(BaseModel):
-    baslik: str = Field(description="Short, clickbait-y video title, max 70 chars, no hashtags.")
-    aciklama: str = Field(description="1-2 sentence funny caption for the post, no hashtags.")
+    baslik: str = Field(description="Very short punchy title (max 50 chars) with 1-2 fitting emojis, no hashtags.")
+    aciklama: str = Field(description="One short funny line (max 80 chars) with 1-3 fitting emojis, no hashtags.")
     ozet: str = Field(description="One sentence plot summary, used to avoid repeating ideas.")
     hashtagler: list[str] = Field(description="3-6 extra topical hashtags without the # sign.")
 
@@ -241,7 +241,8 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
     prompt = (
         f"This is the video prompt of a short shitpost video for the channel \"{channel.name}\". "
         f"Character names in the post may use the real names ({names}). Write baslik and aciklama in "
-        f"natural slangy {lang} social-media style, ozet as one English sentence, and 3-6 hashtags.\n\n"
+        f"natural slangy {lang} social-media style: SHORT and attention-grabbing with fitting emojis (no swearing), "
+        f"ozet as one English sentence, and 3-6 hashtags.\n\n"
         f"VIDEO PROMPT:\n{video_prompt}"
     )
     log("Başlık/açıklama yazılıyor (en fazla 90 sn)...")
@@ -251,6 +252,6 @@ def _write_scenario_chatgpt(client, channel: Channel, theme: str, *, log=print, 
         meta = resp.parsed if isinstance(resp.parsed, Meta) else Meta.model_validate_json(resp.text)
     except Exception as e:
         log(f"(Başlık yazan API şu an yoğun, basit başlık kullanılıyor. Videoyu etkilemez.) [{str(e)[:60]}]")
-        meta = Meta(baslik=channel.name, aciklama="", ozet=video_prompt[:200], hashtagler=[])
+        meta = Meta(baslik=f"{channel.name} 😂", aciklama="Bu ne ya 💀😂", ozet=video_prompt[:200], hashtagler=[])
     return Scenario(baslik=meta.baslik, aciklama=meta.aciklama, ozet=meta.ozet, ilk_kare="",
                     video_prompt=video_prompt, hashtagler=meta.hashtagler)
