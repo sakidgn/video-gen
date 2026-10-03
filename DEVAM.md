@@ -11,7 +11,7 @@ Yeni bir Claude sohbetinde bu dosyayı okut: "DEVAM.md'yi oku, kaldığımız ye
 ## Sistem ne yapıyor
 Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python -m shitpost uret spoderman`:
 1. **Senaryo:** Tarayıcıdaki ChatGPT projesi "Shitpost gen" (`senaryo.chatgpt_proje`) açılır, sadece
-   "Daha önce yapmadığın komik bir prompt yaz." yazılır (`chatgpt_mesaj`). Kullanıcı başka hiçbir şey eklenmesin istedi.
+   "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür olmasın." yazılır (`chatgpt_mesaj`). Kullanıcı bundan başka hiçbir şey eklenmesin istedi.
    Başlık/açıklama/hashtag Gemini ücretsiz API'sinden; API yoğunsa basit başlıkla devam (videoyu durdurmaz).
 2. **Video (Gemini web, iki AI Pro hesabı C:\BotProfil1 ve C:\BotProfil2):**
    - Google, CDP/Playwright bağlıyken yüklenen sayfadan gelen video isteğini "high traffic / full capacity /

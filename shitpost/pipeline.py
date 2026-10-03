@@ -40,6 +40,8 @@ class GeminiBusyAll(RuntimeError):
 
 BUSY_WAIT_SECONDS = 300
 BUSY_ROUNDS = 3
+PUBLISH_RETRIES = 2
+PUBLISH_RETRY_WAIT = 30
 _sleep = time.sleep
 
 
@@ -152,6 +154,17 @@ def run(
     if skip_platforms:
         log(f"Bu sefer paylaşılmayacak: {', '.join(skip_platforms)}")
     result.links, result.errors = publish_all(channel, video, post, skip=skip_platforms)
+    # Paylaşılamayan platformları (sadece onları) 2 kere daha dene; paylaşılanlar tekrar paylaşılmaz.
+    for retry in range(1, PUBLISH_RETRIES + 1):
+        if not result.errors:
+            break
+        names = ", ".join(result.errors)
+        log(f">>> Paylaşılamadı: {names}. {PUBLISH_RETRY_WAIT} sn sonra tekrar deneniyor ({retry}/{PUBLISH_RETRIES})...")
+        _sleep(PUBLISH_RETRY_WAIT)
+        done = list(skip_platforms or []) + [n for n in channel.platforms if n not in result.errors]
+        links, errors = publish_all(channel, video, post, skip=done)
+        result.links.update(links)
+        result.errors = errors
     for name, link in result.links.items():
         log(f"Paylaşıldı: {name} -> {link}")
     for name, err in result.errors.items():

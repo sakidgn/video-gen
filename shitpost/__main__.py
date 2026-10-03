@@ -91,27 +91,88 @@ def _skip_list(args) -> list[str]:
     return [x.strip() for x in (getattr(args, "atla", "") or "").split(",") if x.strip()]
 
 
+RUN_ATTEMPTS = 3
+RUN_RETRY_WAIT = 60
+RUN_TIME_BUDGET = 80 * 60  # bundan sonra yeni deneme başlatma (sonraki zamanlanmış çalışmayla çakışmasın)
+
+# Hata metnindeki ipucu -> kullanıcıya Türkçe açıklama
+PROBLEM_HINTS = [
+    (("oturumu açık değil", "login", "accounts.google.com"),
+     "Bir sitede oturum kapanmış. Menüden 1 (ve 2) ile Chrome'u açıp o siteye tekrar giriş yap."),
+    (("video limitinin", "noquotaleft", "gemini_profiller"),
+     "Gemini'nin iki hesabında da video hakkı dolmuş. Birkaç saat sonra kendiliğinden düzelir."),
+    (("yoğun", "geminibusyall", "high traffic"),
+     "Gemini çok yoğundu, video üretemedi. Sonraki saatte büyük ihtimalle düzelir."),
+    (("chatgpt",), "ChatGPT'den prompt alınamadı. ChatGPT'de oturum açık mı, 'Shitpost gen' projesi duruyor mu bak."),
+    (("reddetti", "videofiltered"), "Gemini 3 farklı promptu da reddetti. Sonraki saatte yeni promptla dener."),
+    (("chrome bulunamadı",), "Chrome bulunamadı. Chrome'u kur."),
+    (("youtube",), "YouTube'a yüklenemedi. Menüden 1 ile YouTube Studio'ya girip bir uyarı var mı bak."),
+    (("tiktok",), "TikTok'a yüklenemedi. Menüden 1 ile TikTok'a girip bir uyarı/doğrulama var mı bak."),
+    (("instagram",), "Instagram'a yüklenemedi. Menüden 1 ile Instagram'a girip bir uyarı/doğrulama var mı bak."),
+    (("timeout", "zaman aşımı", "içinde video vermedi"), "Bir adım çok uzun sürdü (internet yavaş olabilir)."),
+]
+
+
+def explain_problem(text: str) -> str:
+    low = text.lower()
+    for keys, hint in PROBLEM_HINTS:
+        if any(k in low for k in keys):
+            return hint
+    return "Bilinmeyen bir hata. Menü 8 ile son_calisma.txt'yi açıp Claude'a gönder."
+
+
+def record_problem(text: str) -> None:
+    """Sorunu herkesin anlayacağı şekilde cikti/sorunlar.txt dosyasına ekler."""
+    import time as _t
+
+    from .config import OUTPUT_DIR
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    line = f"[{_t.strftime('%d.%m.%Y %H:%M')}] {explain_problem(text)}\n    (teknik: {text[:300]})\n"
+    with (OUTPUT_DIR / "sorunlar.txt").open("a", encoding="utf-8") as f:
+        f.write(line)
+    print("\n" + "=" * 60 + f"\nSORUN: {explain_problem(text)}\n(cikti/sorunlar.txt dosyasına yazıldı)\n" + "=" * 60)
+
+
 def _uret(args, pipeline) -> int:
+    import time as _t
     import traceback
 
     channel = load_channel(args.kanal)
     client = _client()
     failed = 0
+    started = _t.time()
     for i in range(args.adet):
         if args.adet > 1:
             print(f"\n=== Video {i + 1}/{args.adet} ===")
-        try:
-            result = pipeline.run(client, channel, publish=not args.kuru, skip_platforms=_skip_list(args))
-        except (pipeline.NoQuotaLeft, pipeline.GeminiBusyAll) as e:
-            print(f"Durduruldu: {e}")
-            break
-        except Exception as e:
-            print(f"HATA: {type(e).__name__}: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        last = ""
+        result = None
+        for attempt in range(1, RUN_ATTEMPTS + 1):
+            if attempt > 1:
+                if _t.time() - started > RUN_TIME_BUDGET:
+                    print("Süre doldu, bu sefer tekrar denenmiyor.")
+                    break
+                print(f"\n>>> Baştan tekrar deneniyor ({attempt}/{RUN_ATTEMPTS}), {RUN_RETRY_WAIT} sn sonra...")
+                _t.sleep(RUN_RETRY_WAIT)
+            try:
+                result = pipeline.run(client, channel, publish=not args.kuru, skip_platforms=_skip_list(args))
+                break
+            except pipeline.NoQuotaLeft as e:
+                last = f"NoQuotaLeft: {e}"
+                print(f"Durduruldu: {e}")
+                break  # hak yoksa tekrar denemenin anlamı yok
+            except Exception as e:
+                last = f"{type(e).__name__}: {e}"
+                print(f"HATA: {last}", file=sys.stderr)
+                traceback.print_exc(file=sys.stderr)
+        if result is None:
             failed += 1
+            record_problem(last or "bilinmeyen hata")
             continue
         if result.errors:
             failed += 1
+            for name, err in result.errors.items():
+                record_problem(f"{name}: {err}")
     return 1 if failed else 0
 
 
@@ -205,7 +266,9 @@ def cmd_rapor(args) -> int:
         print("Henüz rapor yok. Önce 4 ile bir deneme yap.")
         return 1
     opener = getattr(os, "startfile", None)
-    for target in [log if log.exists() else None, runs[-1] if runs else None]:
+    problems = OUTPUT_DIR / "sorunlar.txt"
+    for target in [problems if problems.exists() else None, log if log.exists() else None,
+                   runs[-1] if runs else None]:
         if target is None:
             continue
         print(f"Açılıyor: {target}")

@@ -135,14 +135,23 @@ def test_gives_up_after_attempts(api_channel, tmp_path):
 def test_publish_records_history(api_channel, tmp_path, monkeypatch):
     posts = []
 
+    skips = []
+
     def fake_publish_all(ch, video, post, skip=None):
         posts.append(post)
+        skips.append(skip)
+        if skip and "youtube_web" in skip:
+            return {}, {"ayrshare": "boom"}
         return {"youtube": "https://youtube.com/shorts/x"}, {"ayrshare": "boom"}
 
     monkeypatch.setattr(pipeline, "publish_all", fake_publish_all)
+    monkeypatch.setattr(pipeline, "_sleep", lambda s: None)
     result = run(FakeClient(), api_channel, tmp_path)
 
     assert result.errors == {"ayrshare": "boom"}
+    # Başarısız platform 2 kere daha denendi, başarılı olan (youtube) tekrar paylaşılmadı
+    assert len(posts) == 3 and all("youtube_web" in s for s in skips[1:])
+    assert result.links == {"youtube": "https://youtube.com/shorts/x"}
     assert posts[0].hashtags == api_channel.hashtags + ["funny"]
     entry = history.load(api_channel.history_path)[-1]
     assert entry["ozet"] == "summary 1" and entry["linkler"]["youtube"].endswith("/x")
@@ -327,7 +336,7 @@ def test_chatgpt_scenario_engine(channel, monkeypatch):
     s = script.write_scenario(client, channel, "a bazaar")
     profile, message, project = sent[0]
     assert profile == "P1" and project == "shitpost gen"
-    assert message == "Daha önce yapmadığın komik bir prompt yaz."
+    assert message == "Daha önce yapmadığın komik bir prompt yaz. Videoda küfür olmasın."
     assert s.video_prompt.startswith("Spoderman slips") and s.ilk_kare == ""
     assert s.baslik == "Spoderman pazarda"
     prompt = script.web_video_prompt(channel, s)
@@ -468,3 +477,25 @@ def test_atla_flag_parsed():
 
     assert _skip_list(argparse.Namespace(atla="instagram_web, tiktok_web")) == ["instagram_web", "tiktok_web"]
     assert _skip_list(argparse.Namespace(atla="")) == []
+
+
+def test_uret_retries_whole_run_then_records_problem(monkeypatch, tmp_path):
+    import shitpost.__main__ as m
+    from shitpost import config
+
+    monkeypatch.setattr(config, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(m, "load_channel", lambda slug: None)
+    monkeypatch.setattr(m, "_client", lambda: None)
+    monkeypatch.setattr(m, "RUN_RETRY_WAIT", 0)
+    calls = []
+
+    def boom(*a, **k):
+        calls.append(1)
+        raise RuntimeError("TikTok oturumu açık değil")
+
+    monkeypatch.setattr(pipeline, "run", boom)
+    args = argparse.Namespace(kanal="x", adet=1, kuru=False, atla="")
+    assert m._uret(args, pipeline) == 1
+    assert len(calls) == 3
+    text = (tmp_path / "sorunlar.txt").read_text(encoding="utf-8")
+    assert "oturum kapanmış" in text

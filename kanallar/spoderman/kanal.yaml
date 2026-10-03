@@ -55,7 +55,7 @@ senaryo:
   # chatgpt_web: senaryoyu tarayıcıdaki ChatGPT projen yazar | gemini_api: Gemini API yazar
   motor: chatgpt_web
   chatgpt_proje: shitpost gen   # ChatGPT'deki proje adı
-  chatgpt_mesaj: Daha önce yapmadığın komik bir prompt yaz.   # projeye her seferinde yazılan mesaj
+  chatgpt_mesaj: Daha önce yapmadığın komik bir prompt yaz. Videoda küfür olmasın.   # projeye her seferinde yazılan mesaj
   # Proje adla bulunamazsa gidilecek link (ChatGPT'de projeyi açınca adres çubuğundaki link)
   chatgpt_url: https://chatgpt.com/g/g-p-6a88edf62bc8819180ea36996d0b832d-shitpost-gen/project
 
