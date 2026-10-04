@@ -10,7 +10,8 @@ param(
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # WakeToRun: bilgisayar uykudaysa uyandirir. StartWhenAvailable: kacirilan gorev bilgisayar acilinca calisir.
 $settings = New-ScheduledTaskSettingsSet -WakeToRun -StartWhenAvailable -AllowStartIfOnBatteries `
-    -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2)
+    -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 2) `
+    -RestartCount 2 -RestartInterval (New-TimeSpan -Minutes 5)
 
 if ($Durum) {
     $gorevler = @(Get-ScheduledTask -TaskName "Shitpost *" -ErrorAction SilentlyContinue |
