@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Kayıt ol · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap"><div class="card auth">
+  <h2>Hesap oluştur</h2>
+  <p class="muted">1 dakikada kayıt ol, ilk videonu üret.</p>
+  <form method="post" action="/kayit">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>Adın</label><input name="name" maxlength="100" autocomplete="name">
+    <label>E-posta</label><input name="email" type="email" required autocomplete="email">
+    <label>Şifre</label><input name="password" type="password" minlength="8" required autocomplete="new-password">
+    <div class="hint">En az 8 karakter.</div>
+    <label class="checkline"><input type="checkbox" name="accept" value="1" required> <span><a href="/yasal/kullanim" target="_blank">Kullanım şartlarını</a> ve <a href="/yasal/kvkk" target="_blank">KVKK aydınlatma metnini</a> okudum, kabul ediyorum.</span></label>
+    <label class="checkline"><input type="checkbox" name="consent" value="1" required> <span>Video üretimi için girdiğim metinlerin yurt dışındaki yapay zekâ hizmet sağlayıcısına aktarılmasına açık rıza veriyorum.</span></label>
+    <button class="btn" style="width:100%;margin-top:18px">Kayıt ol</button>
+  </form>
+  <p class="muted" style="margin-top:16px">Hesabın var mı? <a href="/giris">Giriş yap</a></p>
+</div></div>
+{% endblock %}

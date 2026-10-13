@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Otomatik kanallar · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap page">
+  <div class="page-head"><h1>Otomatik kanallar 🔁</h1><a class="btn" href="/kanallar/yeni">+ Yeni kanal</a></div>
+  <p class="muted" style="margin-top:-12px;margin-bottom:24px">Her kanal, seçtiğin saatlerde kendiliğinden yeni video üretir. Her video kredinden düşer; kredi bitince durur.</p>
+  {% if channels %}
+  <div class="grid g2">
+  {% for ch in channels %}
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0">{{ ch.name }}</h3>{% if ch.active %}<span class="status st-hazir">Aktif</span>{% else %}<span class="status st-hata">Durduruldu</span>{% endif %}</div>
+      <p class="muted" style="margin:8px 0">{{ styles.get(ch.style, ch.style) }} · {{ languages.get(ch.language) }} · {{ qualities[ch.quality].label }} ({{ qualities[ch.quality].credits }} kredi/video)</p>
+      <div class="row">{% for t in ch.time_list() %}<span class="pill">{{ t }}</span>{% endfor %}</div>
+      <p class="muted" style="font-size:14px">Günlük: {{ ch.time_list()|length }} video · {{ ch.time_list()|length * qualities[ch.quality].credits }} kredi</p>
+      {% if ch.notice %}<div class="flash warn" style="font-size:14px">⚠️ {{ ch.notice }}</div>{% endif %}
+      <div class="row">
+        <a class="btn ghost small" href="/kanallar/{{ ch.id }}">Düzenle / videolar</a>
+        <form method="post" action="/kanallar/{{ ch.id }}/durum"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn ghost small">{{ 'Durdur' if ch.active else 'Başlat' }}</button></form>
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+  {% else %}
+  <div class="card empty"><div class="e">🔁</div><h3>Henüz otomatik kanalın yok</h3><p>Bir kere kur, videolar her gün kendiliğinden gelsin.</p><a class="btn" href="/kanallar/yeni">İlk kanalını kur</a></div>
+  {% endif %}
+</div>
+{% endblock %}

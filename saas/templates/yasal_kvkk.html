@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}KVKK aydınlatma metni · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap page prose">
+<h1>KVKK Aydınlatma Metni</h1>
+<p class="muted">Son güncelleme: [TARİH]</p>
+<p>6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, veri sorumlusu sıfatıyla [ŞİRKET UNVANI / AD SOYAD] ("{{ site }}") olarak kişisel verilerini aşağıda açıklanan şekilde işliyoruz.</p>
+<h2>1. İşlenen veriler</h2>
+<ul>
+<li><b>Kimlik ve iletişim:</b> ad, e-posta adresi.</li>
+<li><b>Müşteri işlem:</b> kredi yüklemeleri, havale bildirimlerindeki gönderen adı, kredi hareketleri, ürettiğin videolar ve bu videolar için girdiğin metinler.</li>
+<li><b>İşlem güvenliği:</b> şifrenin geri döndürülemez özeti (şifrenin kendisi saklanmaz), IP adresi ve oturum bilgileri.</li>
+</ul>
+<h2>2. İşleme amaçları ve hukuki sebepler</h2>
+<p>Verilerin; hesabının oluşturulması ve hizmetin sunulması (KVKK m.5/2-c, sözleşmenin ifası), ödemelerin takibi ve fatura/muhasebe yükümlülükleri (m.5/2-ç, hukuki yükümlülük), hizmetin güvenliği ve kötüye kullanımın önlenmesi (m.5/2-f, meşru menfaat) amaçlarıyla işlenir.</p>
+<h2>3. Aktarım</h2>
+<p>Video ve metin üretimi için girdiğin metinler, hizmeti sağlamak amacıyla yurt dışında bulunan yapay zekâ servis sağlayıcısına (Google LLC) aktarılır. Sunucu/barındırma hizmeti [SUNUCU SAĞLAYICI, ÜLKE] üzerinden alınır. Yurt dışına aktarım KVKK m.9 kapsamında açık rızana dayanır; rıza vermezsen video üretim hizmeti sunulamaz. Verilerin ayrıca kanunen yetkili kamu kurumlarıyla paylaşılabilir.</p>
+<h2>4. Saklama süresi</h2>
+<p>Hesap verilerin hesabın açık olduğu sürece; ödeme ve muhasebe kayıtları ilgili mevzuatta öngörülen süre boyunca (genellikle 10 yıl) saklanır. Hesabını silmek istediğinde videoların ve metinlerin silinir.</p>
+<h2>5. Hakların</h2>
+<p>KVKK m.11 uyarınca; verilerinin işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltilmesini veya silinmesini isteme, aktarıldığı kişileri bilme, itiraz etme ve zararın giderilmesini talep etme haklarına sahipsin. Başvurularını [E-POSTA] adresine iletebilirsin; en geç 30 gün içinde yanıtlanır.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Mesafeli satış sözleşmesi · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap page prose">
+<h1>Mesafeli Satış Sözleşmesi</h1>
+<p class="muted">Son güncelleme: [TARİH]</p>
+<h2>1. Taraflar</h2>
+<p><b>Satıcı:</b> [ŞİRKET UNVANI / AD SOYAD] · Vergi dairesi/no: [VERGİ DAİRESİ / NO] · Adres: [ADRES] · E-posta: [E-POSTA]<br>
+<b>Alıcı:</b> {{ site }} üzerinde hesap oluşturup kredi satın alan kullanıcı.</p>
+<h2>2. Konu</h2>
+<p>Bu sözleşmenin konusu, Alıcı'nın {{ site }} üzerinden satın aldığı dijital kredilerin satışı ve bu kredilerle yapay zekâ destekli video üretim hizmetinin sunulmasıdır. Sözleşme, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği'ne tabidir.</p>
+<h2>3. Ürün, fiyat ve ödeme</h2>
+<p>Kredi paketleri ve fiyatları sitede gösterildiği gibidir; fiyatlara KDV dahildir. Ödeme banka havalesi/EFT ile yapılır. Ödeme Satıcı tarafından teyit edildikten sonra krediler Alıcı'nın hesabına tanımlanır.</p>
+<h2>4. İfa</h2>
+<p>Krediler, ödemenin teyidini izleyen en geç 2 iş günü içinde hesaba yüklenir. Video üretimi, Alıcı'nın talebiyle elektronik ortamda anında başlatılır.</p>
+<h2>5. Cayma hakkı</h2>
+<p>Alıcı, satın aldığı kredileri hiç kullanmamışsa, yükleme tarihinden itibaren 14 gün içinde gerekçe göstermeksizin cayma hakkını kullanabilir; bedel 14 gün içinde iade edilir. Kısmen kullanılmış paketlerde kullanılmayan kredi karşılığı iade edilir (hediye krediler hariç).</p>
+<p>Mesafeli Sözleşmeler Yönetmeliği m.15/1-(ğ) uyarınca, Alıcı'nın onayıyla elektronik ortamda anında ifa edilen hizmetler için cayma hakkı kullanılamaz. Bu nedenle üretilmiş videolar için harcanan kredilerin iadesi yapılmaz; teknik nedenle üretilemeyen videoların kredisi ise otomatik iade edilir.</p>
+<h2>6. Uyuşmazlık</h2>
+<p>Uyuşmazlıklarda, Ticaret Bakanlığı'nca ilan edilen parasal sınırlar dahilinde Alıcı'nın yerleşim yerindeki Tüketici Hakem Heyetleri, bu sınırları aşan durumlarda Tüketici Mahkemeleri yetkilidir.</p>
+<p>Alıcı, kredi yüklemesi yaparak bu sözleşmeyi okuduğunu ve kabul ettiğini beyan eder.</p>
+</div>
+{% endblock %}

@@ -8,3 +8,5 @@ __pycache__/
 .pytest_cache/
 yerel/
 kayit.txt
+saas_veri/
+saas/.env

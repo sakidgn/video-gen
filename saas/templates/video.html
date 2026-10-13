@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title or 'Video' }} · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap page">
+  <div class="page-head"><h1>{{ job.title or 'Videon hazırlanıyor' }}</h1><span class="status st-{{ job.status }}" id="st">{{ status_labels[job.status] }}</span></div>
+  <div class="grid g2" style="align-items:start">
+    <div>
+    {% if job.status == 'hazir' %}
+      <video class="player" src="/video/{{ job.id }}/dosya" controls playsinline></video>
+      <div class="row" style="margin-top:14px"><a class="btn" href="/video/{{ job.id }}/dosya?indir=1">⬇️ İndir</a><a class="btn ghost" href="/video/yeni">Yeni video</a></div>
+    {% elif job.status == 'hata' %}
+      <div class="card empty"><div class="e">⚠️</div><h3>Video üretilemedi</h3><p>{{ job.error }}</p><a class="btn" href="/video/yeni">Tekrar dene</a></div>
+    {% else %}
+      <div class="card empty"><div class="spinner"></div><h3>Videon üretiliyor…</h3><p>Genelde 2–5 dakika sürer. Bu sayfayı kapatabilirsin, video panelinde de görünecek.</p></div>
+    {% endif %}
+    </div>
+    <div class="card">
+      {% if job.status == 'hazir' %}
+        <h3>Paylaşım metni</h3>
+        <label>Başlık</label><div class="copybox" id="c1">{{ job.title }}<button type="button" class="btn ghost small" onclick="cp('c1')">Kopyala</button></div>
+        <label>Açıklama + hashtag</label><div class="copybox" id="c2">{{ job.caption }}
+
+{% for h in job.hashtags.split() %}#{{ h }} {% endfor %}<button type="button" class="btn ghost small" onclick="cp('c2')">Kopyala</button></div>
+        <p class="hint">Paylaşırken platformdaki "yapay zekâ ile oluşturuldu" etiketini açmayı unutma.</p>
+      {% endif %}
+      <h3 style="margin-top:18px">Ayrıntılar</h3>
+      <table>
+        <tr><th>Kalite</th><td>{{ qualities[job.quality].label }} ({{ job.cost }} kredi)</td></tr>
+        <tr><th>Tarz</th><td>{{ styles.get(job.style, job.style) }}</td></tr>
+        <tr><th>Dil</th><td>{{ languages.get(job.language, job.language) }}</td></tr>
+        {% if job.channel %}<tr><th>Kanal</th><td><a href="/kanallar/{{ job.channel_id }}">{{ job.channel.name }}</a></td></tr>{% endif %}
+        <tr><th>Fikir</th><td>{{ job.idea or 'Yapay zekâ buldu' }}</td></tr>
+        <tr><th>Tarih</th><td>{{ job.created_at|tarih }}</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function cp(id){const el=document.getElementById(id).cloneNode(true);el.querySelector('button').remove();navigator.clipboard.writeText(el.innerText.trim());}
+{% if job.status in ('sirada','uretiliyor') %}
+setInterval(async()=>{try{const r=await fetch('/video/{{ job.id }}/durum');const d=await r.json();if(d.status==='hazir'||d.status==='hata')location.reload();else document.getElementById('st').textContent=d.label;}catch(e){}},5000);
+{% endif %}
+</script>
+{% endblock %}

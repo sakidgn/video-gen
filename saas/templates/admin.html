@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Yönetim · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap page">
+  <div class="page-head"><h1>Yönetim 🛠️</h1></div>
+  <div class="grid g4" style="margin-bottom:24px">
+    <div class="card"><div class="muted">Kullanıcı</div><div class="stat">{{ stats.users }}</div></div>
+    <div class="card"><div class="muted">Üretilen video</div><div class="stat">{{ stats.videos }}</div></div>
+    <div class="card"><div class="muted">Sırada / üretiliyor</div><div class="stat">{{ stats.queue }}</div></div>
+    <div class="card"><div class="muted">Onaylı yükleme</div><div class="stat">{{ stats.tl }} ₺</div></div>
+  </div>
+  <div class="card" style="margin-bottom:24px"><h3>Onay bekleyen havaleler</h3>
+  {% if topups %}<div class="tablewrap"><table><tr><th>Tarih</th><th>Kullanıcı</th><th>Gönderen</th><th>Tutar</th><th>Not</th><th></th></tr>
+  {% for t in topups %}<tr><td>{{ t.created_at|tarih }}</td><td>{{ t.user.email }}</td><td>{{ t.sender_name }}</td><td><b>{{ t.amount_tl }} ₺</b> → {{ t.credits }} kredi</td><td>{{ t.note }}</td>
+  <td class="row"><form method="post" action="/admin/yukleme/{{ t.id }}/onayla"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">Onayla</button></form>
+  <form method="post" action="/admin/yukleme/{{ t.id }}/reddet" onsubmit="return confirm('Reddedilsin mi?')"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn danger small">Reddet</button></form></td></tr>{% endfor %}
+  </table></div>{% else %}<p class="muted">Bekleyen yok. 🎉</p>{% endif %}
+  <p class="hint">Onaylamadan önce banka hesabında havalenin geldiğini kontrol et.</p></div>
+  <div class="grid g2" style="align-items:start">
+    <div class="card"><h3>Elle kredi ver / düş</h3>
+      <form method="post" action="/admin/kredi"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <label>Kullanıcı e-postası</label><input name="email" type="email" required>
+      <label>Kredi (düşmek için eksi yaz)</label><input name="amount" type="number" required>
+      <label>Açıklama</label><input name="reason" value="Deneme kredisi">
+      <button class="btn" style="margin-top:14px">Uygula</button></form></div>
+    <div class="card"><h3>Son kullanıcılar</h3><div class="tablewrap"><table><tr><th>E-posta</th><th>Kredi</th><th>Kayıt</th></tr>
+      {% for u in users %}<tr><td>{{ u.email }}{% if u.is_admin %} 🛠️{% endif %}</td><td>{{ u.credits }}</td><td>{{ u.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
+  </div>
+  <div class="card" style="margin-top:24px"><h3>Son işler</h3><div class="tablewrap"><table><tr><th>#</th><th>Kullanıcı</th><th>Durum</th><th>Kalite</th><th>Başlık / hata</th><th>Tarih</th></tr>
+  {% for j in jobs %}<tr><td><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td>{{ j.user_id }}</td><td><span class="status st-{{ j.status }}">{{ status_labels[j.status] }}</span></td><td>{{ j.quality }}</td><td>{{ j.title or j.error }}</td><td>{{ j.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
+</div>
+{% endblock %}

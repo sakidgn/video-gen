@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Video üret · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap page" style="max-width:820px">
+  <div class="page-head"><h1>Yeni video 🎬</h1><a class="pill" href="/kredi">💎 {{ user.credits }} kredi</a></div>
+  <form class="card" method="post" action="/video/yeni">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% set ch = None %}
+    <label style="margin-top:0">Fikir</label>
+    <textarea name="idea" maxlength="600" placeholder="Örn: Portakal ve muz markette son indirimli ürün için kavga ediyor, kasiyer de aslında bir karpuz."></textarea>
+    <div class="hint">Boş bırakırsan yapay zekâ komik ve özgün bir fikir bulur.</div>
+    {% include "_video_fields.html" %}
+    <button class="btn big" style="width:100%;margin-top:22px">Videoyu üret</button>
+    <p class="hint" style="text-align:center">Üretim genelde 2–5 dakika sürer. Video üretilemezse kredin iade edilir.</p>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ ch.name if ch else 'Yeni kanal' }} · {{ site }}{% endblock %}
+{% block content %}
+<div class="wrap page" style="max-width:860px">
+  <div class="page-head"><h1>{{ ch.name if ch else 'Yeni otomatik kanal' }}</h1><a class="btn ghost small" href="/kanallar">← Kanallar</a></div>
+  <form class="card" method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label style="margin-top:0">Kanal adı</label><input name="name" maxlength="100" required value="{{ ch.name if ch else '' }}" placeholder="Örn: Komik Meyveler">
+    <label>Konu / tema</label>
+    <textarea name="topic" maxlength="600" placeholder="Örn: Konuşan meyveler gündelik hayatta başlarına gelen saçma olayları yaşar. Her video farklı bir mekânda geçsin.">{{ ch.topic if ch else '' }}</textarea>
+    <div class="hint">Her gün bu temaya uygun, birbirini tekrar etmeyen yeni fikirler bulunur.</div>
+    {% include "_video_fields.html" %}
+    <label>Video saatleri</label>
+    <input name="times" value="{{ ch.times if ch else '12:00 19:00' }}" placeholder="09:45 13:00 18:30">
+    <div class="hint">SS:DD biçiminde, aralarında boşluk bırak. Her saat 1 video demek. Saat dilimi: Türkiye.</div>
+    <button class="btn" style="margin-top:22px">{{ 'Kaydet' if ch else 'Kanalı oluştur' }}</button>
+  </form>
+  {% if ch %}
+  <h2 style="margin-top:32px">Bu kanalın videoları</h2>
+  {% if jobs %}
+  <div class="vgrid">{% for j in jobs %}
+    <a class="vcard" href="/video/{{ j.id }}"><div class="vthumb">{% if j.status == 'hazir' %}<video src="/video/{{ j.id }}/dosya#t=0.5" muted preload="metadata"></video>{% elif j.status == 'hata' %}⚠️{% else %}<div class="spinner"></div>{% endif %}</div>
+    <div class="meta"><b>{{ j.title or 'Video' }}</b><span class="status st-{{ j.status }}">{{ status_labels[j.status] }}</span> <span class="muted">{{ j.slot or '' }}</span></div></a>
+  {% endfor %}</div>
+  {% else %}<p class="muted">Henüz video yok. İlk video bir sonraki saatte üretilecek.</p>{% endif %}
+  <form method="post" action="/kanallar/{{ ch.id }}/sil" style="margin-top:32px" onsubmit="return confirm('Kanal silinsin mi? Üretilmiş videolar silinmez.')">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn danger small">Kanalı sil</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

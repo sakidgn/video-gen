@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site }} · Yapay zekâ ile otomatik kısa video{% endblock %}</title>
+<meta name="description" content="Yapay zekâ ile TikTok, Reels ve Shorts videoları üret. Bir kere kanalını kur, videolar her gün kendiliğinden gelsin.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/site.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+<nav class="nav"><div class="wrap">
+  <a class="logo" href="/">🎬 <span>{{ site }}</span></a>
+  <div class="links">
+  {% if user %}
+    <a href="/panel">Panel</a>
+    <a href="/video/yeni">Video üret</a>
+    <a href="/kanallar">Otomatik kanallar</a>
+    {% if user.is_admin %}<a href="/admin">Yönetim</a>{% endif %}
+    <a class="pill" href="/kredi" title="Kredi yükle">💎 {{ user.credits }} kredi</a>
+    <form method="post" action="/cikis" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Çıkış</button></form>
+  {% else %}
+    <a href="/#nasil">Nasıl çalışır</a>
+    <a href="/#fiyat">Fiyatlar</a>
+    <a href="/giris">Giriş</a>
+    <a class="btn small" href="/kayit">Ücretsiz kayıt ol</a>
+  {% endif %}
+  </div>
+</div></nav>
+<main>
+  {% if flashes %}<div class="wrap" style="padding-top:20px">{% for kind, msg in flashes %}<div class="flash {{ kind }}">{{ msg }}</div>{% endfor %}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+<footer><div class="wrap">
+  <div>© {{ site }} · Yapay zekâ ile üretilen videolar platformlarda "AI" etiketiyle paylaşılmalıdır.</div>
+  <div><a href="/yasal/kullanim">Kullanım şartları</a><a href="/yasal/kvkk">KVKK</a><a href="/yasal/mesafeli">Mesafeli satış</a></div>
+</div></footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

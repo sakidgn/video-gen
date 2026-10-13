@@ -1,0 +1,13 @@
+<label>Karakterler</label>
+<textarea name="characters" maxlength="600" placeholder="Örn: Sinirli bir portakal ve her şeye gülen saf bir muz. Portakalın kocaman kaşları var.">{{ (ch.characters if ch else '') }}</textarea>
+<div class="hint">Görünüşlerini ve kişiliklerini anlat. Boş bırakırsan yapay zekâ karakter uydurur. Ünlüler ve başkasına ait karakterler kullanılamaz.</div>
+<div class="grid g2">
+  <div><label>Görsel tarz</label><select name="style">{% for k, v in styles.items() %}<option value="{{ k }}" {% if ch and ch.style == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+  <div><label>Konuşma dili</label><select name="language">{% for k, v in languages.items() %}<option value="{{ k }}" {% if (ch and ch.language == k) or (not ch and k == 'tr') %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+</div>
+<label>Kalite</label>
+<div class="choices">
+{% for k, q in qualities.items() %}
+  <label class="choice" style="margin:0"><input type="radio" name="quality" value="{{ k }}" {% if (ch and ch.quality == k) or (not ch and k == 'fast') %}checked{% endif %}><span><b>{{ q.label }} · {{ q.credits }} kredi</b><small>{{ q.desc }} · {{ q.resolution }}</small></span></label>
+{% endfor %}
+</div>
