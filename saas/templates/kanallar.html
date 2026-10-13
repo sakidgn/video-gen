@@ -7,7 +7,7 @@
   {% if channels %}
   <div class="grid g2">
   {% for ch in channels %}
-    <div class="card">
+    <div class="card reveal" data-tilt="5">
       <div class="row" style="justify-content:space-between"><h3 style="margin:0">{{ ch.name }}</h3>{% if ch.active %}<span class="status st-hazir">Aktif</span>{% else %}<span class="status st-hata">Durduruldu</span>{% endif %}</div>
       <p class="muted" style="margin:8px 0">{{ styles.get(ch.style, ch.style) }} · {{ languages.get(ch.language) }} · {{ qualities[ch.quality].label }} ({{ qualities[ch.quality].credits }} kredi/video)</p>
       <div class="row">{% for t in ch.time_list() %}<span class="pill">{{ t }}</span>{% endfor %}</div>

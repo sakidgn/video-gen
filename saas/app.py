@@ -45,7 +45,8 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
     ctx.update(
         request=request, user=user, site=config.SITE_NAME, csrf=csrf_token(request.session),
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
-        languages=config.LANGUAGES, packages=config.PACKAGES,
+        languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
+        quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS,
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
@@ -228,7 +229,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def job_status(job_id: int, user: User = Depends(require_user)):
         with db.session() as s:
             job = _own_job(s, user, job_id)
-        return JSONResponse({"status": job.status, "label": STATUS_LABELS.get(job.status, job.status)})
+        stage = f"{job.status}:{bool(job.prompt)}"
+        return JSONResponse({"status": job.status, "label": STATUS_LABELS.get(job.status, job.status), "stage": stage})
 
     @app.get("/video/{job_id}/dosya")
     def job_file(job_id: int, indir: int = 0, user: User = Depends(require_user)):

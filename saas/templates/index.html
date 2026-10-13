@@ -1,57 +1,66 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="wrap hero">
-  <div class="badge">🇹🇷 Türkçe · TikTok · Reels · Shorts</div>
-  <h1>Kanalını bir kere kur,<br><span class="grad">videolar her gün kendiliğinden gelsin.</span></h1>
-  <p class="lead">Yapay zekâ fikri bulur, senaryoyu yazar, sesli dikey videoyu üretir; başlık, açıklama ve hashtag'ler hazır gelir. Sen sadece indirip paylaşırsın.</p>
-  <div class="row" style="justify-content:center">
+ <div class="hero-grid">
+  <div class="hero-text">
+  <div class="badge reveal"><span class="dot"></span> Türkçe · TikTok · Reels · Shorts</div>
+  <h1 class="reveal" data-delay="1">Kanalını bir kere kur, <span class="grad">videolar kendiliğinden gelsin.</span></h1>
+  <p class="lead reveal" data-delay="2">Yapay zekâ fikri bulur, senaryoyu yazar, sesli dikey videoyu üretir. Başlık, açıklama ve hashtag'ler hazır gelir — sen sadece paylaşırsın.</p>
+  <div class="row reveal cta-row" data-delay="3">
     <a class="btn big" href="{{ '/video/yeni' if user else '/kayit' }}">Hemen video üret →</a>
     <a class="btn ghost big" href="#nasil">Nasıl çalışır?</a>
   </div>
-  <div class="phones">
-    <div class="phone"><div class="emoji">🍊</div><div><b>Portakal markette olay çıkardı 😭</b>#komik #shorts</div></div>
-    <div class="phone"><div class="emoji">🦖</div><div><b>Dinozor metrobüse bindi 💀</b>#viral #reels</div></div>
-    <div class="phone"><div class="emoji">👵</div><div><b>Babaanne yapay zekâyı fena trolledi 😂</b>#tiktok</div></div>
   </div>
+  <div class="stage">
+    <div id="hero3d" aria-hidden="true"></div>
+    <div class="phones">
+      <div class="phone"><div class="emoji">🍊</div><div><b>Portakal markette olay çıkardı 😭</b>#komik #shorts</div></div>
+      <div class="phone"><div class="emoji">🦖</div><div><b>Dinozor metrobüse bindi 💀</b>#viral #reels</div></div>
+      <div class="phone"><div class="emoji">👵</div><div><b>Babaanne yapay zekâyı trolledi 😂</b>#tiktok</div></div>
+    </div>
+  </div>
+ </div>
+  <div class="stats-strip reveal"><div><b>~3 dk</b>video başına</div><div><b>9:16</b>sesli, dikey</div><div><b>5 dil</b>konuşmalı</div><div><b>0 ₺</b>abonelik</div></div>
 </div>
 
 <section id="nasil"><div class="wrap">
-  <h2 style="text-align:center">3 adımda video</h2>
-  <p class="muted" style="text-align:center;margin-bottom:32px">Kamera yok, montaj yok, seslendirme yok.</p>
+  <div class="center reveal"><span class="eyebrow">Nasıl çalışır</span><h2>3 adımda video</h2><p class="muted" style="margin-bottom:36px">Kamera yok, montaj yok, seslendirme yok.</p></div>
   <div class="grid g3">
-    <div class="card"><div class="step-n">1</div><h3>Fikrini yaz (ya da yazma)</h3><p class="muted">Karakterini ve konunu anlat. Aklında bir şey yoksa "bana fikir bul" de, yapay zekâ komik ve özgün bir fikir uydursun.</p></div>
-    <div class="card"><div class="step-n">2</div><h3>Video üretilsin</h3><p class="muted">Birkaç dakikada 9:16 dikey, sesli ve konuşmalı video hazır. Türkçe, İngilizce ve daha fazla dilde.</p></div>
-    <div class="card"><div class="step-n">3</div><h3>İndir ve paylaş</h3><p class="muted">Viral başlık, emojili açıklama ve hashtag'ler hazır. Kopyala, yapıştır, paylaş.</p></div>
+    <div class="card reveal" data-tilt><div class="step-n">1</div><h3>Fikrini yaz (ya da yazma)</h3><p class="muted">Karakterini ve konunu anlat. Aklında bir şey yoksa boş bırak, yapay zekâ komik ve özgün bir fikir uydursun.</p></div>
+    <div class="card reveal" data-delay="1" data-tilt><div class="step-n">2</div><h3>Video üretilsin</h3><p class="muted">Birkaç dakikada 9:16 dikey, sesli ve konuşmalı video hazır. Türkçe, İngilizce ve daha fazla dilde.</p></div>
+    <div class="card reveal" data-delay="2" data-tilt><div class="step-n">3</div><h3>İndir ve paylaş</h3><p class="muted">Viral başlık, emojili açıklama ve hashtag'ler hazır. Kopyala, yapıştır, paylaş.</p></div>
   </div>
 </div></section>
 
 <section style="padding-top:0"><div class="wrap">
-  <div class="card" style="padding:36px;background:linear-gradient(135deg,rgba(255,92,138,.12),rgba(255,179,92,.08)),var(--card)">
-    <div class="grid g2" style="align-items:center">
+  <div class="card glow reveal" style="padding:40px">
+    <div class="grid g2" style="align-items:center;gap:36px">
       <div>
-        <span class="tag">ASIL SİHİR</span>
-        <h2 style="margin-top:10px">Otomatik kanal: kur ve unut 🔁</h2>
-        <p class="muted">Karakterlerini, tarzını ve konunu bir kere ayarla, saatleri seç. {{ site }} her gün o saatlerde yeni ve birbirini tekrar etmeyen videolar üretir. Kredin bittiğinde kendiliğinden durur, sürpriz fatura yok.</p>
+        <span class="eyebrow">✨ Asıl sihir</span>
+        <h2 style="margin-top:10px">Otomatik kanal: kur ve unut</h2>
+        <p class="muted">Karakterlerini, tarzını ve konunu bir kere ayarla, saatleri seç. {{ site }} her gün o saatlerde yeni videolar üretir. Kredin bittiğinde kendiliğinden durur, sürpriz fatura yok.</p>
         <ul class="check"><li>Günde istediğin kadar video, istediğin saatlerde</li><li>Önceki fikirleri hatırlar, tekrar etmez</li><li>Faceless (yüzsüz) kanallar için ideal</li></ul>
       </div>
-      <div class="card" style="background:var(--bg2)">
-        <b>🍊 Komik Meyveler</b><p class="muted" style="margin:6px 0 12px">Konuşan meyveler gündelik hayatta · Çizgi film · Türkçe</p>
+      <div class="card" data-tilt="12" style="background:rgba(0,0,0,.3)">
+        <div class="row" style="justify-content:space-between"><b>🍊 Komik Meyveler</b><span class="status st-hazir">Aktif</span></div>
+        <p class="muted" style="margin:8px 0 14px">Konuşan meyveler gündelik hayatta · Çizgi film · Türkçe</p>
         <div class="row"><span class="pill">09:45</span><span class="pill">13:00</span><span class="pill">18:30</span><span class="pill">21:15</span></div>
-        <p class="muted" style="margin:14px 0 0;font-size:14px">✅ Bugün 3 video hazır · sıradaki 21:15</p>
+        <div class="vgrid" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px">
+          <div class="vthumb" style="border-radius:12px;font-size:28px">🍌</div><div class="vthumb" style="border-radius:12px;font-size:28px">🍉</div><div class="vthumb" style="border-radius:12px;font-size:28px"><div class="spinner" style="width:26px;height:26px;border-width:3px;margin:0"></div></div>
+        </div>
+        <p class="muted" style="margin:14px 0 0;font-size:14px">✅ Bugün 2 video hazır · sıradaki 21:15</p>
       </div>
     </div>
   </div>
 </div></section>
 
 <section id="fiyat"><div class="wrap">
-  <h2 style="text-align:center">Kullandığın kadar öde</h2>
-  <p class="muted" style="text-align:center;margin-bottom:32px">Abonelik yok. Kredi yükle, video başına harca. Video üretilemezse kredin otomatik iade.</p>
+  <div class="center reveal"><span class="eyebrow">Fiyatlar</span><h2>Kullandığın kadar öde</h2><p class="muted" style="margin-bottom:36px">Abonelik yok. Kredi yükle, video başına harca. Video üretilemezse kredin otomatik iade.</p></div>
   <div class="grid g3">
   {% for key, q in qualities.items() %}
-    <div class="card">
-      {% if key == 'fast' %}<span class="tag">EN ÇOK TERCİH EDİLEN</span>{% endif %}
-      <h3 style="margin-top:8px">{{ q.label }}</h3>
-      <div class="price">{{ q.credits }} <small>kredi / video</small></div>
+    <div class="card reveal {{ 'glow' if key == 'fast' }}" data-delay="{{ loop.index0 }}" data-tilt>
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0">{{ q.label }}</h3>{% if key == 'fast' %}<span class="tag">EN ÇOK TERCİH EDİLEN</span>{% endif %}</div>
+      <div class="price" style="margin-top:12px">{{ q.credits }} <small>kredi / video</small></div>
       <p class="muted">{{ q.desc }}</p>
       <ul class="check"><li>8 saniye, 9:16 dikey, {{ q.resolution }}</li><li>Sesli ve konuşmalı</li><li>Başlık + açıklama + hashtag</li></ul>
     </div>
@@ -59,17 +68,26 @@
   </div>
   <div class="grid g3" style="margin-top:18px">
   {% for tl, cr in packages %}
-    <div class="card" style="text-align:center"><div class="price">{{ tl }} ₺</div><p class="muted" style="margin:4px 0 0">{{ cr }} kredi{% if cr > tl %} · <span class="grad" style="font-weight:700">+{{ ((cr - tl) * 100 / tl)|round|int }}% hediye</span>{% endif %}</p></div>
+    <div class="card center reveal" data-delay="{{ loop.index0 }}" data-tilt><div class="price">{{ tl }} ₺</div><p class="muted" style="margin:4px 0 0">{{ cr }} kredi{% if cr > tl %} · <span class="grad" style="font-weight:700">+{{ ((cr - tl) * 100 / tl)|round|int }}% hediye</span>{% endif %}</p></div>
   {% endfor %}
   </div>
-  <p class="muted" style="text-align:center;margin-top:16px">1 kredi = 1 ₺. Ödeme şimdilik banka havalesi / EFT ile.</p>
+  <p class="muted center" style="margin-top:18px">1 kredi = 1 ₺ · Ödeme şimdilik banka havalesi / EFT ile.</p>
 </div></section>
 
-<section style="padding-top:0"><div class="wrap" style="max-width:780px">
-  <h2 style="text-align:center;margin-bottom:24px">Sık sorulanlar</h2>
-  <details><summary>Videoları nereye paylaşabilirim?</summary><p class="muted">TikTok, Instagram Reels, YouTube Shorts ve dikey video kabul eden her yere. Videoları kendi hesaplarında paylaşabilirsin. Paylaşırken platformun "yapay zekâ ile oluşturuldu" etiketini açmayı unutma.</p></details>
-  <details><summary>Ünlü karakterleri ya da kişileri kullanabilir miyim?</summary><p class="muted">Hayır. Telif ve kişilik hakları nedeniyle gerçek kişiler ve başkalarına ait karakterler üretilmez; yazarsan yapay zekâ onu özgün bir karaktere çevirir. Kendi karakterini tarif edebilirsin.</p></details>
-  <details><summary>Video beğenmezsem ya da üretilemezse?</summary><p class="muted">Teknik bir hatadan ya da güvenlik filtresinden dolayı video üretilemezse kredin otomatik iade edilir. Üretilen video için iade yapılmaz; ekonomik kaliteyle deneyip beğenince yüksek kaliteye geçebilirsin.</p></details>
-  <details><summary>Otomatik kanal kredim bitince ne olur?</summary><p class="muted">Video üretimi durur, panelinde uyarı görürsün. Borçlanma ya da otomatik çekim yoktur.</p></details>
+<section style="padding-top:0"><div class="wrap" style="max-width:800px">
+  <h2 class="center reveal" style="margin-bottom:26px">Sık sorulanlar</h2>
+  <details class="reveal"><summary>Videoları nereye paylaşabilirim?</summary><p class="muted">TikTok, Instagram Reels, YouTube Shorts ve dikey video kabul eden her yere. Paylaşırken platformun "yapay zekâ ile oluşturuldu" etiketini açmayı unutma.</p></details>
+  <details class="reveal"><summary>Ünlü karakterleri ya da kişileri kullanabilir miyim?</summary><p class="muted">Hayır. Telif ve kişilik hakları nedeniyle gerçek kişiler ve başkalarına ait karakterler üretilmez; yazarsan yapay zekâ onu özgün bir karaktere çevirir. Kendi karakterini tarif edebilirsin.</p></details>
+  <details class="reveal"><summary>Video beğenmezsem ya da üretilemezse?</summary><p class="muted">Teknik bir hatadan ya da güvenlik filtresinden dolayı video üretilemezse kredin otomatik iade edilir. Üretilen video için iade yapılmaz; ekonomik kaliteyle deneyip beğenince yüksek kaliteye geçebilirsin.</p></details>
+  <details class="reveal"><summary>Otomatik kanal kredim bitince ne olur?</summary><p class="muted">Video üretimi durur, panelinde uyarı görürsün. Borçlanma ya da otomatik çekim yoktur.</p></details>
 </div></section>
+
+<section style="padding-top:0"><div class="wrap"><div class="cta-band reveal">
+  <h2>İlk videon 3 dakika uzağında.</h2><p class="muted" style="margin-bottom:26px">Kaydol, kredini yükle, fikrini yaz. Gerisi bizde.</p>
+  <a class="btn big" href="{{ '/video/yeni' if user else '/kayit' }}">Ücretsiz kayıt ol →</a>
+</div></div></section>
+{% endblock %}
+{% block scripts %}
+<script src="/static/vendor/three.min.js" defer></script>
+<script src="/static/hero3d.js" defer></script>
 {% endblock %}

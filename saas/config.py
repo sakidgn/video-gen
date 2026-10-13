@@ -28,7 +28,7 @@ QUALITIES = {
     "fast": {"label": "Standart", "model": _env("MODEL_FAST", "veo-3.1-fast-generate-preview"),
              "resolution": "720p", "credits": 65, "desc": "Çoğu kanal için en iyi denge"},
     "standard": {"label": "Premium", "model": _env("MODEL_STANDARD", "veo-3.1-generate-preview"),
-                 "resolution": "1080p", "credits": 250, "desc": "En yüksek kalite, 1080p"},
+                 "resolution": "1080p", "credits": 250, "desc": "En yüksek kalite"},
 }
 DURATION_SECONDS = 8
 
@@ -46,3 +46,6 @@ STYLES = {
 }
 STYLE_LABELS = {"meme3d": "Ucuz 3D oyun (meme)", "cartoon": "Çizgi film", "realistic": "Gerçekçi",
                 "claymation": "Kil animasyon", "anime": "Anime"}
+STYLE_EMOJI = {"meme3d": "🎮", "cartoon": "🖍️", "realistic": "🎥", "claymation": "🧱", "anime": "🌸"}
+QUALITY_EMOJI = {"lite": "⚡", "fast": "🚀", "standard": "💎"}
+LANGUAGE_FLAGS = {"tr": "🇹🇷", "en": "🇬🇧", "de": "🇩🇪", "es": "🇪🇸", "ar": "🇸🇦"}

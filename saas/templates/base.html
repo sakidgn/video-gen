@@ -6,13 +6,14 @@
 <title>{% block title %}{{ site }} · Yapay zekâ ile otomatik kısa video{% endblock %}</title>
 <meta name="description" content="Yapay zekâ ile TikTok, Reels ve Shorts videoları üret. Bir kere kanalını kur, videolar her gün kendiliğinden gelsin.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/site.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
 </head>
 <body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 <nav class="nav"><div class="wrap">
-  <a class="logo" href="/">🎬 <span>{{ site }}</span></a>
+  <a class="logo" href="/"><span class="mark">🎬</span>{{ site }}</a>
   <div class="links">
   {% if user %}
     <a href="/panel">Panel</a>
@@ -37,6 +38,7 @@
   <div>© {{ site }} · Yapay zekâ ile üretilen videolar platformlarda "AI" etiketiyle paylaşılmalıdır.</div>
   <div><a href="/yasal/kullanim">Kullanım şartları</a><a href="/yasal/kvkk">KVKK</a><a href="/yasal/mesafeli">Mesafeli satış</a></div>
 </div></footer>
+<script src="/static/fx.js" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

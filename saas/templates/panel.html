@@ -3,27 +3,27 @@
 {% block content %}
 <div class="wrap page">
   <div class="page-head">
-    <h1>Merhaba{% if user.name %} {{ user.name }}{% endif %} 👋</h1>
+    <div><span class="eyebrow">Panel</span><h1>Merhaba{% if user.name %} {{ user.name }}{% endif %} 👋</h1></div>
     <div class="row"><a class="btn ghost" href="/kanallar/yeni">+ Otomatik kanal</a><a class="btn" href="/video/yeni">+ Yeni video</a></div>
   </div>
   {% for ch in notices %}<div class="flash warn">⚠️ <b>{{ ch.name }}:</b> {{ ch.notice }} <a href="/kredi">Kredi yükle →</a></div>{% endfor %}
   <div class="grid g3" style="margin-bottom:28px">
-    <div class="card"><div class="muted">Kredin</div><div class="stat">💎 {{ user.credits }}</div><a href="/kredi" class="muted">Kredi yükle →</a></div>
-    <div class="card"><div class="muted">Aktif otomatik kanal</div><div class="stat">🔁 {{ n_channels }}</div><a href="/kanallar" class="muted">Kanalları yönet →</a></div>
-    <div class="card"><div class="muted">Bir video</div><div class="stat">{{ qualities.lite.credits }}–{{ qualities.standard.credits }}</div><span class="muted">kredi, kaliteye göre</span></div>
+    <div class="card reveal" data-tilt><div class="muted">Kredin</div><div class="stat">💎 <span data-count="{{ user.credits }}">{{ user.credits }}</span></div><a href="/kredi" class="muted">Kredi yükle →</a></div>
+    <div class="card reveal" data-delay="1" data-tilt><div class="muted">Aktif otomatik kanal</div><div class="stat">🔁 <span data-count="{{ n_channels }}">{{ n_channels }}</span></div><a href="/kanallar" class="muted">Kanalları yönet →</a></div>
+    <div class="card reveal" data-delay="2" data-tilt><div class="muted">Bir video</div><div class="stat">{{ qualities.lite.credits }}–{{ qualities.standard.credits }}</div><span class="muted">kredi, kaliteye göre</span></div>
   </div>
   <h2>Videoların</h2>
   {% if jobs %}
   <div class="vgrid">
     {% for j in jobs %}
-    <a class="vcard" href="/video/{{ j.id }}">
+    <a class="vcard reveal" href="/video/{{ j.id }}">
       <div class="vthumb">{% if j.status == 'hazir' %}<video src="/video/{{ j.id }}/dosya#t=0.5" muted preload="metadata"></video>{% elif j.status == 'hata' %}⚠️ Üretilemedi{% else %}<div><div class="spinner"></div>Üretiliyor…</div>{% endif %}</div>
       <div class="meta"><b>{{ j.title or j.idea or 'Yeni video' }}</b><span class="status st-{{ j.status }}">{{ status_labels[j.status] }}</span> <span class="muted">{{ j.created_at|tarih }}</span></div>
     </a>
     {% endfor %}
   </div>
   {% else %}
-  <div class="card empty"><div class="e">🎬</div><h3>Henüz videon yok</h3><p>İlk videonu birkaç dakikada üret.</p><a class="btn" href="/video/yeni">Video üret</a></div>
+  <div class="card empty reveal"><div class="e">🎬</div><h3>Henüz videon yok</h3><p>İlk videonu birkaç dakikada üret.</p><a class="btn" href="/video/yeni">Video üret</a></div>
   {% endif %}
 </div>
 {% endblock %}

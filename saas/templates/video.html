@@ -2,7 +2,7 @@
 {% block title %}{{ job.title or 'Video' }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="wrap page">
-  <div class="page-head"><h1>{{ job.title or 'Videon hazırlanıyor' }}</h1><span class="status st-{{ job.status }}" id="st">{{ status_labels[job.status] }}</span></div>
+  <div class="page-head"><h1 style="view-transition-name:jobtitle">{{ job.title or 'Videon hazırlanıyor' }}</h1><span class="status st-{{ job.status }}" id="st">{{ status_labels[job.status] }}</span></div>
   <div class="grid g2" style="align-items:start">
     <div>
     {% if job.status == 'hazir' %}
@@ -11,10 +11,20 @@
     {% elif job.status == 'hata' %}
       <div class="card empty"><div class="e">⚠️</div><h3>Video üretilemedi</h3><p>{{ job.error }}</p><a class="btn" href="/video/yeni">Tekrar dene</a></div>
     {% else %}
-      <div class="card empty"><div class="spinner"></div><h3>Videon üretiliyor…</h3><p>Genelde 2–5 dakika sürer. Bu sayfayı kapatabilirsin, video panelinde de görünecek.</p></div>
+      <div class="card empty">
+        <div class="cube-wrap"><div class="cube"><div class="f1">🎬</div><div class="f2">✨</div><div class="f3">🎙️</div><div class="f4">🎨</div><div class="f5"></div><div class="f6"></div></div></div>
+        <h3>Videon üretiliyor…</h3>
+        <ul class="stages" id="stages">
+          <li class="{{ 'done' if job.status == 'uretiliyor' else 'now' }}">Sıraya alındı</li>
+          <li class="{{ 'done' if job.prompt else ('now' if job.status == 'uretiliyor' else '') }}">Senaryo yazılıyor</li>
+          <li class="{{ 'now' if job.prompt else '' }}">Video çekiliyor 🎥</li>
+          <li>Hazır!</li>
+        </ul>
+        <p style="margin-top:16px">Genelde 2–5 dakika sürer. Bu sayfayı kapatabilirsin, video panelinde de görünecek.</p>
+      </div>
     {% endif %}
     </div>
-    <div class="card">
+    <div class="card reveal">
       {% if job.status == 'hazir' %}
         <h3>Paylaşım metni</h3>
         <label>Başlık</label><div class="copybox" id="c1">{{ job.title }}<button type="button" class="btn ghost small" onclick="cp('c1')">Kopyala</button></div>
@@ -40,7 +50,8 @@
 <script>
 function cp(id){const el=document.getElementById(id).cloneNode(true);el.querySelector('button').remove();navigator.clipboard.writeText(el.innerText.trim());}
 {% if job.status in ('sirada','uretiliyor') %}
-setInterval(async()=>{try{const r=await fetch('/video/{{ job.id }}/durum');const d=await r.json();if(d.status==='hazir'||d.status==='hata')location.reload();else document.getElementById('st').textContent=d.label;}catch(e){}},5000);
+window._stage='{{ job.status }}:{{ job.prompt != "" }}';
+setInterval(async()=>{try{const r=await fetch('/video/{{ job.id }}/durum');const d=await r.json();if(d.status==='hazir'||d.status==='hata'||d.stage!==window._stage){if(window._stage!==undefined)location.reload();window._stage=d.stage;}document.getElementById('st').textContent=d.label;}catch(e){}},5000);
 {% endif %}
 </script>
 {% endblock %}

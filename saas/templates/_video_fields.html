@@ -1,13 +1,24 @@
-<label>Karakterler</label>
+<div class="section-title"><span class="n">{{ n0 + 1 }}</span>Karakterler</div>
 <textarea name="characters" maxlength="600" placeholder="Örn: Sinirli bir portakal ve her şeye gülen saf bir muz. Portakalın kocaman kaşları var.">{{ (ch.characters if ch else '') }}</textarea>
 <div class="hint">Görünüşlerini ve kişiliklerini anlat. Boş bırakırsan yapay zekâ karakter uydurur. Ünlüler ve başkasına ait karakterler kullanılamaz.</div>
-<div class="grid g2">
-  <div><label>Görsel tarz</label><select name="style">{% for k, v in styles.items() %}<option value="{{ k }}" {% if ch and ch.style == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
-  <div><label>Konuşma dili</label><select name="language">{% for k, v in languages.items() %}<option value="{{ k }}" {% if (ch and ch.language == k) or (not ch and k == 'tr') %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+
+<div class="section-title"><span class="n">{{ n0 + 2 }}</span>Görsel tarz</div>
+<div class="choices styles">
+{% for k, v in styles.items() %}
+  <label class="choice"><input type="radio" name="style" value="{{ k }}" {% if (ch and ch.style == k) or (not ch and k == 'cartoon') %}checked{% endif %}><span class="center"><i class="em">{{ style_emoji[k] }}</i><b>{{ v }}</b></span></label>
+{% endfor %}
 </div>
-<label>Kalite</label>
+
+<div class="section-title"><span class="n">{{ n0 + 3 }}</span>Konuşma dili</div>
+<div class="chips">
+{% for k, v in languages.items() %}
+  <label class="choice"><input type="radio" name="language" value="{{ k }}" {% if (ch and ch.language == k) or (not ch and k == 'tr') %}checked{% endif %}><span>{{ flags[k] }} {{ v }}</span></label>
+{% endfor %}
+</div>
+
+<div class="section-title"><span class="n">{{ n0 + 4 }}</span>Kalite</div>
 <div class="choices">
 {% for k, q in qualities.items() %}
-  <label class="choice" style="margin:0"><input type="radio" name="quality" value="{{ k }}" {% if (ch and ch.quality == k) or (not ch and k == 'fast') %}checked{% endif %}><span><b>{{ q.label }} · {{ q.credits }} kredi</b><small>{{ q.desc }} · {{ q.resolution }}</small></span></label>
+  <label class="choice"><input type="radio" name="quality" value="{{ k }}" data-credits="{{ q.credits }}" {% if (ch and ch.quality == k) or (not ch and k == 'fast') %}checked{% endif %}><span><i class="em">{{ quality_emoji[k] }}</i><b>{{ q.label }} · {{ q.credits }} kredi</b><small>{{ q.desc }} · {{ q.resolution }}</small></span></label>
 {% endfor %}
 </div>
