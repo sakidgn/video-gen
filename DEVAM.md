@@ -54,10 +54,13 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
 - Python string içinde JS yazarken `\n`/`\s` için raw string kullan (iki kere satır sonu hatası çıktı).
 - `.bat` dosyaları CRLF olmalı; `if (...)` blokları içinde parantezli metin kullanma.
 
-## SaaS sitesi (`saas/`)
+## SaaS sitesi (`otoshort_site/` — shitpost'tan tamamen ayrı proje)
 - FastAPI + SQLite + Jinja; kredili video üretimi (Veo API), otomatik kanallar, havale ile kredi, yönetim paneli.
 - Tasarım: gömülü fontlar (Geist + Instrument Serif italik vurgu + Geist Mono, `saas/static/fonts`), SVG ikonlar
   (`saas/icons.py`), Three.js (gömülü, `static/vendor`) ile ana sayfada canlı çizimli 3D telefonlar (`static/hero3d.js`).
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
-- Yerel deneme: `site_dene.bat` (SAHTE_AI=1, admin@deneme.com yönetici, her hesaba 1000 deneme kredisi).
-- Testler: `tests/test_saas.py`. Ekran görüntüsü için Playwright + swiftshader (scratchpad betikleri).
+- Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
+  indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.
+- Site klasöründe: `Siteyi_Ac.bat` (kendi .venv'ini kurar; SAHTE_AI=1, admin@deneme.com, 1000 deneme kredisi),
+  `Guncelle.bat` (`python -m saas.guncelle`, .env ve saas_veri* korunur).
+- Testler: `otoshort_site/tests/test_saas.py` (kökten `python -m pytest` hepsini çalıştırır). Ekran görüntüsü için Playwright + swiftshader (scratchpad betikleri).

@@ -1,15 +1,15 @@
 @echo off
 cd /d "%~dp0"
-title Site denemesi
+title Otoshort Site
 echo ============================================
-echo  SITE DENEMESI (sahte videolarla, ucretsiz)
+echo  OTOSHORT SITE - deneme modu (sahte videolar)
 echo ============================================
 if not exist ".venv\Scripts\python.exe" (
-  echo Once kurulum.bat calistir.
-  pause
-  exit /b 1
+  where python >nul 2>nul
+  if errorlevel 1 goto nopython
+  echo Ilk kurulum yapiliyor, 1-2 dakika surebilir...
+  python -m venv .venv
 )
-echo Gerekli paketler kuruluyor (ilk seferde 1-2 dakika)...
 ".venv\Scripts\python.exe" -m pip install -q -r saas\requirements.txt
 set SAHTE_AI=1
 set ADMIN_EPOSTALAR=admin@deneme.com
@@ -19,9 +19,15 @@ set PORT=8000
 echo.
 echo Site aciliyor: http://localhost:8000
 echo Kayit olurken admin@deneme.com yazarsan Yonetim paneli de acilir.
-echo Her yeni hesaba deneme icin 1000 kredi verilir. Videolar sahtedir (renkli test goruntusu).
+echo Her yeni hesaba deneme icin 1000 kredi verilir. Videolar sahtedir.
 echo Kapatmak icin bu pencereyi kapat.
 echo.
 start "" http://localhost:8000
 ".venv\Scripts\python.exe" -m saas
 pause
+exit /b 0
+
+:nopython
+echo Python bulunamadi. python.org adresinden kur, kurarken "Add python.exe to PATH" kutusunu isaretle.
+pause
+exit /b 1

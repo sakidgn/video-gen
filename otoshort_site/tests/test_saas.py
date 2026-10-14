@@ -175,3 +175,22 @@ def test_login_rate_limit_and_wrong_password(client):
 def test_script_request_has_rules_and_past():
     req = ai.build_script_request(idea="", characters="", style="meme3d", language="tr", past=["old idea"])
     assert "Türkçe" in req and "old idea" in req and "copyrighted" in req and "watermark" in req.lower()
+
+
+def test_site_updater_writes_only_site_files_and_keeps_data(tmp_path):
+    import io
+    import zipfile
+
+    from saas import guncelle
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("repo-branch/shitpost/x.py", "x")
+        z.writestr("repo-branch/otoshort_site/saas/app.py", "yeni")
+        z.writestr("repo-branch/otoshort_site/.env", "SIZDIRMA")
+        z.writestr("repo-branch/otoshort_site/saas_veri/site.db", "bos")
+    (tmp_path / ".env").write_text("benim")
+    assert guncelle.extract_site(buf.getvalue(), tmp_path) == 1
+    assert (tmp_path / "saas" / "app.py").read_text() == "yeni"
+    assert (tmp_path / ".env").read_text() == "benim" and not (tmp_path / "saas_veri").exists()
+    assert not (tmp_path / "shitpost").exists()

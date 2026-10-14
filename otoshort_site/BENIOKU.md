@@ -4,22 +4,22 @@ Yapay zekâ ile kısa video üreten, kredili site. Kullanıcı havale ile kredi 
 "otomatik kanal" (her gün belirli saatlerde kendiliğinden video) üretir. Videolar Google'ın Veo modeliyle,
 başlık/açıklama Gemini ile yazılır.
 
+Bu klasör kendi başına bir projedir (shitpost otomatiğinden ayrı).
+
 ## Bilgisayarda deneme (API'siz, sahte videolarla)
-```
-pip install -r saas/requirements.txt
-SAHTE_AI=1 ADMIN_EPOSTALAR=sen@mail.com python -m saas
-```
+- Windows: **`Siteyi_Ac.bat`**'a çift tıkla (ilk seferde kendi kurulumunu yapar). Güncellemek için **`Guncelle.bat`**.
+- Elle: `pip install -r saas/requirements.txt` sonra `SAHTE_AI=1 ADMIN_EPOSTALAR=sen@mail.com python -m saas`
 Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yönetim'den kendine kredi ver → video üret.
 
 ## Gerçek kurulum (sunucu)
 1. **Google API anahtarı:** https://aistudio.google.com → API key oluştur → projede **faturalandırmayı aç** (kart).
    Google Cloud'da **bütçe uyarısı** kur (ör. aylık 50$). Veo'nun ücretsiz kotası yok, her video ücretli.
 2. **Sunucu:** Docker çalıştıran küçük bir VPS (ör. 2 GB RAM). Bir alan adı al ve sunucuya yönlendir.
-3. `saas/.env.ornek` dosyasını `saas/.env` olarak kopyala, doldur (`GIZLI_ANAHTAR` uzun ve rastgele olmalı).
+3. `.env.ornek` dosyasını `.env` olarak kopyala, doldur (`GIZLI_ANAHTAR` uzun ve rastgele olmalı).
 4. Çalıştır:
    ```
-   docker build -f saas/Dockerfile -t otoshort .
-   docker run -d --restart always --env-file saas/.env -v /srv/otoshort:/veri -p 8000:8000 otoshort
+   docker build -t otoshort .          # bu klasörün içinden
+   docker run -d --restart always --env-file .env -v /srv/otoshort:/veri -p 8000:8000 otoshort
    ```
 5. Önüne HTTPS için Caddy koy (en kolayı): `caddy reverse-proxy --from alanadin.com --to localhost:8000`
 6. Yasal sayfalardaki `[ŞİRKET UNVANI]`, `[ADRES]`, `[E-POSTA]`, `[TARİH]` yerlerini doldur

@@ -278,6 +278,7 @@ def test_guncelle_overwrites_files_but_keeps_history(tmp_path, monkeypatch):
         z.writestr("video-gen-branch/", "")
         z.writestr("video-gen-branch/shitpost/new.py", "x = 1\n")
         z.writestr("video-gen-branch/kanallar/spoderman/gecmis.json", "[]")
+        z.writestr("video-gen-branch/otoshort_site/saas/app.py", "site\n")
     (tmp_path / "kanallar" / "spoderman").mkdir(parents=True)
     (tmp_path / "kanallar" / "spoderman" / "gecmis.json").write_text('[{"keep": 1}]')
 
@@ -286,6 +287,35 @@ def test_guncelle_overwrites_files_but_keeps_history(tmp_path, monkeypatch):
     assert cli.main(["guncelle"]) == 0
     assert (tmp_path / "shitpost" / "new.py").read_text() == "x = 1\n"
     assert "keep" in (tmp_path / "kanallar" / "spoderman" / "gecmis.json").read_text()
+    assert not (tmp_path / "otoshort_site").exists()  # site shitpost klasörüne inmez
+
+
+def test_site_kur_installs_separately_and_cleans_leftovers(tmp_path, monkeypatch):
+    import io
+    import zipfile
+
+    from shitpost import __main__ as cli
+    from shitpost import config
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("video-gen-branch/shitpost/x.py", "x\n")
+        z.writestr("video-gen-branch/otoshort_site/Siteyi_Ac.bat", "bat\n")
+        z.writestr("video-gen-branch/otoshort_site/saas/app.py", "site\n")
+    shit = tmp_path / "shitpost_klasoru"
+    (shit / "saas").mkdir(parents=True)
+    (shit / "saas" / "eski.py").write_text("eski")
+    (shit / "site_dene.bat").write_text("eski")
+    (shit / "saas_veri_deneme").mkdir()
+    (shit / "saas_veri_deneme" / "site.db").write_text("db")
+    monkeypatch.setattr(config, "ROOT", shit)
+    monkeypatch.setattr("requests.get", lambda url, timeout: NS(content=buf.getvalue(), raise_for_status=lambda: None))
+    dest = tmp_path / "Otoshort Site"
+    assert cli.main(["site-kur", "--hedef", str(dest), "--acma"]) == 0
+    assert (dest / "saas" / "app.py").read_text() == "site\n" and (dest / "Siteyi_Ac.bat").exists()
+    assert not (dest / "shitpost").exists()
+    assert (dest / "saas_veri_deneme" / "site.db").read_text() == "db"
+    assert not (shit / "saas").exists() and not (shit / "site_dene.bat").exists()
 
 
 def test_scenario_waits_only_when_all_models_busy(channel, monkeypatch):

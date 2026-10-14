@@ -8,6 +8,8 @@ __pycache__/
 .pytest_cache/
 yerel/
 kayit.txt
-saas_veri/
-saas/.env
+otoshort_site/saas_veri/
+otoshort_site/saas_veri_deneme/
+otoshort_site/.env
+otoshort_site/.venv/
 saas_veri_deneme/

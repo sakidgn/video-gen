@@ -238,13 +238,89 @@ def cmd_guncelle(args) -> int:
     with zipfile.ZipFile(io.BytesIO(r.content)) as z:
         for info in z.infolist():
             rel = info.filename.split("/", 1)[1] if "/" in info.filename else ""
-            if not rel or info.is_dir() or rel.endswith("gecmis.json"):
-                continue
+            if not rel or info.is_dir() or rel.endswith("gecmis.json") or rel.startswith(SITE_PREFIX):
+                continue  # site (otoshort_site/) ayrı klasörde, buraya inmez
             target = ROOT / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(z.read(info))
             updated += 1
     print(f"Güncellendi ({updated} dosya).")
+    return 0
+
+
+SITE_PREFIX = "otoshort_site/"
+OLD_SITE_LEFTOVERS = ["saas", "site_dene.bat"]
+
+
+def _desktop() -> Path:
+    """Windows'ta gerçek Masaüstü klasörü (OneDrive'a taşınmış olsa bile)."""
+    import os
+
+    if os.name == "nt":
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            class GUID(ctypes.Structure):
+                _fields_ = [("a", wintypes.DWORD), ("b", wintypes.WORD), ("c", wintypes.WORD), ("d", ctypes.c_ubyte * 8)]
+
+            fid = GUID(0xB4BFCC3A, 0xDB2C, 0x424C, (ctypes.c_ubyte * 8)(0xB0, 0x29, 0x7F, 0xE9, 0x9A, 0x87, 0xC6, 0x41))
+            out = ctypes.c_wchar_p()
+            if ctypes.windll.shell32.SHGetKnownFolderPath(ctypes.byref(fid), 0, None, ctypes.byref(out)) == 0:
+                path = Path(out.value)
+                ctypes.windll.ole32.CoTaskMemFree(out)
+                return path
+        except Exception:
+            pass
+    home = Path.home()
+    return home / "Desktop" if (home / "Desktop").exists() else home
+
+
+def cmd_site_kur(args) -> int:
+    """Siteyi (SaaS) shitpost klasöründen ayrı, Masaüstünde kendi klasörüne indirir ve eski kalıntıları temizler."""
+    import io
+    import os
+    import shutil
+    import zipfile
+
+    import requests
+
+    from .config import ROOT
+
+    dest = Path(args.hedef) if args.hedef else _desktop() / "Otoshort Site"
+    print(f"Site şu klasöre kuruluyor: {dest}")
+    r = requests.get(os.environ.get("GUNCELLEME_URL", UPDATE_URL), timeout=120)
+    r.raise_for_status()
+    n = 0
+    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+        for info in z.infolist():
+            rel = info.filename.split("/", 1)[1] if "/" in info.filename else ""
+            if info.is_dir() or not rel.startswith(SITE_PREFIX):
+                continue
+            sub = rel[len(SITE_PREFIX):]
+            if not sub or sub.startswith((".env", "saas_veri")):
+                continue
+            target = dest / sub
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(z.read(info))
+            n += 1
+    if not n:
+        print("Site dosyaları bulunamadı, daha sonra tekrar dene.")
+        return 1
+    old_data = ROOT / "saas_veri_deneme"
+    if old_data.exists() and not (dest / "saas_veri_deneme").exists():
+        shutil.move(str(old_data), str(dest / "saas_veri_deneme"))
+        print("Deneme verilerin de taşındı.")
+    for name in OLD_SITE_LEFTOVERS:
+        p = ROOT / name
+        if p.is_dir():
+            shutil.rmtree(p, ignore_errors=True)
+        elif p.exists():
+            p.unlink()
+    print(f"Tamam ({n} dosya). Shitpost klasörü artık sadece shitpost için.")
+    print(f"Siteyi açmak için: {dest} klasöründeki Siteyi_Ac.bat")
+    if os.name == "nt" and not args.acma:
+        os.startfile(str(dest))  # klasörü aç
     return 0
 
 
@@ -310,6 +386,10 @@ def main(argv=None) -> int:
     g.add_argument("--sadece-gemini", action="store_true", help="Sadece Gemini sekmesini aç")
     g.set_defaults(func=cmd_giris)
 
+    sk = sub.add_parser("site-kur", help="Siteyi Masaüstünde ayrı klasöre kur")
+    sk.add_argument("--hedef", default="")
+    sk.add_argument("--acma", action="store_true", help="Bitince klasörü açma")
+    sk.set_defaults(func=cmd_site_kur)
     sub.add_parser("guncelle", help="En son sürümü GitHub'dan indir").set_defaults(func=cmd_guncelle)
     sub.add_parser("rapor", help="Son çalışmanın kaydını ve klasörünü aç").set_defaults(func=cmd_rapor)
 
