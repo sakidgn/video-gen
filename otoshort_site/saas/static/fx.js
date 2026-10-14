@@ -8,11 +8,19 @@
   const nav = $('#nav');
   if (nav) { const f = () => nav.classList.toggle('scrolled', scrollY > 8); f(); addEventListener('scroll', f, { passive: true }); }
 
-  // Mobil menü
-  const burger = $('[data-burger]'), mm = $('[data-mobile-menu]');
+  // Mobil menü (yaylı açılış, arka plan bulanıklığı, Esc ve dışarı tıklayınca kapanır)
+  const burger = $('[data-burger]'), mm = $('[data-mobile-menu]'), scrim = $('[data-menu-scrim]');
   if (burger && mm) {
-    burger.addEventListener('click', () => { const open = mm.hidden; mm.hidden = !open; burger.setAttribute('aria-expanded', open); if (open) nav.classList.add('scrolled'); });
-    $$('a', mm).forEach(a => a.addEventListener('click', () => { mm.hidden = true; burger.setAttribute('aria-expanded', 'false'); }));
+    const setMenu = open => {
+      mm.classList.toggle('open', open); scrim && scrim.classList.toggle('open', open);
+      burger.setAttribute('aria-expanded', open); mm.setAttribute('aria-hidden', !open);
+      document.body.classList.toggle('menu-open', open); if (open) nav.classList.add('scrolled');
+      if (navigator.vibrate && open) try { navigator.vibrate(8); } catch (e) {}
+    };
+    burger.addEventListener('click', () => setMenu(!mm.classList.contains('open')));
+    scrim && scrim.addEventListener('click', () => setMenu(false));
+    addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+    $$('a', mm).forEach(a => a.addEventListener('click', () => setMenu(false)));
   }
 
   // Kaydırınca belirme

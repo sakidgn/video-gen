@@ -7,10 +7,10 @@
     <a class="btn btn-accent btn-block side-new" href="/video/yeni">{{ icon('plus', 16) }} Yeni video</a>
     <div class="side-label">Menü</div>
     {% for href, ic, label in nav %}
-      <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{{ icon(ic, 18) }} {{ label }}</a>
+      <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
     {% endfor %}
-    <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{{ icon('user', 18) }} Hesabım</a>
-    {% if user.is_admin %}<div class="side-label">Yönetim</div><a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{{ icon('shield', 18) }} Yönetim paneli</a>{% endif %}
+    <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{% if active == '/hesap' %}<span class="side-pill"></span>{% endif %}{{ icon('user', 18) }} Hesabım</a>
+    {% if user.is_admin %}<div class="side-label">Yönetim</div><a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{% if active == '/admin' %}<span class="side-pill"></span>{% endif %}{{ icon('shield', 18) }} Yönetim paneli</a>{% endif %}
     <div class="side-foot">
       <div class="wallet">
         <div class="row between"><span class="tiny faint mono" style="letter-spacing:.08em">BAKİYE</span>{{ icon('gem', 16, 'faint') }}</div>
@@ -47,7 +47,7 @@
     </div></main>
   </div>
   <nav class="tabbar">
-    {% for href, ic, label in nav %}<a class="{{ 'on' if active == href }}" href="{{ href }}">{{ icon(ic, 20) }}<span>{{ label.split(' ')[-1]|capitalize if href == '/kanallar' else label.split(' ')[0] }}</span></a>{% endfor %}
+    {% for href, ic, label in nav %}<a class="{{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="tab-pill"></span>{% endif %}{{ icon(ic, 20) }}<span>{{ label.split(' ')[-1]|capitalize if href == '/kanallar' else label.split(' ')[0] }}</span></a>{% endfor %}
   </nav>
 </div>
 {% endblock %}

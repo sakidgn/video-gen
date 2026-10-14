@@ -26,7 +26,7 @@
     <a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a>
   </nav>
   <div class="nav-right">
-  <button class="icon-btn nav-burger" type="button" aria-label="Menü" aria-expanded="false" data-burger>{{ icon('menu', 18) }}</button>
+  <button class="icon-btn nav-burger" type="button" aria-label="Menü" aria-expanded="false" data-burger><span></span><span></span><span></span></button>
   {% if user %}
     <a class="btn btn-primary btn-sm" href="/panel">Panele git {{ icon('arrow-right', 15) }}</a>
   {% else %}
@@ -35,11 +35,12 @@
   {% endif %}
   </div>
 </div>
-  <div class="mobile-menu" data-mobile-menu hidden>
+  <div class="mobile-menu" data-mobile-menu aria-hidden="true">
     <a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a>
     {% if user %}<a class="btn btn-primary btn-block" href="/panel">Panele git</a>{% else %}<a class="btn btn-ghost btn-block" href="/giris">Giriş yap</a><a class="btn btn-primary btn-block" href="/kayit">Ücretsiz başla</a>{% endif %}
   </div>
 </header>
+<div class="menu-scrim" data-menu-scrim></div>
 <main>
   {% if flashes %}<div class="wrap" style="padding-top:20px">{% include '_flashes.html' %}</div>{% endif %}
   {% block content %}{% endblock %}
