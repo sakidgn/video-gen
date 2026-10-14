@@ -132,6 +132,8 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:24px 0}
 /* ============ Formlar ============ */
 .field{display:grid;gap:8px}
 .field+.field{margin-top:18px}
+.grid>.field+.field{margin-top:0}
+.input:disabled{opacity:.7;cursor:not-allowed}
 .label{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
 .label .opt{font-weight:400;color:var(--text-3);font-size:13px}
 .input,.textarea,select.input{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--border-2);border-radius:12px;color:var(--text);
@@ -473,6 +475,23 @@ tr:last-child td{border-bottom:0}
 .btn-google{gap:10px;font-weight:500}
 .or{display:flex;align-items:center;gap:12px;margin:20px 0 16px;color:var(--text-3);font-size:12.5px}
 .or:before,.or:after{content:"";flex:1;height:1px;background:var(--border-2)}
+.verify-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 16px;margin-bottom:22px;border-radius:18px;border:1px solid rgba(255,43,214,.4);
+  background:linear-gradient(90deg,rgba(255,43,214,.14),rgba(0,229,255,.06));box-shadow:0 0 34px -16px rgba(255,43,214,.8)}
+.verify-bar .hl{white-space:normal}
+.flash.demo{background:rgba(0,229,255,.06);border-color:rgba(0,229,255,.3);color:#b8f6ff}
+.nav-burger{display:none}
+.mobile-menu{display:grid;gap:4px;padding:10px 18px 18px;border-top:1px solid var(--border);background:rgba(10,6,19,.95);backdrop-filter:blur(16px)}
+.mobile-menu[hidden]{display:none}
+.mobile-menu a:not(.btn){padding:12px 4px;font-weight:600;border-bottom:1px solid var(--border)}
+.mobile-menu .btn{margin-top:8px}
+@media(max-width:960px){.nav-burger{display:grid}.nav-right>.btn{display:none}}
+.onboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:30px}
+.ob{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:18px;border:1px solid var(--border);background:var(--surface);transition:border-color .2s,transform .2s}
+a.ob:hover{border-color:rgba(255,43,214,.5);transform:translateY(-2px)}
+.ob .st{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;border:2px solid var(--border-3);font:800 11px var(--display);color:var(--text-2)}
+.ob.done{opacity:.7}.ob.done .st{background:var(--lime);border-color:var(--lime);color:#1a0d2b}
+.ob b{display:block;font-size:14px}.ob span{font-size:12.5px;color:var(--text-3)}
+@media(max-width:960px){.onboard{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* hukuki metin */
 .prose{max-width:760px;margin:0 auto;padding:48px 0}
 .prose h1{font-size:40px;margin-bottom:8px}.prose h2{font-size:20px;letter-spacing:-.02em;margin:34px 0 10px}

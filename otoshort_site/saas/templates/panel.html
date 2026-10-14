@@ -7,6 +7,20 @@
 </div>
 {% for ch in notices %}<div class="flash warn" style="margin-bottom:12px">{{ icon('alert', 16) }}<div><b>{{ ch.name }}:</b> {{ ch.notice }} <a href="/kredi">Kredi yükle</a></div></div>{% endfor %}
 
+{% if n_videos == 0 %}
+{% set steps = [
+  (user.email_verified, 'E-postanı doğrula', 'Hediye kredin yüklensin', None),
+  (has_credit_tx, 'Kredi yükle', 'Havale ile, 250 ₺\'den başlar', '/kredi'),
+  (jobs|length > 0, 'İlk videonu üret', 'Fikir yaz ya da boş bırak', '/video/yeni'),
+  (n_channels > 0, 'Otomatik kanal kur', 'Her gün kendiliğinden video', '/kanallar/yeni')] %}
+<div class="onboard reveal">
+  {% for done, t, d, href in steps %}
+  {% if href and not done %}<a class="ob" href="{{ href }}">{% else %}<div class="ob {{ 'done' if done }}">{% endif %}
+    <span class="st">{% if done %}{{ icon('check', 13) }}{% else %}{{ loop.index }}{% endif %}</span><div><b>{{ t }}</b><span>{{ d }}</span></div>
+  {% if href and not done %}</a>{% else %}</div>{% endif %}
+  {% endfor %}
+</div>
+{% endif %}
 <div class="stats">
   <div class="card stat reveal" data-tilt="4"><div class="k"><span class="icon-box accent" style="width:30px;height:30px;border-radius:9px">{{ icon('gem', 15) }}</span>Bakiye</div>
     <div class="v"><span data-count="{{ user.credits }}">{{ user.credits }}</span> <small>kredi</small></div><a class="more" href="/kredi">Kredi yükle {{ icon('arrow-right', 14) }}</a></div>

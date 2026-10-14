@@ -17,6 +17,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(100), default="")
     pw_hash: Mapped[str] = mapped_column(String(255))  # Google ile kayıtta boş (şifreyle giriş yok)
     google_sub: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    notify: Mapped[bool] = mapped_column(Boolean, default=True)  # bildirim e-postaları
     credits: Mapped[int] = mapped_column(Integer, default=0)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

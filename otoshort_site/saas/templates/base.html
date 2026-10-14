@@ -6,6 +6,12 @@
 <title>{% block title %}{{ site }} — Yapay zekâ ile otomatik kısa video{% endblock %}</title>
 <meta name="description" content="Yapay zekâ ile TikTok, Reels ve Shorts videoları üret. Kanalını bir kere kur, videolar her gün kendiliğinden gelsin.">
 <meta name="theme-color" content="#0a0613">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site }}">
+<meta property="og:title" content="{{ site }} — Kanalını bir kere kur, videolar kendiliğinden gelsin">
+<meta property="og:description" content="Yapay zekâ ile sesli, dikey TikTok/Reels/Shorts videoları. Otomatik kanallarla her gün yeni video.">
+<meta property="og:image" content="{{ base_url }}/static/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/static/fonts/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/site.css">
@@ -20,6 +26,7 @@
     <a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a>
   </nav>
   <div class="nav-right">
+  <button class="icon-btn nav-burger" type="button" aria-label="Menü" aria-expanded="false" data-burger>{{ icon('menu', 18) }}</button>
   {% if user %}
     <a class="btn btn-primary btn-sm" href="/panel">Panele git {{ icon('arrow-right', 15) }}</a>
   {% else %}
@@ -27,7 +34,12 @@
     <a class="btn btn-primary btn-sm" href="/kayit">Ücretsiz başla</a>
   {% endif %}
   </div>
-</div></header>
+</div>
+  <div class="mobile-menu" data-mobile-menu hidden>
+    <a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a>
+    {% if user %}<a class="btn btn-primary btn-block" href="/panel">Panele git</a>{% else %}<a class="btn btn-ghost btn-block" href="/giris">Giriş yap</a><a class="btn btn-primary btn-block" href="/kayit">Ücretsiz başla</a>{% endif %}
+  </div>
+</header>
 <main>
   {% if flashes %}<div class="wrap" style="padding-top:20px">{% include '_flashes.html' %}</div>{% endif %}
   {% block content %}{% endblock %}

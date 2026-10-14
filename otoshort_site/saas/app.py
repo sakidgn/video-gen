@@ -11,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import config, credits, db, oauth, worker
+from . import config, credits, db, mailer, oauth, tokens, worker
 from .icons import LOGO, icon
 from .models import Channel, CreditTx, Job, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
@@ -39,12 +39,49 @@ def create_app(*, start_worker: bool | None = None, generator=None, database_url
 
 # ---------- yardımcılar ----------
 
-def flash(request: Request, msg: str, kind: str = "ok") -> None:
-    request.session.setdefault("flash", []).append([kind, msg])
+def flash(request: Request, msg: str, kind: str = "ok", link: str = "", link_label: str = "") -> None:
+    request.session.setdefault("flash", []).append([kind, msg, link, link_label])
+
+
+def site_url(request: Request) -> str:
+    return config.SITE_URL or str(request.base_url).rstrip("/")
+
+
+def mark_verified(s, user: User) -> None:
+    """E-postayı doğrulanmış yapar; hoş geldin kredisi yalnızca ilk doğrulamada verilir."""
+    if user.email_verified:
+        return
+    user.email_verified = True
+    if config.SIGNUP_BONUS:
+        credits.add(s, user.id, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
+
+
+def send_email(request: Request, to: str, subject: str, html: str) -> None:
+    name = mailer.send(to, subject, html)
+    if name and config.FAKE_AI:  # demo: e-posta gerçekten gitmez, açmak için bağlantı göster
+        flash(request, f"Demo modu: “{subject}” e-postası gerçekten gönderilmedi.", "demo", f"/dev/eposta/{name}",
+              "E-postayı aç")
+
+
+def send_verification(request: Request, uid: int, email: str) -> None:
+    url = f"{site_url(request)}/dogrula/{tokens.make_verify(uid, email)}"
+    bonus = f" Doğrulayınca hesabına <b>{config.SIGNUP_BONUS} hediye kredi</b> yüklenecek." if config.SIGNUP_BONUS else ""
+    html = mailer.render("E-postanı doğrula",
+                         f"{config.SITE_NAME}'a hoş geldin! Hesabını kullanmaya başlamak için e-posta adresini doğrula.{bonus}",
+                         ("E-postamı doğrula", url), "Bağlantı 3 gün geçerli. Bu kaydı sen yapmadıysan bu e-postayı yok say.")
+    send_email(request, email, f"{config.SITE_NAME}: e-postanı doğrula", html)
+
+
+def require_verified(request: Request, user: User):
+    """Doğrulanmamış hesap video/kanal/kredi işlemi yapamaz; yönlendirme döndürür (yoksa None)."""
+    if user.email_verified:
+        return None
+    flash(request, "Önce e-posta adresini doğrula. Gelen kutuna bağlantı gönderdik.", "warn")
+    return go("/panel")
 
 
 def _active(path: str) -> str:
-    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin"):
+    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap"):
         if path.startswith(prefix):
             return prefix
     return "/panel"
@@ -56,7 +93,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         request=request, user=user, site=config.SITE_NAME, csrf=csrf_token(request.session),
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
         languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
-        google_button=oauth.enabled() or config.FAKE_AI,
+        google_button=oauth.enabled() or config.FAKE_AI, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
         quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS,
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
@@ -157,15 +194,14 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 flash(request, "Bu e-posta ile zaten bir hesap var. Giriş yap.", "err")
                 return go("/giris")
             user = User(email=email, name=clean(name, 100), pw_hash=hash_password(password),
-                        is_admin=email in config.ADMIN_EMAILS)
+                        is_admin=email in config.ADMIN_EMAILS, email_verified=False)
             s.add(user)
             s.flush()
-            if config.SIGNUP_BONUS:
-                credits.add(s, user.id, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
             uid = user.id
         request.session.clear()
         request.session["uid"] = uid
-        flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
+        flash(request, "Hesabın oluşturuldu! E-postana bir doğrulama bağlantısı gönderdik. 🎉")
+        send_verification(request, uid, email)
         return go("/panel")
 
     @app.get("/giris", response_class=HTMLResponse)
@@ -237,6 +273,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             if user:
                 if prof["email"] in config.ADMIN_EMAILS:
                     user.is_admin = True
+                if user.email == prof["email"]:
+                    mark_verified(s, user)
                 uid = user.id
             else:
                 uid = None
@@ -265,7 +303,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 flash(request, "Bu hesap zaten var, giriş yap.", "err")
                 return go("/giris")
             user = User(email=prof["email"], name=prof["name"], pw_hash="", google_sub=prof["sub"],
-                        is_admin=prof["email"] in config.ADMIN_EMAILS)
+                        is_admin=prof["email"] in config.ADMIN_EMAILS, email_verified=True)
             s.add(user)
             s.flush()
             if config.SIGNUP_BONUS:
@@ -274,6 +312,110 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         resp = _login_as(request, uid)
         flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
         return resp
+
+    # --- e-posta doğrulama ---
+    verify_limiter = RateLimiter(limit=3, window=600)
+    reset_limiter = RateLimiter(limit=5, window=900)
+
+    @app.get("/dogrula/{token}")
+    def verify_email(request: Request, token: str):
+        data = tokens.read_verify(token)
+        if not data:
+            flash(request, "Doğrulama bağlantısı geçersiz ya da süresi dolmuş. Panelden yenisini iste.", "err")
+            return go("/panel" if current_user(request) else "/giris")
+        with db.session() as s:
+            user = s.get(User, data["u"])
+            if not user or user.email != data["e"]:
+                flash(request, "Doğrulama bağlantısı geçersiz.", "err")
+                return go("/giris")
+            already = user.email_verified
+            mark_verified(s, user)
+            uid = user.id
+        request.session["uid"] = uid
+        flash(request, "E-posta adresin zaten doğrulanmış." if already else
+              "E-posta adresin doğrulandı! 🎉" + (f" {config.SIGNUP_BONUS} hediye kredin yüklendi." if config.SIGNUP_BONUS else ""))
+        return go("/panel")
+
+    @app.post("/dogrula/tekrar", dependencies=[Depends(check_csrf)])
+    def verify_resend(request: Request, user: User = Depends(require_user)):
+        if user.email_verified:
+            return go("/panel")
+        if not verify_limiter.allow(f"v:{user.id}"):
+            flash(request, "Çok fazla istek. Birkaç dakika sonra tekrar dene.", "err")
+            return go("/panel")
+        send_verification(request, user.id, user.email)
+        flash(request, f"Doğrulama bağlantısını tekrar gönderdik: {user.email}")
+        return go("/panel")
+
+    # --- şifremi unuttum ---
+    @app.get("/sifremi-unuttum", response_class=HTMLResponse)
+    def forgot_page(request: Request):
+        return render(request, "sifremi_unuttum.html", current_user(request))
+
+    @app.post("/sifremi-unuttum", dependencies=[Depends(check_csrf)])
+    def forgot(request: Request, email: str = Form(...)):
+        email = email.strip().lower()
+        ip = request.client.host if request.client else "?"
+        if not reset_limiter.allow(f"{ip}:{email}"):
+            flash(request, "Çok fazla deneme yaptın. Biraz sonra tekrar dene.", "err")
+            return go("/sifremi-unuttum")
+        with db.session() as s:
+            user = s.scalar(select(User).where(User.email == email))
+        if user:
+            url = f"{site_url(request)}/sifre-yenile/{tokens.make_reset(user.id, user.pw_hash)}"
+            html = mailer.render("Şifreni yenile", "Hesabın için şifre sıfırlama isteği aldık. Yeni şifreni belirlemek için "
+                                 "aşağıdaki butona tıkla.", ("Yeni şifre belirle", url),
+                                 "Bağlantı 1 saat geçerli ve tek kullanımlık. Bu isteği sen yapmadıysan bu e-postayı yok say; "
+                                 "şifren değişmez.")
+            send_email(request, user.email, f"{config.SITE_NAME}: şifre sıfırlama", html)
+        # hesap olsa da olmasa da aynı mesaj (e-posta tahmini yapılamasın)
+        flash(request, "Bu e-postayla bir hesap varsa şifre sıfırlama bağlantısı gönderdik. Gelen kutunu kontrol et.")
+        return go("/giris")
+
+    def _reset_user(token: str):
+        uid = tokens.reset_uid(token)
+        if not uid:
+            return None
+        with db.session() as s:
+            user = s.get(User, uid)
+        if not user or tokens.read_reset(token, user.pw_hash) != user.id:
+            return None
+        return user
+
+    @app.get("/sifre-yenile/{token}", response_class=HTMLResponse)
+    def reset_page(request: Request, token: str):
+        if not _reset_user(token):
+            flash(request, "Şifre sıfırlama bağlantısı geçersiz ya da süresi dolmuş. Yenisini iste.", "err")
+            return go("/sifremi-unuttum")
+        return render(request, "sifre_yenile.html", None, token=token)
+
+    @app.post("/sifre-yenile/{token}", dependencies=[Depends(check_csrf)])
+    def reset(request: Request, token: str, password: str = Form(...), password2: str = Form(...)):
+        user = _reset_user(token)
+        if not user:
+            flash(request, "Şifre sıfırlama bağlantısı geçersiz ya da süresi dolmuş. Yenisini iste.", "err")
+            return go("/sifremi-unuttum")
+        if len(password) < 8 or password != password2:
+            flash(request, "Şifreler aynı olmalı ve en az 8 karakter olmalı.", "err")
+            return go(f"/sifre-yenile/{token}")
+        with db.session() as s:
+            u = s.get(User, user.id)
+            u.pw_hash = hash_password(password)
+            mark_verified(s, u)  # e-postasına erişebildiğini kanıtladı
+        request.session.clear()
+        request.session["uid"] = user.id
+        flash(request, "Şifren güncellendi, giriş yaptın. 🔐")
+        return go("/panel")
+
+    # --- demo: kaydedilen e-postayı görüntüle (sadece SAHTE_AI ve SMTP yokken) ---
+    @app.get("/dev/eposta/{name}", response_class=HTMLResponse)
+    def dev_email(name: str):
+        if not config.FAKE_AI or mailer.enabled() or not re.fullmatch(r"[\w.-]+\.html", name):
+            raise HTTPException(404)
+        path = mailer.outbox() / name
+        if not path.exists():
+            raise HTTPException(404)
+        return HTMLResponse(path.read_text(encoding="utf-8"))
 
     @app.post("/cikis", dependencies=[Depends(check_csrf)])
     def logout(request: Request):
@@ -289,7 +431,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                                                                        Channel.active.is_(True)))
             notices = s.scalars(select(Channel).where(Channel.user_id == user.id, Channel.notice != "")).all()
             n_videos = s.scalar(select(func.count(Job.id)).where(Job.user_id == user.id, Job.status == "hazir"))
-        return render(request, "panel.html", user, jobs=jobs, n_channels=n_channels, notices=notices, n_videos=n_videos)
+            has_credit_tx = bool(s.scalar(select(func.count(CreditTx.id)).where(CreditTx.user_id == user.id,
+                                                                               CreditTx.amount > 0)))
+        return render(request, "panel.html", user, jobs=jobs, n_channels=n_channels, notices=notices, n_videos=n_videos,
+                      has_credit_tx=has_credit_tx)
 
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)
@@ -300,6 +445,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
                   characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
                   quality: str = Form("fast")):
+        if (blocked := require_verified(request, user)) is not None:
+            return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
         try:
             with db.session() as s:
@@ -357,6 +504,59 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             raise HTTPException(404)
         return FileResponse(poster, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
+    # --- hesap ---
+    @app.get("/hesap", response_class=HTMLResponse)
+    def account_page(request: Request, user: User = Depends(require_user)):
+        return render(request, "hesap.html", user)
+
+    @app.post("/hesap/profil", dependencies=[Depends(check_csrf)])
+    def account_profile(request: Request, user: User = Depends(require_user), name: str = Form(""),
+                        notify: str = Form("")):
+        with db.session() as s:
+            u = s.get(User, user.id)
+            u.name = clean(name, 100)
+            u.notify = bool(notify)
+        flash(request, "Bilgilerin kaydedildi.")
+        return go("/hesap")
+
+    @app.post("/hesap/sifre", dependencies=[Depends(check_csrf)])
+    def account_password(request: Request, user: User = Depends(require_user), current: str = Form(""),
+                         password: str = Form(...), password2: str = Form(...)):
+        if user.pw_hash and not check_password(current, user.pw_hash):
+            flash(request, "Mevcut şifren yanlış.", "err")
+            return go("/hesap")
+        if len(password) < 8 or password != password2:
+            flash(request, "Yeni şifreler aynı olmalı ve en az 8 karakter olmalı.", "err")
+            return go("/hesap")
+        with db.session() as s:
+            s.get(User, user.id).pw_hash = hash_password(password)
+        flash(request, "Şifren güncellendi. 🔐")
+        return go("/hesap")
+
+    @app.post("/hesap/sil", dependencies=[Depends(check_csrf)])
+    def account_delete(request: Request, user: User = Depends(require_user), confirm: str = Form("")):
+        if confirm.strip().lower() != user.email:
+            flash(request, "Silmek için e-posta adresini aynen yazmalısın.", "err")
+            return go("/hesap")
+        with db.session() as s:
+            u = s.get(User, user.id)
+            for ch in s.scalars(select(Channel).where(Channel.user_id == u.id)):
+                s.delete(ch)
+            for job in s.scalars(select(Job).where(Job.user_id == u.id)):
+                for ext in (".mp4", ".jpg"):
+                    f = worker.video_dir() / f"{job.id}{ext}"
+                    if f.exists():
+                        f.unlink()
+                job.channel_id = None
+                job.idea = job.characters = job.prompt = job.title = job.caption = job.hashtags = job.summary = ""
+                job.video_file = ""
+            # muhasebe kayıtları (ödeme/kredi hareketleri) yasal süre boyunca kalır; kişisel bilgiler silinir
+            u.email = f"silindi-{u.id}@silindi.invalid"
+            u.name, u.pw_hash, u.google_sub, u.notify, u.email_verified, u.is_admin = "", "", None, False, False, False
+        request.session.clear()
+        flash(request, "Hesabın ve videoların silindi. Görüşmek üzere. 👋")
+        return go("/")
+
     # --- kanallar ---
     def _channel_from_form(form) -> dict:
         times = [t for t in str(form.get("times", "")).replace(",", " ").split() if TIME_RE.match(t)]
@@ -381,6 +581,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     @app.post("/kanallar/yeni", dependencies=[Depends(check_csrf)])
     async def channel_new(request: Request, user: User = Depends(require_user)):
+        if (blocked := require_verified(request, user)) is not None:
+            return blocked
         data = _channel_from_form(await request.form())
         with db.session() as s:
             if s.scalar(select(func.count(Channel.id)).where(Channel.user_id == user.id)) >= 10:
@@ -447,6 +649,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.post("/kredi/bildirim", dependencies=[Depends(check_csrf)])
     def credit_notify(request: Request, user: User = Depends(require_user), package: int = Form(...),
                       sender_name: str = Form(...), note: str = Form(""), accept: str = Form("")):
+        if (blocked := require_verified(request, user)) is not None:
+            return blocked
         if not 0 <= package < len(config.PACKAGES) or not sender_name.strip() or not accept:
             flash(request, "Paketi seç, gönderen adını yaz ve sözleşmeyi onayla.", "err")
             return go("/kredi")
@@ -493,6 +697,11 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             t.decided_at = now()
             if action == "onayla":
                 credits.add(s, t.user_id, t.credits, f"Havale ile yükleme ({t.amount_tl} TL)")
+            uid, amount_tl, cr = t.user_id, t.amount_tl, t.credits
+        if action == "onayla":
+            worker.notify(uid, f"{config.SITE_NAME}: kredin yüklendi 💎", "Kredin yüklendi!",
+                          f"{amount_tl} ₺ havalen onaylandı ve hesabına <b>{cr} kredi</b> yüklendi. Üretmeye başlayabilirsin.",
+                          ("Video üret", f"{site_url(request)}/video/yeni"))
         flash(request, "Yükleme onaylandı, kredi eklendi." if action == "onayla" else "Bildirim reddedildi.")
         return go("/admin")
 

@@ -39,6 +39,12 @@ Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yöne
 Yeni kullanıcı Google ile ilk girişte kullanım şartları ve KVKK onayını verir; aynı e-postayla açılmış hesap
 varsa Google o hesaba bağlanır.
 
+## E-posta (doğrulama, şifre sıfırlama, bildirimler)
+Kayıt olan herkes e-postasını doğrular (hediye kredi doğrulamada yüklenir); şifremi unuttum ve bildirim e-postaları
+da buradan gider. Ücretsiz bir SMTP servisi yeterli (ör. Brevo günde 300 e-posta ücretsiz): hesap aç, alan adını
+doğrula, SMTP bilgilerini `.env`'deki `SMTP_*` satırlarına yaz. Boş bırakırsan e-postalar gönderilmez,
+`saas_veri/epostalar` klasörüne kaydedilir (deneme modunda sitede "E-postayı aç" bağlantısı çıkar).
+
 ## Günlük kullanım (yönetici)
 - **Yönetim** sayfası: bekleyen havaleler → banka hesabında parayı gördükten sonra **Onayla**.
 - Elle kredi: arkadaşlarına deneme kredisi vermek ya da düzeltme için.

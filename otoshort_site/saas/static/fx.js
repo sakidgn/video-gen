@@ -8,6 +8,13 @@
   const nav = $('#nav');
   if (nav) { const f = () => nav.classList.toggle('scrolled', scrollY > 8); f(); addEventListener('scroll', f, { passive: true }); }
 
+  // Mobil menü
+  const burger = $('[data-burger]'), mm = $('[data-mobile-menu]');
+  if (burger && mm) {
+    burger.addEventListener('click', () => { const open = mm.hidden; mm.hidden = !open; burger.setAttribute('aria-expanded', open); if (open) nav.classList.add('scrolled'); });
+    $$('a', mm).forEach(a => a.addEventListener('click', () => { mm.hidden = true; burger.setAttribute('aria-expanded', 'false'); }));
+  }
+
   // Kaydırınca belirme
   const io = !reduce && 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }

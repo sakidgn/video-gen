@@ -12,8 +12,8 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from . import ai as ai_mod
-from . import config, credits, db
-from .models import Channel, Job, now
+from . import config, credits, db, mailer
+from .models import Channel, Job, User, now
 
 log = logging.getLogger("saas.worker")
 SLOT_GRACE = timedelta(hours=2)  # sunucu kapalıyken kaçan saatler en fazla bu kadar geriden telafi edilir
@@ -36,6 +36,23 @@ def make_poster(video: Path) -> Path | None:
     except Exception:
         log.warning("Kapak resmi çıkarılamadı: %s", video.name)
         return None
+
+
+def _site() -> str:
+    return config.SITE_URL or "http://localhost:8000"
+
+
+def notify(user_id: int, subject: str, title: str, intro: str, button: tuple[str, str] | None = None) -> None:
+    """Bildirim e-postası (kullanıcı bildirimleri kapattıysa ya da e-postası doğrulanmamışsa gönderilmez)."""
+    try:
+        with db.session() as s:
+            u = s.get(User, user_id)
+            if not u or not u.notify or not u.email_verified:
+                return
+            to = u.email
+        mailer.send(to, subject, mailer.render(title, intro, button))
+    except Exception:
+        log.exception("Bildirim gönderilemedi")
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
@@ -73,7 +90,17 @@ def run_job(job_id: int, generator) -> None:
         make_poster(video_dir() / rel)
         with db.session() as s:
             s.execute(update(Job).where(Job.id == job_id).values(status="hazir", video_file=rel, finished_at=now()))
+            job = s.get(Job, job_id)
+            ch_name = job.channel.name if job.channel else None
+            uid = job.user_id
         log.info("İş %s hazır", job_id)
+        if ch_name:  # otomatik kanal videosu: kullanıcı başında değil, haber ver
+            from html import escape
+
+            notify(uid, f"{ch_name}: yeni videon hazır 🎬", "Yeni videon hazır!",
+                   f"<b>{escape(ch_name)}</b> kanalın için yeni video üretildi: “{escape(script.title)}”. "
+                   "Başlığı, açıklaması ve hashtag'leriyle birlikte paylaşmaya hazır.",
+                   ("Videoyu gör", f"{_site()}/video/{job_id}"))
     except Exception as e:
         log.exception("İş %s başarısız", job_id)
         if isinstance(e, ai_mod.ContentBlocked):
@@ -133,8 +160,15 @@ def schedule_channels(at: datetime | None = None) -> list[int]:
                     created.append(job.id)
             except credits.NotEnoughCredits:
                 with db.session() as s:
+                    first = not s.get(Channel, ch.id).notice
                     s.execute(update(Channel).where(Channel.id == ch.id).values(
                         notice=f"{slot} videosu kredi yetersiz olduğu için üretilmedi. Kredi yükle."))
+                if first:  # aynı uyarı için tekrar tekrar e-posta atma
+                    from html import escape
+
+                    notify(ch.user_id, f"{ch.name}: kredin bitti", "Otomatik kanalın durdu",
+                           f"<b>{escape(ch.name)}</b> kanalının {slot} videosu kredi yetersiz olduğu için üretilmedi. "
+                           "Kredi yüklediğinde kanal kaldığı yerden devam eder.", ("Kredi yükle", f"{_site()}/kredi"))
             except IntegrityError:
                 pass  # aynı saat için iş zaten oluşturulmuş
     return created

@@ -9,6 +9,7 @@
     {% for href, ic, label in nav %}
       <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{{ icon(ic, 18) }} {{ label }}</a>
     {% endfor %}
+    <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{{ icon('user', 18) }} Hesabım</a>
     {% if user.is_admin %}<div class="side-label">Yönetim</div><a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{{ icon('shield', 18) }} Yönetim paneli</a>{% endif %}
     <div class="side-foot">
       <div class="wallet">
@@ -17,8 +18,8 @@
         <a class="btn btn-ghost btn-sm btn-block" href="/kredi">{{ icon('plus', 14) }} Kredi yükle</a>
       </div>
       <div class="me">
-        <div class="avatar">{{ (user.name or user.email)[:1]|upper }}</div>
-        <div class="who"><div>{{ user.name or 'Hesabım' }}</div><div class="tiny faint">{{ user.email }}</div></div>
+        <a class="avatar" href="/hesap" aria-label="Hesabım">{{ (user.name or user.email)[:1]|upper }}</a>
+        <a class="who" href="/hesap" title="Hesabım"><div>{{ user.name or 'Hesabım' }}</div><div class="tiny faint">{{ user.email }}</div></a>
         <form method="post" action="/cikis"><input type="hidden" name="csrf" value="{{ csrf }}"><button title="Çıkış yap" aria-label="Çıkış yap">{{ icon('logout', 17) }}</button></form>
       </div>
     </div>
@@ -29,11 +30,19 @@
       <div class="row">
         <a class="pill" href="/kredi">{{ icon('gem', 14) }} {{ user.credits }}</a>
         {% if user.is_admin %}<a class="icon-btn" href="/admin" aria-label="Yönetim">{{ icon('shield', 16) }}</a>{% endif %}
+        <a class="icon-btn {{ 'done' if active == '/hesap' }}" href="/hesap" aria-label="Hesabım">{{ icon('user', 16) }}</a>
         <form method="post" action="/cikis"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="icon-btn" aria-label="Çıkış yap">{{ icon('logout', 16) }}</button></form>
       </div>
     </div>
     <main class="main"><div class="page">
       {% include '_flashes.html' %}
+      {% if not user.email_verified %}
+      <div class="verify-bar reveal">
+        <span class="icon-box accent">{{ icon('mail', 17) }}</span>
+        <div style="flex:1;min-width:200px"><b>E-postanı doğrula</b><div class="small muted"><b>{{ user.email }}</b> adresine bir bağlantı gönderdik.{% if signup_bonus %} Doğrulayınca <b class="hl">{{ signup_bonus }} hediye kredi</b> hesabına yüklenecek.{% endif %}</div></div>
+        <form method="post" action="/dogrula/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('refund', 14) }} Tekrar gönder</button></form>
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </div></main>
   </div>

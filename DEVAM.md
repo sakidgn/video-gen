@@ -64,4 +64,6 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.
 - Site klasöründe: `Siteyi_Ac.bat` (kendi .venv'ini kurar; SAHTE_AI=1, admin@deneme.com, 1000 deneme kredisi),
   `Guncelle.bat` (`python -m saas.guncelle`, .env ve saas_veri* korunur).
+- Hesap: e-posta doğrulama (hediye kredi doğrulamada), şifremi unuttum, Google ile giriş, /hesap (ad, şifre, bildirim, hesabı sil),
+  bildirim e-postaları (`saas/mailer.py`; SMTP yoksa saas_veri/epostalar'a kaydeder, demo modda "E-postayı aç" bağlantısı).
 - Testler: `otoshort_site/tests/test_saas.py` (kökten `python -m pytest` hepsini çalıştırır). Ekran görüntüsü için Playwright + swiftshader (scratchpad betikleri).

@@ -18,6 +18,11 @@ IBAN_NAME = _env("IBAN_ALICI", "Ad Soyad")
 GOOGLE_CLIENT_ID = _env("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = _env("GOOGLE_CLIENT_SECRET")
 SITE_URL = _env("SITE_ADRESI").rstrip("/")  # ör. https://otoshort.com (boşsa istekten bulunur)
+SMTP_HOST = _env("SMTP_SUNUCU")
+SMTP_PORT = int(_env("SMTP_PORT", "587") or 587)
+SMTP_USER = _env("SMTP_KULLANICI")
+SMTP_PASSWORD = _env("SMTP_SIFRE")
+SMTP_FROM = _env("SMTP_GONDEREN")  # ör. bildirim@otoshort.com
 SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
 FAKE_AI = _env("SAHTE_AI") == "1"  # geliştirme/test: API'ye gitmeden sahte video üretir
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")

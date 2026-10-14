@@ -1,0 +1,40 @@
+{% extends "app_base.html" %}
+{% block title %}Hesabım · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="t"><span class="eyebrow">Hesap</span><h1>Hesabım</h1></div></div>
+<div class="stack" style="gap:18px;max-width:760px">
+  <form class="card card-lg reveal" method="post" action="/hesap/profil">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="card-head"><h3>{{ icon('user', 18) }} Profil</h3>{% if user.google_sub %}<span class="badge b-off">Google ile bağlı</span>{% endif %}</div>
+    <div class="grid g2">
+      <div class="field"><label class="label" for="nm">Adın</label><input class="input" id="nm" name="name" maxlength="100" value="{{ user.name }}"></div>
+      <div class="field"><label class="label">E-posta</label><input class="input" value="{{ user.email }}" disabled>
+        <span class="hint">{% if user.email_verified %}{{ icon('check', 13) }} Doğrulandı{% else %}Doğrulanmadı{% endif %}</span></div>
+    </div>
+    <label class="check" style="margin:20px 0 4px"><input type="checkbox" name="notify" value="1" {% if user.notify %}checked{% endif %}>
+      <span><b style="color:var(--text)">E-posta bildirimleri</b> — otomatik kanal videon hazır olunca, kredin yüklenince ya da bitince haber ver.</span></label>
+    <div class="row" style="margin-top:20px"><button class="btn btn-primary" type="submit">{{ icon('check', 16) }} Kaydet</button></div>
+  </form>
+
+  <form class="card card-lg reveal" data-delay="1" method="post" action="/hesap/sifre">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="card-head"><h3>{{ icon('lock', 18) }} {{ 'Şifreyi değiştir' if user.pw_hash else 'Şifre belirle' }}</h3></div>
+    {% if not user.pw_hash %}<p class="muted small" style="margin-bottom:14px">Hesabını Google ile açtın. İstersen e-posta ile de giriş yapabilmek için bir şifre belirle.</p>{% endif %}
+    <div class="grid g2">
+      {% if user.pw_hash %}<div class="field" style="grid-column:1/-1"><label class="label" for="cur">Mevcut şifre</label><input class="input" id="cur" name="current" type="password" required autocomplete="current-password"></div>{% endif %}
+      <div class="field" style="margin:0"><label class="label" for="np">Yeni şifre</label><input class="input" id="np" name="password" type="password" minlength="8" required autocomplete="new-password"></div>
+      <div class="field" style="margin:0"><label class="label" for="np2">Yeni şifre (tekrar)</label><input class="input" id="np2" name="password2" type="password" minlength="8" required autocomplete="new-password"></div>
+    </div>
+    <div class="row" style="margin-top:20px"><button class="btn btn-ghost" type="submit">{{ icon('lock', 16) }} Şifreyi kaydet</button></div>
+  </form>
+
+  <form class="card card-lg reveal" data-delay="2" method="post" action="/hesap/sil" style="border-color:rgba(255,92,122,.3)"
+        onsubmit="return confirm('Hesabın ve tüm videoların kalıcı olarak silinecek. Emin misin?')">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="card-head"><h3>{{ icon('trash', 18) }} Hesabı sil</h3></div>
+    <p class="muted small">Hesabın, videoların ve kanalların kalıcı olarak silinir; kalan kredilerin de silinir. Ödeme kayıtları yasal zorunluluk nedeniyle kişisel bilgilerinden ayrılarak saklanır.</p>
+    <div class="field" style="margin-top:16px"><label class="label" for="cf">Onaylamak için e-postanı yaz</label><input class="input" id="cf" name="confirm" placeholder="{{ user.email }}" autocomplete="off"></div>
+    <div class="row" style="margin-top:18px"><button class="btn btn-danger" type="submit">{{ icon('trash', 16) }} Hesabımı kalıcı olarak sil</button></div>
+  </form>
+</div>
+{% endblock %}

@@ -26,10 +26,22 @@ def csrf(c, url="/"):
     return re.search(r'name="csrf" value="([^"]+)"', c.get(url).text).group(1)
 
 
-def signup(c, email, pw="sifre1234"):
+def signup(c, email, pw="sifre1234", verify=True):
     r = c.post("/kayit", data={"email": email, "password": pw, "name": "Ali", "accept": "1", "consent": "1",
                                "csrf": csrf(c, "/kayit")}, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/panel"
+    if verify:
+        with db.session() as s:
+            s.scalar(select(User).where(User.email == email)).email_verified = True
+
+
+def last_mail(tmp_path):
+    files = sorted((tmp_path / "epostalar").glob("*.html"))
+    return files[-1].read_text(encoding="utf-8") if files else ""
+
+
+def mail_link(tmp_path, path):
+    return re.search(rf'href="http://testserver({path}/[^"]+)"', last_mail(tmp_path)).group(1)
 
 
 def give(email, amount):
@@ -267,3 +279,91 @@ def test_migration_adds_google_column_to_old_db(tmp_path, monkeypatch):
     with db.session() as s:
         u = s.scalar(select(User))
         assert u.credits == 5 and u.google_sub is None
+
+
+def test_signup_requires_email_verification_and_gives_bonus_once(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "SIGNUP_BONUS", 100)
+    signup(client, "a@b.com", verify=False)
+    assert "verify-bar" in client.get("/panel").text
+    assert balance("a@b.com") == 0
+    r = client.post("/video/yeni", data={"quality": "lite", "csrf": csrf(client, "/video/yeni")}, follow_redirects=False)
+    assert r.headers["location"] == "/panel"  # doğrulanmadan video yok
+    link = mail_link(tmp_path, "/dogrula")
+    client.get(link)
+    assert balance("a@b.com") == 100
+    client.get(link)  # ikinci tıklama hediye vermez
+    assert balance("a@b.com") == 100
+    assert "verify-bar" not in client.get("/panel").text
+    assert client.get("/dogrula/bozuk-jeton", follow_redirects=False).status_code == 303
+
+
+def test_password_reset_flow(client, tmp_path):
+    signup(client, "a@b.com")
+    client.post("/cikis", data={"csrf": csrf(client, "/panel")})
+    r = client.post("/sifremi-unuttum", data={"email": "a@b.com", "csrf": csrf(client, "/sifremi-unuttum")})
+    assert "sıfırlama bağlantısı" in r.text
+    link = mail_link(tmp_path, "/sifre-yenile")
+    page = client.get(link)
+    assert "Yeni şifreni belirle" in page.text
+    t = re.search(r'name="csrf" value="([^"]+)"', page.text).group(1)
+    r = client.post(link, data={"csrf": t, "password": "yeniSifre99", "password2": "yeniSifre99"}, follow_redirects=False)
+    assert r.headers["location"] == "/panel"
+    # aynı bağlantı ikinci kez çalışmaz
+    assert client.get(link, follow_redirects=False).headers["location"] == "/sifremi-unuttum"
+    client.post("/cikis", data={"csrf": csrf(client, "/panel")})
+    r = client.post("/giris", data={"email": "a@b.com", "password": "yeniSifre99", "csrf": csrf(client, "/giris")},
+                    follow_redirects=False)
+    assert r.headers["location"] == "/panel"
+
+
+def test_forgot_password_does_not_reveal_accounts(client, tmp_path):
+    r = client.post("/sifremi-unuttum", data={"email": "yok@b.com", "csrf": csrf(client, "/sifremi-unuttum")})
+    assert "sıfırlama bağlantısı" in r.text and last_mail(tmp_path) == ""
+
+
+def test_dev_email_viewer_only_in_demo(client, tmp_path, monkeypatch):
+    signup(client, "a@b.com", verify=False)
+    name = sorted((tmp_path / "epostalar").glob("*.html"))[-1].name
+    assert client.get(f"/dev/eposta/{name}").status_code == 404
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    assert "E-postanı doğrula" in client.get(f"/dev/eposta/{name}").text
+    assert client.get("/dev/eposta/..%2Fsite.db").status_code == 404
+
+
+def test_account_profile_password_and_delete(client, tmp_path):
+    signup(client, "a@b.com")
+    t = csrf(client, "/hesap")
+    client.post("/hesap/profil", data={"csrf": t, "name": "Saki", "notify": ""})
+    with db.session() as s:
+        u = s.scalar(select(User).where(User.email == "a@b.com"))
+        assert u.name == "Saki" and u.notify is False
+    r = client.post("/hesap/sifre", data={"csrf": t, "current": "yanlis", "password": "yeni12345", "password2": "yeni12345"})
+    assert "Mevcut şifren yanlış" in r.text
+    client.post("/hesap/sifre", data={"csrf": t, "current": "sifre1234", "password": "yeni12345", "password2": "yeni12345"})
+    give("a@b.com", 100)
+    client.post("/video/yeni", data={"quality": "lite", "csrf": csrf(client, "/video/yeni")})
+    run_queue(ai.FakeAI())
+    assert list((tmp_path / "videolar").glob("*.mp4"))
+    client.post("/hesap/sil", data={"csrf": csrf(client, "/hesap"), "confirm": "a@b.com"})
+    with db.session() as s:
+        assert s.scalar(select(User).where(User.email == "a@b.com")) is None
+        assert s.scalar(select(Job)).title == ""
+    assert not list((tmp_path / "videolar").glob("*.mp4"))
+    assert client.get("/panel", follow_redirects=False).status_code == 303
+    signup(client, "a@b.com")  # aynı e-postayla yeniden kayıt olunabilir
+
+
+def test_channel_video_and_credit_notifications(client, tmp_path):
+    signup(client, "a@b.com")
+    client.post("/kanallar/yeni", data={"name": "Meyveler", "quality": "lite", "times": "09:45",
+                                        "csrf": csrf(client, "/kanallar/yeni")})
+    tz = ZoneInfo(config.TIMEZONE)
+    at = datetime(2026, 10, 13, 9, 50, tzinfo=tz)
+    worker.schedule_channels(at)
+    worker.schedule_channels(datetime(2026, 10, 13, 9, 55, tzinfo=tz))  # ikinci kez uyarı e-postası yok
+    mails = sorted((tmp_path / "epostalar").glob("*.html"))
+    assert sum("kredin bitti" in m.read_text() for m in mails) == 1
+    give("a@b.com", 100)
+    worker.schedule_channels(datetime(2026, 10, 13, 10, 0, tzinfo=tz))
+    run_queue(ai.FakeAI())
+    assert "yeni videon hazır" in last_mail(tmp_path)
