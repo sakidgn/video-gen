@@ -56,7 +56,8 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
 
 ## SaaS sitesi (`otoshort_site/` — shitpost'tan tamamen ayrı proje)
 - FastAPI + SQLite + Jinja; kredili video üretimi (Veo API), otomatik kanallar, havale ile kredi, yönetim paneli.
-- Tasarım: gömülü fontlar (Geist + Instrument Serif italik vurgu + Geist Mono, `saas/static/fonts`), SVG ikonlar
+- Tasarım: kullanıcı 4 maket arasından **A · Neon** tarzını seçti (koyu mor-siyah zemin, pembe/turuncu/camgöbeği/limon neon,
+  parlayan hap butonlar). Gömülü fontlar: başlık **Unbounded**, metin **Plus Jakarta Sans** (`saas/static/fonts`). SVG ikonlar
   (`saas/icons.py`), Three.js (gömülü, `static/vendor`) ile ana sayfada canlı çizimli 3D telefonlar (`static/hero3d.js`).
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`

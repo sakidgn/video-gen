@@ -28,8 +28,8 @@
       m.position.set(x, y, z); m.lookAt(0, 0, 0); if (ry) m.rotation.z = ry; env.add(m);
     };
     panel(0xffffff, 10, 3, 0, 9, 6);
-    panel(0xff6a86, 6, 8, -10, 2, 4);
-    panel(0xffb35c, 6, 8, 10, -1, 4);
+    panel(0xff2bd6, 6, 8, -10, 2, 4);
+    panel(0x00e5ff, 6, 8, 10, -1, 4);
     panel(0x8a7dff, 8, 4, 0, -8, -6);
     const pm = new THREE.PMREMGenerator(renderer);
     scene.environment = pm.fromScene(env, 0.035).texture;
@@ -54,11 +54,11 @@
   const scrGeo = new THREE.ShapeGeometry(rr(W - 0.16, H - 0.16, 0.36), 24);
   { const p = scrGeo.attributes.position, uv = scrGeo.attributes.uv;
     for (let i = 0; i < p.count; i++) uv.setXY(i, (p.getX(i) + (W - 0.16) / 2) / (W - 0.16), (p.getY(i) + (H - 0.16) / 2) / (H - 0.16)); }
-  const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0x1a1a22, metalness: 0.85, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 1.4 });
+  const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0x170d26, metalness: 0.85, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 1.4 });
 
   // --- Ekran içerikleri (canvas ile çizilen sahneler) ---
   const CW = 360, CH = 756;
-  const FONT = 'Geist, system-ui, sans-serif';
+  const FONT = '"Plus Jakarta Sans", system-ui, sans-serif';
   function heart(g, x, y, s) {
     g.beginPath(); g.moveTo(x, y + s * .3);
     g.bezierCurveTo(x, y, x - s * .5, y, x - s * .5, y + s * .3); g.bezierCurveTo(x - s * .5, y + s * .6, x, y + s * .8, x, y + s);
@@ -164,6 +164,16 @@
       } },
   ];
 
+  // Telefonların arkasındaki neon parıltı
+  function glowTexture(color) {
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 1024;
+    const g = cv.getContext('2d'); g.strokeStyle = color; g.shadowColor = color; g.lineWidth = 14;
+    for (const blur of [80, 40, 16]) { g.shadowBlur = blur; g.beginPath(); g.roundRect(70, 70, 372, 884, 64); g.stroke(); }
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }
+  const glowGeo = new THREE.PlaneGeometry(W * 1.38, H * 1.16);
+  const GLOWS = ['#ff2bd6', '#00e5ff', '#b6ff3b'];
+
   const phones = scenes.map((sc, i) => {
     const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
     const g = cv.getContext('2d');
@@ -174,6 +184,9 @@
     scr.position.z = 0.172; grp.add(scr);
     const gloss = new THREE.Mesh(scrGeo, new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.06, roughness: 0.05, metalness: 0, envMapIntensity: 2 }));
     gloss.position.z = 0.176; grp.add(gloss);
+    const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({ map: glowTexture(GLOWS[i]), transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, opacity: 0.95 }));
+    glow.position.z = -0.05; grp.add(glow);
     const lay = [[-2.75, -0.15, -0.9, 0.42, 0.92], [0, 0.15, 0.3, 0, 1.06], [2.75, -0.25, -0.9, -0.42, 0.92]][i];
     grp.position.set(lay[0], lay[1], lay[2]); grp.rotation.y = lay[3]; grp.scale.setScalar(lay[4]);
     grp.userData = { base: lay, phase: i * 1.9 };
@@ -183,11 +196,11 @@
 
   // --- Süs şekilleri ---
   const shapes = [];
-  const glossy = (c) => new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.15, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2 });
-  [[new THREE.TorusGeometry(0.42, 0.16, 32, 64), 0xff6a86, -3.9, 2.0, -1.2],
-   [new THREE.SphereGeometry(0.3, 48, 24), 0xffb35c, 4.3, 2.4, -1.4],
-   [new THREE.IcosahedronGeometry(0.36, 0), 0x8a7dff, 4.1, -2.4, -0.6],
-   [new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.16, 0.42, 8, 24) : new THREE.CylinderGeometry(.16, .16, .7, 24), 0xf4f4f6, -4.0, -2.3, -0.4]]
+  const glossy = (c) => new THREE.MeshPhysicalMaterial({ color: c, metalness: 0.15, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.2, emissive: c, emissiveIntensity: 0.35 });
+  [[new THREE.TorusGeometry(0.42, 0.16, 32, 64), 0xff2bd6, -3.9, 2.0, -1.2],
+   [new THREE.SphereGeometry(0.3, 48, 24), 0xffb800, 4.3, 2.4, -1.4],
+   [new THREE.IcosahedronGeometry(0.36, 0), 0x00e5ff, 4.1, -2.4, -0.6],
+   [new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.16, 0.42, 8, 24) : new THREE.CylinderGeometry(.16, .16, .7, 24), 0xb6ff3b, -4.0, -2.3, -0.4]]
     .forEach(([geo, c, x, y, z], i) => { const m = new THREE.Mesh(geo, glossy(c)); m.position.set(x, y, z);
       m.userData = { y, phase: i * 1.3 }; scene.add(m); shapes.push(m); });
 
@@ -231,5 +244,5 @@
     camera.position.x = mx * .5; camera.lookAt(0, -0.1, 0);
     renderer.render(scene, camera);
   })(0);
-  (document.fonts && document.fonts.load ? Promise.all([document.fonts.load(`600 19px Geist`), document.fonts.load(`400 16px Geist`)]).catch(() => {}) : Promise.resolve()).then(start);
+  (document.fonts && document.fonts.load ? Promise.all([document.fonts.load(`700 19px "Plus Jakarta Sans"`), document.fonts.load(`500 16px "Plus Jakarta Sans"`)]).catch(() => {}) : Promise.resolve()).then(start);
 })();

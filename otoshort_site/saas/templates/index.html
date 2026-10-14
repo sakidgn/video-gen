@@ -6,7 +6,7 @@
   <div class="hero-grid">
     <div class="hero-copy">
       <a class="chip reveal" href="#otomatik"><span class="new">YENİ</span> Otomatik kanallar yayında {{ icon('arrow-right', 14) }}</a>
-      <h1 class="reveal" data-delay="1">Kanalını bir kere kur. Videolar <span class="serif">kendiliğinden</span> gelsin.</h1>
+      <h1 class="reveal" data-delay="1">Kanalını bir kere kur. Videolar <span class="hl">kendiliğinden</span> gelsin.</h1>
       <p class="lead reveal" data-delay="2">Yapay zekâ fikri bulur, senaryoyu yazar ve sesli, dikey videoyu üretir. Başlık, açıklama ve hashtag'ler hazır gelir — sen sadece paylaşırsın.</p>
       <div class="row reveal" data-delay="3">
         <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz başla' }} {{ icon('arrow-right', 17) }}</a>
@@ -36,7 +36,7 @@
 <section id="nasil"><div class="wrap">
   <div class="sec-head reveal">
     <span class="eyebrow">Nasıl çalışır</span>
-    <h2>Üç adım. <span class="serif">Sıfır</span> montaj.</h2>
+    <h2>Üç adım. <span class="hl">Sıfır</span> montaj.</h2>
     <p class="lead">Kamera, mikrofon ya da kurgu programı yok. Fikrini yaz, gerisini yapay zekâ halletsin.</p>
   </div>
   <div class="how">
@@ -67,7 +67,7 @@
   <div class="auto">
     <div class="auto-copy reveal">
       <span class="eyebrow">Otomatik kanal</span>
-      <h2>Bir kere kur, <span class="serif">her gün</span> yeni video.</h2>
+      <h2>Bir kere kur, <span class="hl">her gün</span> yeni video.</h2>
       <p class="lead">Karakterlerini, tarzını ve konunu ayarla, saatleri seç. {{ site }} her gün o saatlerde yeni ve birbirini tekrar etmeyen videolar üretir.</p>
       <ul class="ticks">
         <li>{{ icon('check', 17) }} Günde istediğin kadar video, istediğin saatlerde</li>
@@ -93,7 +93,7 @@
 </div></section>
 
 <section style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">Özellikler</span><h2>Kanal büyütmek için <span class="serif">gereken</span> her şey.</h2></div>
+  <div class="sec-head reveal"><span class="eyebrow">Özellikler</span><h2>Kanal büyütmek için <span class="hl">gereken</span> her şey.</h2></div>
   <div class="features reveal">
     {% for ic, t, d in [
       ('mic','Sesli ve konuşmalı','Karakterler seçtiğin dilde konuşur; ses efektleri ve müzik dahil.'),
@@ -108,7 +108,7 @@
 </div></section>
 
 <section id="fiyat" style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">Fiyatlar</span><h2>Kullandığın <span class="serif">kadar</span> öde.</h2><p class="lead">Abonelik yok, gizli ücret yok. 1 kredi = 1 ₺. Video üretilemezse kredin iade.</p></div>
+  <div class="sec-head reveal"><span class="eyebrow">Fiyatlar</span><h2>Kullandığın <span class="hl">kadar</span> öde.</h2><p class="lead">Abonelik yok, gizli ücret yok. 1 kredi = 1 ₺. Video üretilemezse kredin iade.</p></div>
   <div class="plans">
     {% for key, q in qualities.items() %}
     <div class="card plan reveal {{ 'glow-border' if key == 'fast' }}" data-delay="{{ loop.index0 }}" data-tilt="4">
@@ -144,7 +144,7 @@
 <section style="padding-top:20px"><div class="wrap">
   <div class="cta reveal">
     <span class="eyebrow">Hemen başla</span>
-    <h2>İlk videon <span class="serif">3 dakika</span> uzağında.</h2>
+    <h2>İlk videon <span class="hl">3 dakika</span> uzağında.</h2>
     <p class="lead" style="max-width:480px">Kaydol, kredini yükle, fikrini yaz. Gerisi bizde.</p>
     <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz kayıt ol' }} {{ icon('arrow-right', 17) }}</a>
   </div>

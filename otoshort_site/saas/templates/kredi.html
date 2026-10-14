@@ -12,7 +12,7 @@
     <div class="opts opts-3">
     {% for tl, cr in packages %}
       <label class="opt"><input type="radio" name="package" value="{{ loop.index0 }}" {% if loop.index0 == 1 %}checked{% endif %}>
-        <span class="opt-body"><span class="opt-tick"></span><span style="font-size:26px;font-weight:600;letter-spacing:-.03em">{{ tl }} ₺</span>
+        <span class="opt-body"><span class="opt-tick"></span><span style="font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em">{{ tl }} ₺</span>
           <span class="opt-sub"><span class="mono">{{ cr }}</span> kredi</span>{% if cr > tl %}<span class="bonus" style="justify-self:start;align-self:flex-start;margin-top:4px">+{{ cr - tl }} hediye</span>{% endif %}</span></label>
     {% endfor %}
     </div>
