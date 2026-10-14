@@ -1,29 +1,42 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% block title %}Panel · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap page">
-  <div class="page-head">
-    <div><span class="eyebrow">Panel</span><h1>Merhaba{% if user.name %} {{ user.name }}{% endif %} 👋</h1></div>
-    <div class="row"><a class="btn ghost" href="/kanallar/yeni">+ Otomatik kanal</a><a class="btn" href="/video/yeni">+ Yeni video</a></div>
-  </div>
-  {% for ch in notices %}<div class="flash warn">⚠️ <b>{{ ch.name }}:</b> {{ ch.notice }} <a href="/kredi">Kredi yükle →</a></div>{% endfor %}
-  <div class="grid g3" style="margin-bottom:28px">
-    <div class="card reveal" data-tilt><div class="muted">Kredin</div><div class="stat">💎 <span data-count="{{ user.credits }}">{{ user.credits }}</span></div><a href="/kredi" class="muted">Kredi yükle →</a></div>
-    <div class="card reveal" data-delay="1" data-tilt><div class="muted">Aktif otomatik kanal</div><div class="stat">🔁 <span data-count="{{ n_channels }}">{{ n_channels }}</span></div><a href="/kanallar" class="muted">Kanalları yönet →</a></div>
-    <div class="card reveal" data-delay="2" data-tilt><div class="muted">Bir video</div><div class="stat">{{ qualities.lite.credits }}–{{ qualities.standard.credits }}</div><span class="muted">kredi, kaliteye göre</span></div>
-  </div>
-  <h2>Videoların</h2>
-  {% if jobs %}
-  <div class="vgrid">
-    {% for j in jobs %}
-    <a class="vcard reveal" href="/video/{{ j.id }}">
-      <div class="vthumb">{% if j.status == 'hazir' %}<video src="/video/{{ j.id }}/dosya#t=0.5" muted preload="metadata"></video>{% elif j.status == 'hata' %}⚠️ Üretilemedi{% else %}<div><div class="spinner"></div>Üretiliyor…</div>{% endif %}</div>
-      <div class="meta"><b>{{ j.title or j.idea or 'Yeni video' }}</b><span class="status st-{{ j.status }}">{{ status_labels[j.status] }}</span> <span class="muted">{{ j.created_at|tarih }}</span></div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="card empty reveal"><div class="e">🎬</div><h3>Henüz videon yok</h3><p>İlk videonu birkaç dakikada üret.</p><a class="btn" href="/video/yeni">Video üret</a></div>
-  {% endif %}
+<div class="page-head">
+  <div class="t"><span class="eyebrow">Panel</span><h1>Merhaba{% if user.name %}, {{ user.name }}{% endif %}</h1></div>
+  <div class="row"><a class="btn btn-ghost" href="/kanallar/yeni">{{ icon('repeat', 16) }} Otomatik kanal</a><a class="btn btn-accent" href="/video/yeni">{{ icon('plus', 16) }} Yeni video</a></div>
 </div>
+{% for ch in notices %}<div class="flash warn" style="margin-bottom:12px">{{ icon('alert', 16) }}<div><b>{{ ch.name }}:</b> {{ ch.notice }} <a href="/kredi">Kredi yükle</a></div></div>{% endfor %}
+
+<div class="stats">
+  <div class="card stat reveal" data-tilt="4"><div class="k"><span class="icon-box accent" style="width:30px;height:30px;border-radius:9px">{{ icon('gem', 15) }}</span>Bakiye</div>
+    <div class="v"><span data-count="{{ user.credits }}">{{ user.credits }}</span> <small>kredi</small></div><a class="more" href="/kredi">Kredi yükle {{ icon('arrow-right', 14) }}</a></div>
+  <div class="card stat reveal" data-delay="1" data-tilt="4"><div class="k"><span class="icon-box" style="width:30px;height:30px;border-radius:9px">{{ icon('repeat', 15) }}</span>Aktif kanal</div>
+    <div class="v"><span data-count="{{ n_channels }}">{{ n_channels }}</span></div><a class="more" href="/kanallar">Kanalları yönet {{ icon('arrow-right', 14) }}</a></div>
+  <div class="card stat reveal" data-delay="2" data-tilt="4"><div class="k"><span class="icon-box" style="width:30px;height:30px;border-radius:9px">{{ icon('video', 15) }}</span>Üretilen video</div>
+    <div class="v"><span data-count="{{ n_videos }}">{{ n_videos }}</span></div><span class="more faint">{{ qualities.lite.credits }}–{{ qualities.standard.credits }} kredi / video</span></div>
+</div>
+
+<form class="card quick reveal" method="get" action="/video/yeni" style="margin-bottom:36px">
+  <span class="icon-box accent">{{ icon('sparkles', 17) }}</span>
+  <input class="input" name="idea" maxlength="600" placeholder="Bugün ne üretelim? Örn: Kedi, sahibinin toplantısına gizlice katılıyor…" aria-label="Video fikri">
+  <button class="btn btn-primary" type="submit">Devam {{ icon('arrow-right', 16) }}</button>
+</form>
+
+<div class="row between" style="margin-bottom:16px"><h2 style="font-size:22px;letter-spacing:-.025em">Son videolar</h2>{% if jobs %}<span class="faint small mono">{{ jobs|length }} video</span>{% endif %}</div>
+{% if jobs %}
+<div class="vgrid">
+  {% for j in jobs %}
+  <a class="vcard reveal" href="/video/{{ j.id }}">
+    <div class="thumb">
+      {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" onerror="this.remove()"><span class="play">{{ icon('play', 18) }}</span>
+      {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}Üretilemedi</div>
+      {% else %}<div class="state"><span class="ring"></span>Üretiliyor…</div>{% endif %}
+    </div>
+    <div class="vmeta"><b>{{ j.title or j.idea or 'Yeni video' }}</b><div class="row"><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span><span class="tiny faint mono">{{ j.created_at|tarih }}</span></div></div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty"><span class="icon-box accent">{{ icon('video', 24) }}</span><h3 style="font-size:20px">Henüz videon yok</h3><p>İlk videonu birkaç dakikada üret. Fikrin yoksa yapay zekâ senin için bulur.</p><a class="btn btn-accent" href="/video/yeni">{{ icon('sparkles', 16) }} İlk videonu üret</a></div>
+{% endif %}
 {% endblock %}

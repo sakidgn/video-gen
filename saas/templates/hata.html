@@ -1,4 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="wrap page"><div class="empty"><div class="e">🫠</div><h2>{{ title }}</h2><p>{{ message }}</p><a class="btn" href="/">Ana sayfa</a></div></div>
+<div class="auth"><div class="empty">
+  <span class="icon-box">{{ icon('alert', 24) }}</span>
+  <h2 style="font-size:32px">{{ title }}</h2>
+  <p>{{ message }}</p>
+  <a class="btn btn-primary" href="{{ '/panel' if user else '/' }}">{{ icon('arrow-left', 16) }} {{ 'Panele dön' if user else 'Ana sayfa' }}</a>
+</div></div>
 {% endblock %}

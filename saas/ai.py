@@ -120,8 +120,9 @@ class RealAI:
 class FakeAI:
     """API'ye gitmeden çalışan sahte üretici (geliştirme ve testler için)."""
 
-    def __init__(self, fail_with: Exception | None = None):
+    def __init__(self, fail_with: Exception | None = None, pretty: bool = False):
         self.fail_with = fail_with
+        self.pretty = pretty  # True: karakterli demo klip (~10 sn sürer); False: hızlı test görüntüsü
         self.calls = 0
 
     def write_script(self, *, idea, characters, style, language, past) -> Script:
@@ -137,15 +138,47 @@ class FakeAI:
         try:
             import imageio_ffmpeg
 
-            subprocess.run(
-                [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi",
-                 "-i", "testsrc=size=360x640:rate=10:duration=2", "-pix_fmt", "yuv420p", str(out)],
-                check=True, timeout=60,
-            )
+            src = _demo_clip_args(prompt) if self.pretty else ["-f", "lavfi", "-i", "testsrc=size=360x640:rate=10:duration=2"]
+            subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", *src,
+                            "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "veryfast", str(out)],
+                           check=True, timeout=120)
         except Exception:
             out.write_bytes(b"\x00" * 1024)
         return out
 
 
+DEMO_PALETTES = [  # (arka plan üst, alt, karakter rengi)
+    ("0xff9a6b", "0x7a2b5c", (255, 150, 40)), ("0x7c6cff", "0x241a5e", (90, 220, 140)),
+    ("0x5ad1b8", "0x1d4b68", (255, 120, 150)), ("0xffd166", "0xd9573f", (120, 170, 255)),
+]
+
+
+def _demo_clip_args(seed: str) -> list[str]:
+    """Sahte mod için 8 sn'lik demo klip: degrade arka plan, zıplayan gözlü bir karakter.
+    Hız için 270x480 / 15 fps çizilip 360x640'a büyütülür."""
+    top, bottom, (cr, cg, cb) = DEMO_PALETTES[sum(map(ord, seed)) % len(DEMO_PALETTES)]
+    k = 0.75
+    n = lambda v: f"{v * k:g}"  # noqa: E731
+    cy = f"({n(372)}-{n(70)}*abs(sin(T*2.6)))"
+    shapes = [  # arkadan öne: (x, y, yarıçap_x, yarıçap_y, (r, g, b)); (0,0,0) = gölge
+        (n(180), n(548), n(70), n(12), (0, 0, 0)),
+        (n(180), cy, n(86), n(86), (cr, cg, cb)),
+        (n(150), f"({cy}-{n(16)})", n(19), n(21), (255, 255, 255)),
+        (n(210), f"({cy}-{n(16)})", n(19), n(21), (255, 255, 255)),
+        (f"({n(153)}+{n(7)}*sin(T*1.3))", f"({cy}-{n(12)})", n(9), n(10), (25, 25, 35)),
+        (f"({n(213)}+{n(7)}*sin(T*1.3))", f"({cy}-{n(12)})", n(9), n(10), (25, 25, 35)),
+        (n(180), f"({cy}+{n(30)})", n(22), f"({n(4)}+{n(11)}*abs(sin(T*8)))", (80, 20, 35)),
+    ]
+    exprs = []
+    for ch, base in ((0, "r(X,Y)"), (1, "g(X,Y)"), (2, "b(X,Y)")):
+        e = base
+        for x, y, rx, ry, col in shapes:
+            val = f"{base}*0.7" if col == (0, 0, 0) else str(col[ch])
+            e = f"if(lt(hypot((X-{x})/{rx},(Y-{y})/{ry}),1),{val},{e})"
+        exprs.append(e)
+    return ["-f", "lavfi", "-i", f"gradients=s=270x480:c0={top}:c1={bottom}:x0=0:y0=0:x1=270:y1=480:speed=0.015:"
+            "duration=8:rate=15", "-vf", f"geq=r='{exprs[0]}':g='{exprs[1]}':b='{exprs[2]}',scale=360:640:flags=bicubic"]
+
+
 def default_ai():
-    return FakeAI() if config.FAKE_AI else RealAI()
+    return FakeAI(pretty=True) if config.FAKE_AI else RealAI()

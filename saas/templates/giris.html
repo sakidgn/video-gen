@@ -1,14 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Giriş · {{ site }}{% endblock %}
+{% block title %}Giriş yap · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap"><div class="card auth glow reveal">
-  <h2>Tekrar hoş geldin 👋</h2>
-  <form method="post" action="/giris">
+<div class="auth"><div class="auth-card reveal">
+  <h1>Tekrar hoş geldin</h1>
+  <p class="sub">Hesabına giriş yap ve üretmeye devam et.</p>
+  <form class="card card-lg stack" method="post" action="/giris" style="gap:0">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <label>E-posta</label><input name="email" type="email" required autocomplete="email">
-    <label>Şifre</label><input name="password" type="password" required autocomplete="current-password">
-    <button class="btn" style="width:100%;margin-top:18px">Giriş yap</button>
+    <div class="field"><label class="label" for="email">E-posta</label><input class="input" id="email" name="email" type="email" required autocomplete="email" placeholder="sen@ornek.com"></div>
+    <div class="field"><label class="label" for="pw">Şifre</label><input class="input" id="pw" name="password" type="password" required autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn btn-primary btn-lg btn-block" type="submit" style="margin-top:26px">Giriş yap {{ icon('arrow-right', 17) }}</button>
   </form>
-  <p class="muted" style="margin-top:16px">Hesabın yok mu? <a href="/kayit">Kayıt ol</a></p>
+  <p class="center muted small">Hesabın yok mu? <a href="/kayit" style="color:var(--text)">Ücretsiz kayıt ol</a></p>
 </div></div>
 {% endblock %}

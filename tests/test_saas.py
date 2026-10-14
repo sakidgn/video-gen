@@ -78,7 +78,7 @@ def test_video_flow_charges_and_delivers(client, tmp_path):
 
     run_queue(ai.FakeAI())
     page = client.get(job_url).text
-    assert "Deneme videosu" in page and "İndir" in page
+    assert "Deneme videosu" in page and "indir=1" in page
     assert client.get(job_url + "/dosya").status_code == 200
     assert client.get(job_url + "/durum").json()["status"] == "hazir"
 

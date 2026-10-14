@@ -1,9 +1,11 @@
 """Arka plan işçisi: sıradaki videoları üretir, otomatik kanalların saatlerinde iş oluşturur."""
 import logging
+import subprocess
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, update
@@ -20,6 +22,20 @@ MAX_PARALLEL = 3
 
 def video_dir():
     return config.DATA_DIR / "videolar"
+
+
+def make_poster(video: Path) -> Path | None:
+    """Videonun 1. saniyesinden kapak resmi (jpg) çıkarır; panelde küçük resim olarak kullanılır."""
+    out = video.with_suffix(".jpg")
+    try:
+        import imageio_ffmpeg
+
+        subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-ss", "1", "-i", str(video),
+                        "-frames:v", "1", "-vf", "scale=360:-2", "-q:v", "4", str(out)], check=True, timeout=60)
+        return out if out.exists() else None
+    except Exception:
+        log.warning("Kapak resmi çıkarılamadı: %s", video.name)
+        return None
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
@@ -54,6 +70,7 @@ def run_job(job_id: int, generator) -> None:
                 hashtags=" ".join(script.hashtags), summary=script.summary))
         rel = f"{job_id}.mp4"
         generator.make_video(prompt=script.video_prompt, quality=quality, out=video_dir() / rel)
+        make_poster(video_dir() / rel)
         with db.session() as s:
             s.execute(update(Job).where(Job.id == job_id).values(status="hazir", video_file=rel, finished_at=now()))
         log.info("İş %s hazır", job_id)

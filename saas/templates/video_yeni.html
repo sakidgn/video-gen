@@ -1,20 +1,32 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% block title %}Video üret · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap page" style="max-width:900px">
-  <div class="page-head"><div><span class="eyebrow">Stüdyo</span><h1>Yeni video 🎬</h1></div><a class="pill" href="/kredi">💎 {{ user.credits }} kredi</a></div>
-  <form class="card reveal" method="post" action="/video/yeni" data-loading="Gönderiliyor…">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    {% set ch = None %}{% set n0 = 1 %}
-    <div class="section-title" style="margin-top:0"><span class="n">1</span>Fikir</div>
-    <textarea name="idea" maxlength="600" placeholder="Örn: Portakal ve muz markette son indirimli ürün için kavga ediyor, kasiyer de aslında bir karpuz."></textarea>
-    <div class="hint">Boş bırakırsan yapay zekâ komik ve özgün bir fikir bulur.</div>
-    {% include "_video_fields.html" %}
-    <div class="summary-bar">
-      <div><div class="muted" style="font-size:13px">Bu video</div><div class="cost" id="cost-summary">–</div></div>
-      <button class="btn big" type="submit">Videoyu üret ✨</button>
+<div class="page-head"><div class="t"><span class="eyebrow">Stüdyo</span><h1>Yeni video</h1></div></div>
+<form method="post" action="/video/yeni" data-studio data-balance="{{ user.credits }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="studio">
+    <div class="card card-lg reveal">
+      {% set ch = None %}{% set n0 = 1 %}
+      <div class="step-title"><span class="n">1</span><h3>Fikir</h3><span class="faint">Boş bırakabilirsin</span></div>
+      <textarea class="textarea" name="idea" maxlength="600" placeholder="Örn: Portakal ve muz markette son indirimli ürün için kavga ediyor, kasiyer de aslında bir karpuz.">{{ idea }}</textarea>
+      <div class="ideas">
+        {% for i in ['Dinozor ilk kez metrobüse biniyor','Kedi, sahibinin toplantısına gizlice katılıyor','Robot, Türk düğününde halaya kalkıyor','Penguen, plajda güneş kremi satmaya çalışıyor'] %}
+        <button type="button" data-idea="{{ i }}">{{ icon('sparkles', 13) }} {{ i }}</button>{% endfor %}
+      </div>
+      {% include "_video_fields.html" %}
     </div>
-    <p class="hint center">Üretim genelde 2–5 dakika sürer. Video üretilemezse kredin iade edilir.</p>
-  </form>
-</div>
+    <aside class="aside reveal" data-delay="1">
+      {% include "_preview.html" %}
+      <div class="card summary">
+        <div class="line"><span>Tarz</span><b id="pv-style">–</b></div>
+        <div class="line"><span>Dil</span><b id="pv-lang">–</b></div>
+        <div class="line"><span>Kalite</span><b id="pv-quality">–</b></div>
+        <div class="line"><span>Bakiyen sonra</span><b><span id="pv-left" class="mono">–</span> kredi</b></div>
+        <div class="total"><span class="muted">Toplam</span><b><span id="pv-cost">–</span> <span class="small faint" style="font-weight:400">kredi</span></b></div>
+        <button class="btn btn-accent btn-lg btn-block" type="submit" id="pv-go">{{ icon('sparkles', 17) }} Videoyu üret</button>
+        <p class="hint center">Genelde 2–5 dakika sürer. Üretilemezse kredin iade edilir.</p>
+      </div>
+    </aside>
+  </div>
+</form>
 {% endblock %}

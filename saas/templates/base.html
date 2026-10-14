@@ -2,42 +2,43 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}{{ site }} · Yapay zekâ ile otomatik kısa video{% endblock %}</title>
-<meta name="description" content="Yapay zekâ ile TikTok, Reels ve Shorts videoları üret. Bir kere kanalını kur, videolar her gün kendiliğinden gelsin.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}{{ site }} — Yapay zekâ ile otomatik kısa video{% endblock %}</title>
+<meta name="description" content="Yapay zekâ ile TikTok, Reels ve Shorts videoları üret. Kanalını bir kere kur, videolar her gün kendiliğinden gelsin.">
+<meta name="theme-color" content="#08080b">
+<link rel="preload" href="/static/fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/geist-latin-ext-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/site.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 </head>
 <body>
-<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
-<nav class="nav"><div class="wrap">
-  <a class="logo" href="/"><span class="mark">🎬</span>{{ site }}</a>
-  <div class="links">
+<div class="bg-fx" aria-hidden="true"></div><div class="noise" aria-hidden="true"></div>
+{% block body %}
+<header class="nav" id="nav"><div class="wrap">
+  <a class="brand" href="/">{{ LOGO }}{{ site }}</a>
+  <nav class="nav-links">
+    <a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a>
+  </nav>
+  <div class="nav-right">
   {% if user %}
-    <a href="/panel">Panel</a>
-    <a href="/video/yeni">Video üret</a>
-    <a href="/kanallar">Otomatik kanallar</a>
-    {% if user.is_admin %}<a href="/admin">Yönetim</a>{% endif %}
-    <a class="pill" href="/kredi" title="Kredi yükle">💎 {{ user.credits }} kredi</a>
-    <form method="post" action="/cikis" style="display:inline"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Çıkış</button></form>
+    <a class="btn btn-primary btn-sm" href="/panel">Panele git {{ icon('arrow-right', 15) }}</a>
   {% else %}
-    <a href="/#nasil">Nasıl çalışır</a>
-    <a href="/#fiyat">Fiyatlar</a>
-    <a href="/giris">Giriş</a>
-    <a class="btn small" href="/kayit">Ücretsiz kayıt ol</a>
+    <a class="btn btn-text btn-sm" href="/giris">Giriş yap</a>
+    <a class="btn btn-primary btn-sm" href="/kayit">Ücretsiz başla</a>
   {% endif %}
   </div>
-</div></nav>
+</div></header>
 <main>
-  {% if flashes %}<div class="wrap" style="padding-top:20px">{% for kind, msg in flashes %}<div class="flash {{ kind }}">{{ msg }}</div>{% endfor %}</div>{% endif %}
+  {% if flashes %}<div class="wrap" style="padding-top:20px">{% include '_flashes.html' %}</div>{% endif %}
   {% block content %}{% endblock %}
 </main>
-<footer><div class="wrap">
-  <div>© {{ site }} · Yapay zekâ ile üretilen videolar platformlarda "AI" etiketiyle paylaşılmalıdır.</div>
-  <div><a href="/yasal/kullanim">Kullanım şartları</a><a href="/yasal/kvkk">KVKK</a><a href="/yasal/mesafeli">Mesafeli satış</a></div>
+<footer class="footer"><div class="wrap">
+  <div><a class="brand" href="/" style="margin-bottom:12px">{{ LOGO }}{{ site }}</a><p style="max-width:320px">Yapay zekâ ile kısa video üret, otomatik kanallarla her gün yeni içerik paylaş.</p></div>
+  <div><h4>Ürün</h4><a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a></div>
+  <div><h4>Yasal</h4><a href="/yasal/kullanim">Kullanım şartları</a><a href="/yasal/kvkk">KVKK aydınlatma</a><a href="/yasal/mesafeli">Mesafeli satış</a></div>
+  <div class="legal"><span>© {{ site }}</span><span>Yapay zekâ ile üretilen videolar platformlarda “AI” etiketiyle paylaşılmalıdır.</span></div>
 </div></footer>
+{% endblock %}
 <script src="/static/fx.js" defer></script>
 {% block scripts %}{% endblock %}
 </body>

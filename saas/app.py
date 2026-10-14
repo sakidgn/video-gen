@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import config, credits, db, worker
+from .icons import LOGO, icon
 from .models import Channel, CreditTx, Job, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
 
@@ -41,7 +42,15 @@ def flash(request: Request, msg: str, kind: str = "ok") -> None:
     request.session.setdefault("flash", []).append([kind, msg])
 
 
+def _active(path: str) -> str:
+    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin"):
+        if path.startswith(prefix):
+            return prefix
+    return "/panel"
+
+
 def render(request: Request, name: str, user: User | None = None, status_code: int = 200, **ctx):
+    ctx.setdefault("active", _active(request.url.path))
     ctx.update(
         request=request, user=user, site=config.SITE_NAME, csrf=csrf_token(request.session),
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
@@ -99,6 +108,10 @@ def local_time(dt: datetime | None) -> str:
 templates.env.filters["tarih"] = local_time
 STATUS_LABELS = {"sirada": "Sırada", "uretiliyor": "Üretiliyor", "hazir": "Hazır", "hata": "Hata"}
 templates.env.globals["status_labels"] = STATUS_LABELS
+templates.env.globals["icon"] = icon
+templates.env.globals["LOGO"] = LOGO
+STATUS_BADGE = {"sirada": "b-wait", "uretiliyor": "b-wait", "hazir": "b-ok", "hata": "b-err"}
+templates.env.globals["status_badge"] = STATUS_BADGE
 
 
 def _valid_choice(value: str, options: dict, default: str) -> str:
@@ -188,12 +201,13 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             n_channels = s.scalar(select(func.count(Channel.id)).where(Channel.user_id == user.id,
                                                                        Channel.active.is_(True)))
             notices = s.scalars(select(Channel).where(Channel.user_id == user.id, Channel.notice != "")).all()
-        return render(request, "panel.html", user, jobs=jobs, n_channels=n_channels, notices=notices)
+            n_videos = s.scalar(select(func.count(Job.id)).where(Job.user_id == user.id, Job.status == "hazir"))
+        return render(request, "panel.html", user, jobs=jobs, n_channels=n_channels, notices=notices, n_videos=n_videos)
 
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)
-    def new_video_page(request: Request, user: User = Depends(require_user)):
-        return render(request, "video_yeni.html", user)
+    def new_video_page(request: Request, idea: str = "", user: User = Depends(require_user)):
+        return render(request, "video_yeni.html", user, idea=clean(idea))
 
     @app.post("/video/yeni", dependencies=[Depends(check_csrf)])
     def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
@@ -241,6 +255,20 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             raise HTTPException(404)
         name = f"video-{job.id}.mp4" if indir else None
         return FileResponse(path, media_type="video/mp4", filename=name)
+
+    @app.get("/video/{job_id}/kapak")
+    def job_poster(job_id: int, user: User = Depends(require_user)):
+        with db.session() as s:
+            job = _own_job(s, user, job_id)
+        if job.status != "hazir" or not job.video_file:
+            raise HTTPException(404)
+        video = worker.video_dir() / job.video_file
+        poster = video.with_suffix(".jpg")
+        if not poster.exists() and video.exists():
+            worker.make_poster(video)
+        if not poster.exists():
+            raise HTTPException(404)
+        return FileResponse(poster, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=86400"})
 
     # --- kanallar ---
     def _channel_from_form(form) -> dict:

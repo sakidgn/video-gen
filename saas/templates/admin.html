@@ -1,32 +1,31 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% block title %}Yönetim · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap page">
-  <div class="page-head"><h1>Yönetim 🛠️</h1></div>
-  <div class="grid g4" style="margin-bottom:24px">
-    <div class="card"><div class="muted">Kullanıcı</div><div class="stat">{{ stats.users }}</div></div>
-    <div class="card"><div class="muted">Üretilen video</div><div class="stat">{{ stats.videos }}</div></div>
-    <div class="card"><div class="muted">Sırada / üretiliyor</div><div class="stat">{{ stats.queue }}</div></div>
-    <div class="card"><div class="muted">Onaylı yükleme</div><div class="stat">{{ stats.tl }} ₺</div></div>
-  </div>
-  <div class="card" style="margin-bottom:24px"><h3>Onay bekleyen havaleler</h3>
-  {% if topups %}<div class="tablewrap"><table><tr><th>Tarih</th><th>Kullanıcı</th><th>Gönderen</th><th>Tutar</th><th>Not</th><th></th></tr>
-  {% for t in topups %}<tr><td>{{ t.created_at|tarih }}</td><td>{{ t.user.email }}</td><td>{{ t.sender_name }}</td><td><b>{{ t.amount_tl }} ₺</b> → {{ t.credits }} kredi</td><td>{{ t.note }}</td>
-  <td class="row"><form method="post" action="/admin/yukleme/{{ t.id }}/onayla"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn small">Onayla</button></form>
-  <form method="post" action="/admin/yukleme/{{ t.id }}/reddet" onsubmit="return confirm('Reddedilsin mi?')"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn danger small">Reddet</button></form></td></tr>{% endfor %}
-  </table></div>{% else %}<p class="muted">Bekleyen yok. 🎉</p>{% endif %}
-  <p class="hint">Onaylamadan önce banka hesabında havalenin geldiğini kontrol et.</p></div>
-  <div class="grid g2" style="align-items:start">
-    <div class="card"><h3>Elle kredi ver / düş</h3>
-      <form method="post" action="/admin/kredi"><input type="hidden" name="csrf" value="{{ csrf }}">
-      <label>Kullanıcı e-postası</label><input name="email" type="email" required>
-      <label>Kredi (düşmek için eksi yaz)</label><input name="amount" type="number" required>
-      <label>Açıklama</label><input name="reason" value="Deneme kredisi">
-      <button class="btn" style="margin-top:14px">Uygula</button></form></div>
-    <div class="card"><h3>Son kullanıcılar</h3><div class="tablewrap"><table><tr><th>E-posta</th><th>Kredi</th><th>Kayıt</th></tr>
-      {% for u in users %}<tr><td>{{ u.email }}{% if u.is_admin %} 🛠️{% endif %}</td><td>{{ u.credits }}</td><td>{{ u.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
-  </div>
-  <div class="card" style="margin-top:24px"><h3>Son işler</h3><div class="tablewrap"><table><tr><th>#</th><th>Kullanıcı</th><th>Durum</th><th>Kalite</th><th>Başlık / hata</th><th>Tarih</th></tr>
-  {% for j in jobs %}<tr><td><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td>{{ j.user_id }}</td><td><span class="status st-{{ j.status }}">{{ status_labels[j.status] }}</span></td><td>{{ j.quality }}</td><td>{{ j.title or j.error }}</td><td>{{ j.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
+<div class="page-head"><div class="t"><span class="eyebrow">Yönetim</span><h1>Yönetim paneli</h1></div></div>
+<div class="grid g4" style="margin-bottom:24px">
+  {% for ic, k, v in [('users','Kullanıcı',stats.users),('video','Üretilen video',stats.videos),('clock','Sırada / üretiliyor',stats.queue),('bank','Onaylı yükleme (₺)',stats.tl)] %}
+  <div class="card stat reveal" data-delay="{{ loop.index0 }}"><div class="k">{{ icon(ic, 16) }} {{ k }}</div><div class="v" data-count="{{ v }}">{{ v }}</div></div>{% endfor %}
 </div>
+<div class="card reveal" style="margin-bottom:24px">
+  <div class="card-head"><h3>{{ icon('bank', 18) }} Onay bekleyen havaleler</h3><span class="tiny faint">Onaylamadan önce paranın hesaba geldiğini kontrol et</span></div>
+  {% if topups %}<div class="table-wrap"><table><tr><th>Tarih</th><th>Kullanıcı</th><th>Gönderen</th><th>Tutar</th><th>Not</th><th></th></tr>
+  {% for t in topups %}<tr><td class="mono small">{{ t.created_at|tarih }}</td><td>{{ t.user.email }}</td><td>{{ t.sender_name }}</td><td><b>{{ t.amount_tl }} ₺</b> <span class="faint">→ {{ t.credits }}</span></td><td class="small faint">{{ t.note }}</td>
+  <td><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><form method="post" action="/admin/yukleme/{{ t.id }}/onayla"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-primary btn-sm">{{ icon('check', 14) }} Onayla</button></form>
+  <form method="post" action="/admin/yukleme/{{ t.id }}/reddet" onsubmit="return confirm('Reddedilsin mi?')"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">Reddet</button></form></div></td></tr>{% endfor %}
+  </table></div>{% else %}<p class="muted small">Bekleyen havale yok.</p>{% endif %}
+</div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);align-items:start;margin-bottom:24px" id="admin-grid">
+  <form class="card reveal" method="post" action="/admin/kredi"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="card-head"><h3>{{ icon('gem', 18) }} Elle kredi</h3></div>
+    <div class="field"><label class="label">Kullanıcı e-postası</label><input class="input" name="email" type="email" required></div>
+    <div class="field"><label class="label">Kredi <span class="opt">(düşmek için eksi)</span></label><input class="input mono" name="amount" type="number" required></div>
+    <div class="field"><label class="label">Açıklama</label><input class="input" name="reason" value="Deneme kredisi"></div>
+    <button class="btn btn-primary btn-block" type="submit" style="margin-top:20px">Uygula</button></form>
+  <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('users', 18) }} Son kullanıcılar</h3></div>
+    <div class="table-wrap"><table><tr><th>E-posta</th><th>Kredi</th><th>Kayıt</th></tr>
+    {% for u in users %}<tr><td>{{ u.email }}{% if u.is_admin %} <span class="badge b-off">yönetici</span>{% endif %}</td><td class="mono">{{ u.credits }}</td><td class="mono small faint">{{ u.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
+</div>
+<div class="card reveal"><div class="card-head"><h3>{{ icon('video', 18) }} Son işler</h3></div>
+  <div class="table-wrap"><table><tr><th>#</th><th>Kullanıcı</th><th>Durum</th><th>Kalite</th><th>Başlık / hata</th><th>Tarih</th></tr>
+  {% for j in jobs %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td class="mono">{{ j.user_id }}</td><td><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span></td><td>{{ qualities[j.quality].label }}</td><td class="small">{{ j.title or j.error }}</td><td class="mono small faint">{{ j.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
 {% endblock %}

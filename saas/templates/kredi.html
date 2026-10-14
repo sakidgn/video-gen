@@ -1,37 +1,46 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% block title %}Kredi · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap page">
-  <div class="page-head"><h1>Kredi 💎</h1><span class="pill">Bakiyen: {{ user.credits }} kredi</span></div>
-  <div class="grid g2" style="align-items:start">
-    <div class="card">
-      <h3>1. Paketini seç ve havale yap</h3>
-      <p class="muted">Aşağıdaki hesaba seçtiğin paketin tutarını gönder. <b>Açıklama kısmına e-postanı yaz.</b></p>
-      <div class="copybox" style="margin:12px 0"><div class="muted" style="font-size:13px">Alıcı</div><b>{{ iban_name }}</b><div class="muted" style="font-size:13px;margin-top:8px">IBAN</div><div class="iban">{{ iban }}</div><div class="muted" style="font-size:13px;margin-top:8px">Açıklama</div><b>{{ user.email }}</b></div>
-      <h3 style="margin-top:22px">2. Havaleyi bildir</h3>
-      <form method="post" action="/kredi/bildirim">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <div class="choices">
-        {% for tl, cr in packages %}
-          <label class="choice" style="margin:0"><input type="radio" name="package" value="{{ loop.index0 }}" {% if loop.index0 == 1 %}checked{% endif %}><span><b>{{ tl }} ₺</b><small>{{ cr }} kredi{% if cr > tl %} (+{{ cr - tl }} hediye){% endif %}</small></span></label>
-        {% endfor %}
-        </div>
-        <label>Gönderen adı soyadı</label><input name="sender_name" maxlength="120" required>
-        <label>Not (isteğe bağlı)</label><input name="note" maxlength="300">
-        <label class="checkline"><input type="checkbox" name="accept" value="1" required> <span><a href="/yasal/mesafeli" target="_blank">Mesafeli satış sözleşmesini</a> okudum, kabul ediyorum.</span></label>
-        <button class="btn" style="width:100%;margin-top:18px">Havaleyi yaptım, bildir</button>
-      </form>
-      <p class="hint">Havale kontrol edildikten sonra kredin yüklenir (genelde birkaç saat). Kartla ödeme yakında.</p>
+<div class="page-head">
+  <div class="t"><span class="eyebrow">Kredi</span><h1>Kredi yükle</h1><p class="muted">1 kredi = 1 ₺ · Video üretilemezse kredin otomatik iade edilir.</p></div>
+  <span class="pill" style="height:36px;padding:0 14px">{{ icon('gem', 15) }} <span class="mono">{{ user.credits }}</span> kredi</span>
+</div>
+<div class="grid" style="grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start" id="kredi-grid">
+  <form class="card card-lg reveal" method="post" action="/kredi/bildirim">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="step-title"><span class="n">1</span><h3>Paketini seç</h3></div>
+    <div class="opts opts-3">
+    {% for tl, cr in packages %}
+      <label class="opt"><input type="radio" name="package" value="{{ loop.index0 }}" {% if loop.index0 == 1 %}checked{% endif %}>
+        <span class="opt-body"><span class="opt-tick"></span><span style="font-size:26px;font-weight:600;letter-spacing:-.03em">{{ tl }} ₺</span>
+          <span class="opt-sub"><span class="mono">{{ cr }}</span> kredi</span>{% if cr > tl %}<span class="bonus" style="justify-self:start;align-self:flex-start;margin-top:4px">+{{ cr - tl }} hediye</span>{% endif %}</span></label>
+    {% endfor %}
     </div>
-    <div>
-      {% if topups %}<div class="card" style="margin-bottom:18px"><h3>Bildirimlerin</h3><div class="tablewrap"><table><tr><th>Tarih</th><th>Tutar</th><th>Durum</th></tr>
-      {% for t in topups %}<tr><td>{{ t.created_at|tarih }}</td><td>{{ t.amount_tl }} ₺ → {{ t.credits }} kredi</td><td>{% if t.status == 'onaylandi' %}<span class="status st-hazir">Onaylandı</span>{% elif t.status == 'reddedildi' %}<span class="status st-hata">Reddedildi</span>{% else %}<span class="status st-sirada">Bekliyor</span>{% endif %}</td></tr>{% endfor %}
-      </table></div></div>{% endif %}
-      <div class="card"><h3>Kredi hareketleri</h3>
-      {% if txs %}<div class="tablewrap"><table><tr><th>Tarih</th><th>Açıklama</th><th>Kredi</th></tr>
-      {% for t in txs %}<tr><td>{{ t.created_at|tarih }}</td><td>{{ t.reason }}</td><td class="{{ 'plus' if t.amount > 0 else 'minus' }}">{{ '%+d' % t.amount }}</td></tr>{% endfor %}
-      </table></div>{% else %}<p class="muted">Henüz hareket yok.</p>{% endif %}</div>
+    <div class="step-title"><span class="n">2</span><h3>Havale / EFT yap</h3></div>
+    <div class="bank">
+      <div class="bl"><div><small>Alıcı</small><b id="b-name">{{ iban_name }}</b></div><button type="button" class="icon-btn" data-copy="b-name" aria-label="Kopyala">{{ icon('copy', 15) }}</button></div>
+      <div class="bl"><div><small>IBAN</small><b class="iban" id="b-iban">{{ iban }}</b></div><button type="button" class="icon-btn" data-copy="b-iban" aria-label="Kopyala">{{ icon('copy', 15) }}</button></div>
+      <div class="bl"><div><small>Açıklama (önemli)</small><b id="b-desc">{{ user.email }}</b></div><button type="button" class="icon-btn" data-copy="b-desc" aria-label="Kopyala">{{ icon('copy', 15) }}</button></div>
     </div>
+    <div class="step-title"><span class="n">3</span><h3>Havaleyi bildir</h3></div>
+    <div class="field"><label class="label" for="sn">Gönderen adı soyadı</label><input class="input" id="sn" name="sender_name" maxlength="120" required placeholder="Hesap sahibinin adı"></div>
+    <div class="field"><label class="label" for="nt">Not <span class="opt">(isteğe bağlı)</span></label><input class="input" id="nt" name="note" maxlength="300"></div>
+    <label class="check" style="margin:20px 0 22px"><input type="checkbox" name="accept" value="1" required><span><a href="/yasal/mesafeli" target="_blank">Mesafeli satış sözleşmesini</a> okudum, kabul ediyorum.</span></label>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">{{ icon('check', 17) }} Havaleyi yaptım, bildir</button>
+    <p class="hint center" style="margin-top:12px">Havale kontrol edilince kredin yüklenir (genelde birkaç saat). Kartla ödeme yakında.</p>
+  </form>
+  <div class="stack" style="gap:16px">
+    {% if topups %}
+    <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('bank', 18) }} Bildirimlerin</h3></div>
+      <div class="table-wrap"><table><tr><th>Tarih</th><th>Tutar</th><th>Durum</th></tr>
+      {% for t in topups %}<tr><td class="mono small">{{ t.created_at|tarih }}</td><td>{{ t.amount_tl }} ₺ <span class="faint">→ {{ t.credits }}</span></td>
+        <td>{% if t.status == 'onaylandi' %}<span class="badge b-ok">Onaylandı</span>{% elif t.status == 'reddedildi' %}<span class="badge b-err">Reddedildi</span>{% else %}<span class="badge b-wait">Bekliyor</span>{% endif %}</td></tr>{% endfor %}
+      </table></div></div>
+    {% endif %}
+    <div class="card reveal" data-delay="2"><div class="card-head"><h3>{{ icon('layers', 18) }} Hareketler</h3></div>
+      {% if txs %}<div class="table-wrap"><table><tr><th>Tarih</th><th>Açıklama</th><th style="text-align:right">Kredi</th></tr>
+      {% for t in txs %}<tr><td class="mono small faint">{{ t.created_at|tarih }}</td><td class="small">{{ t.reason }}</td><td class="amt {{ 'plus' if t.amount > 0 else 'minus' }}" style="text-align:right">{{ '%+d' % t.amount }}</td></tr>{% endfor %}
+      </table></div>{% else %}<p class="muted small">Henüz hareket yok.</p>{% endif %}</div>
   </div>
 </div>
 {% endblock %}

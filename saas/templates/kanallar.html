@@ -1,27 +1,36 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% block title %}Otomatik kanallar · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap page">
-  <div class="page-head"><h1>Otomatik kanallar 🔁</h1><a class="btn" href="/kanallar/yeni">+ Yeni kanal</a></div>
-  <p class="muted" style="margin-top:-12px;margin-bottom:24px">Her kanal, seçtiğin saatlerde kendiliğinden yeni video üretir. Her video kredinden düşer; kredi bitince durur.</p>
-  {% if channels %}
-  <div class="grid g2">
-  {% for ch in channels %}
-    <div class="card reveal" data-tilt="5">
-      <div class="row" style="justify-content:space-between"><h3 style="margin:0">{{ ch.name }}</h3>{% if ch.active %}<span class="status st-hazir">Aktif</span>{% else %}<span class="status st-hata">Durduruldu</span>{% endif %}</div>
-      <p class="muted" style="margin:8px 0">{{ styles.get(ch.style, ch.style) }} · {{ languages.get(ch.language) }} · {{ qualities[ch.quality].label }} ({{ qualities[ch.quality].credits }} kredi/video)</p>
-      <div class="row">{% for t in ch.time_list() %}<span class="pill">{{ t }}</span>{% endfor %}</div>
-      <p class="muted" style="font-size:14px">Günlük: {{ ch.time_list()|length }} video · {{ ch.time_list()|length * qualities[ch.quality].credits }} kredi</p>
-      {% if ch.notice %}<div class="flash warn" style="font-size:14px">⚠️ {{ ch.notice }}</div>{% endif %}
-      <div class="row">
-        <a class="btn ghost small" href="/kanallar/{{ ch.id }}">Düzenle / videolar</a>
-        <form method="post" action="/kanallar/{{ ch.id }}/durum"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn ghost small">{{ 'Durdur' if ch.active else 'Başlat' }}</button></form>
-      </div>
-    </div>
-  {% endfor %}
-  </div>
-  {% else %}
-  <div class="card empty"><div class="e">🔁</div><h3>Henüz otomatik kanalın yok</h3><p>Bir kere kur, videolar her gün kendiliğinden gelsin.</p><a class="btn" href="/kanallar/yeni">İlk kanalını kur</a></div>
-  {% endif %}
+<div class="page-head">
+  <div class="t"><span class="eyebrow">Otomatik kanallar</span><h1>Kanalların</h1><p class="muted">Her kanal seçtiğin saatlerde kendiliğinden yeni video üretir. Kredin bitince durur.</p></div>
+  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} Yeni kanal</a>
 </div>
+{% set avgrad = {'meme3d':'linear-gradient(140deg,#7aa7ff,#5fbf62)','cartoon':'linear-gradient(140deg,#ff8fb1,#ffcf6b)','realistic':'linear-gradient(140deg,#3b4a63,#a06a4a)','claymation':'linear-gradient(140deg,#e66a4e,#d8a978)','anime':'linear-gradient(140deg,#b58cff,#ffc1e3)'} %}
+{% if channels %}
+<div class="grid g2">
+{% for ch in channels %}
+  {% set q = qualities[ch.quality] %}
+  <div class="card chan reveal" data-delay="{{ loop.index0 % 2 }}">
+    <div class="chan-top">
+      <span class="chan-av" style="background:{{ avgrad.get(ch.style) }}">{{ ch.name[:1]|upper }}</span>
+      <div style="flex:1;min-width:0"><h3 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ch.name }}</h3>
+        <span class="badge {{ 'b-ok' if ch.active else 'b-off' }}">{{ 'Aktif' if ch.active else 'Durduruldu' }}</span></div>
+      <form method="post" action="/kanallar/{{ ch.id }}/durum"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="switch {{ 'on' if ch.active }}" title="{{ 'Durdur' if ch.active else 'Başlat' }}" aria-label="{{ 'Durdur' if ch.active else 'Başlat' }}"></button></form>
+    </div>
+    {% if ch.topic %}<p class="muted small" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ ch.topic }}</p>{% endif %}
+    <div class="chan-meta"><span>{{ icon('palette', 14) }} {{ styles.get(ch.style) }}</span><span>{{ icon('globe', 14) }} {{ languages.get(ch.language) }}</span><span>{{ icon('zap', 14) }} {{ q.label }}</span></div>
+    <div class="row" style="gap:6px">{% for t in ch.time_list() %}<span class="pill time">{{ t }}</span>{% endfor %}</div>
+    {% if ch.notice %}<div class="flash warn" style="margin:0">{{ icon('alert', 16) }}<div>{{ ch.notice }} <a href="/kredi">Kredi yükle</a></div></div>{% endif %}
+    <hr class="sep" style="margin:4px 0">
+    <div class="row between"><span class="small faint"><span class="mono">{{ ch.time_list()|length }}</span> video/gün · <span class="mono">{{ ch.time_list()|length * q.credits }}</span> kredi/gün</span>
+      <a class="btn btn-ghost btn-sm" href="/kanallar/{{ ch.id }}">{{ icon('edit', 14) }} Düzenle</a></div>
+  </div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card empty"><span class="icon-box accent">{{ icon('repeat', 24) }}</span><h3 style="font-size:20px">Henüz otomatik kanalın yok</h3>
+  <p>Karakterlerini ve konunu bir kere ayarla, saatleri seç. Videolar her gün kendiliğinden gelsin.</p>
+  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} İlk kanalını kur</a></div>
+{% endif %}
 {% endblock %}

@@ -1,57 +1,74 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% block title %}{{ job.title or 'Video' }} · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap page">
-  <div class="page-head"><h1 style="view-transition-name:jobtitle">{{ job.title or 'Videon hazırlanıyor' }}</h1><span class="status st-{{ job.status }}" id="st">{{ status_labels[job.status] }}</span></div>
-  <div class="grid g2" style="align-items:start">
-    <div>
+<div class="page-head">
+  <div class="t"><a class="faint small row" href="{{ '/kanallar/%d' % job.channel_id if job.channel_id else '/panel' }}" style="gap:6px">{{ icon('arrow-left', 15) }} {{ job.channel.name if job.channel else 'Panel' }}</a>
+    <h1 style="view-transition-name:jobtitle">{{ job.title or ('Videon hazırlanıyor' if job.status in ('sirada','uretiliyor') else 'Video') }}</h1></div>
+  <span class="badge {{ status_badge[job.status] }}" id="st">{{ status_labels[job.status] }}</span>
+</div>
+<div class="watch">
+  <div class="device reveal"><div class="scr">
     {% if job.status == 'hazir' %}
-      <video class="player" src="/video/{{ job.id }}/dosya" controls playsinline></video>
-      <div class="row" style="margin-top:14px"><a class="btn" href="/video/{{ job.id }}/dosya?indir=1">⬇️ İndir</a><a class="btn ghost" href="/video/yeni">Yeni video</a></div>
+      <video src="/video/{{ job.id }}/dosya" poster="/video/{{ job.id }}/kapak" controls playsinline autoplay muted loop></video>
     {% elif job.status == 'hata' %}
-      <div class="card empty"><div class="e">⚠️</div><h3>Video üretilemedi</h3><p>{{ job.error }}</p><a class="btn" href="/video/yeni">Tekrar dene</a></div>
+      <div class="empty"><span class="icon-box" style="color:var(--err)">{{ icon('alert', 24) }}</span><h3>Üretilemedi</h3><p class="small">{{ job.error }}</p></div>
     {% else %}
-      <div class="card empty">
-        <div class="cube-wrap"><div class="cube"><div class="f1">🎬</div><div class="f2">✨</div><div class="f3">🎙️</div><div class="f4">🎨</div><div class="f5"></div><div class="f6"></div></div></div>
-        <h3>Videon üretiliyor…</h3>
-        <ul class="stages" id="stages">
-          <li class="{{ 'done' if job.status == 'uretiliyor' else 'now' }}">Sıraya alındı</li>
-          <li class="{{ 'done' if job.prompt else ('now' if job.status == 'uretiliyor' else '') }}">Senaryo yazılıyor</li>
-          <li class="{{ 'now' if job.prompt else '' }}">Video çekiliyor 🎥</li>
-          <li>Hazır!</li>
+      <div class="gen">
+        <div class="orb"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <h3>Videon üretiliyor</h3>
+        <ul class="progress">
+          <li class="{{ 'done' if job.status == 'uretiliyor' else 'now' }}"><span class="st"></span>Sıraya alındı</li>
+          <li class="{{ 'done' if job.prompt else ('now' if job.status == 'uretiliyor' else '') }}"><span class="st"></span>Senaryo yazılıyor</li>
+          <li class="{{ 'now' if job.prompt else '' }}"><span class="st"></span>Video çekiliyor</li>
+          <li><span class="st"></span>Hazır</li>
         </ul>
-        <p style="margin-top:16px">Genelde 2–5 dakika sürer. Bu sayfayı kapatabilirsin, video panelinde de görünecek.</p>
+        <p class="tiny faint" style="max-width:240px">Genelde 2–5 dakika sürer. Sayfayı kapatabilirsin; video panelinde görünecek.</p>
       </div>
     {% endif %}
-    </div>
-    <div class="card reveal">
-      {% if job.status == 'hazir' %}
-        <h3>Paylaşım metni</h3>
-        <label>Başlık</label><div class="copybox" id="c1">{{ job.title }}<button type="button" class="btn ghost small" onclick="cp('c1')">Kopyala</button></div>
-        <label>Açıklama + hashtag</label><div class="copybox" id="c2">{{ job.caption }}
+  </div></div>
+  <div class="stack" style="gap:16px">
+    {% if job.status == 'hazir' %}
+    <div class="card reveal" data-delay="1">
+      <div class="card-head"><h3>{{ icon('hash', 18) }} Paylaşım metni</h3><span class="tiny faint">TikTok · Reels · Shorts</span></div>
+      <div class="copy-card">
+        <span class="tiny faint mono">BAŞLIK</span>
+        <div class="copy-box"><span id="c1">{{ job.title }}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="c1" data-label="Kopyalandı">{{ icon('copy', 14) }} Kopyala</button></div>
+        <span class="tiny faint mono" style="margin-top:8px">AÇIKLAMA + HASHTAG</span>
+        <div class="copy-box"><span id="c2">{{ job.caption }}
 
-{% for h in job.hashtags.split() %}#{{ h }} {% endfor %}<button type="button" class="btn ghost small" onclick="cp('c2')">Kopyala</button></div>
-        <p class="hint">Paylaşırken platformdaki "yapay zekâ ile oluşturuldu" etiketini açmayı unutma.</p>
-      {% endif %}
-      <h3 style="margin-top:18px">Ayrıntılar</h3>
-      <table>
-        <tr><th>Kalite</th><td>{{ qualities[job.quality].label }} ({{ job.cost }} kredi)</td></tr>
-        <tr><th>Tarz</th><td>{{ styles.get(job.style, job.style) }}</td></tr>
-        <tr><th>Dil</th><td>{{ languages.get(job.language, job.language) }}</td></tr>
-        {% if job.channel %}<tr><th>Kanal</th><td><a href="/kanallar/{{ job.channel_id }}">{{ job.channel.name }}</a></td></tr>{% endif %}
-        <tr><th>Fikir</th><td>{{ job.idea or 'Yapay zekâ buldu' }}</td></tr>
-        <tr><th>Tarih</th><td>{{ job.created_at|tarih }}</td></tr>
-      </table>
+{% for h in job.hashtags.split() %}#{{ h }} {% endfor %}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="c2" data-label="Kopyalandı">{{ icon('copy', 14) }} Kopyala</button></div>
+      </div>
+      <div class="row" style="margin-top:20px">
+        <a class="btn btn-primary" href="/video/{{ job.id }}/dosya?indir=1">{{ icon('download', 16) }} Videoyu indir</a>
+        <a class="btn btn-ghost" href="/video/yeni">{{ icon('plus', 16) }} Yeni video</a>
+      </div>
+      <p class="hint" style="margin-top:14px">{{ icon('info', 14) }} Paylaşırken platformdaki “yapay zekâ ile oluşturuldu” etiketini açmayı unutma.</p>
+    </div>
+    {% elif job.status == 'hata' %}
+    <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('refund', 18) }} Kredin iade edildi</h3></div>
+      <p class="muted">{{ job.error }}</p><div class="row" style="margin-top:18px"><a class="btn btn-primary" href="/video/yeni?idea={{ job.idea|urlencode }}">{{ icon('refund', 16) }} Tekrar dene</a></div></div>
+    {% endif %}
+    <div class="card reveal" data-delay="2">
+      <div class="card-head"><h3>{{ icon('info', 18) }} Ayrıntılar</h3></div>
+      <dl class="kv">
+        <dt>Fikir</dt><dd>{{ job.idea or 'Yapay zekâ buldu' }}</dd>
+        {% if job.characters %}<dt>Karakterler</dt><dd>{{ job.characters }}</dd>{% endif %}
+        <dt>Tarz</dt><dd>{{ styles.get(job.style, job.style) }}</dd>
+        <dt>Dil</dt><dd>{{ languages.get(job.language, job.language) }}</dd>
+        <dt>Kalite</dt><dd>{{ qualities[job.quality].label }} · <span class="mono">{{ job.cost }}</span> kredi</dd>
+        {% if job.channel %}<dt>Kanal</dt><dd><a href="/kanallar/{{ job.channel_id }}" style="text-decoration:underline;text-underline-offset:3px">{{ job.channel.name }}</a></dd>{% endif %}
+        <dt>Tarih</dt><dd class="mono small">{{ job.created_at|tarih }}</dd>
+      </dl>
     </div>
   </div>
 </div>
 {% endblock %}
 {% block scripts %}
-<script>
-function cp(id){const el=document.getElementById(id).cloneNode(true);el.querySelector('button').remove();navigator.clipboard.writeText(el.innerText.trim());}
 {% if job.status in ('sirada','uretiliyor') %}
-window._stage='{{ job.status }}:{{ job.prompt != "" }}';
-setInterval(async()=>{try{const r=await fetch('/video/{{ job.id }}/durum');const d=await r.json();if(d.status==='hazir'||d.status==='hata'||d.stage!==window._stage){if(window._stage!==undefined)location.reload();window._stage=d.stage;}document.getElementById('st').textContent=d.label;}catch(e){}},5000);
-{% endif %}
+<script>
+(function(){let stage='{{ job.status }}:{{ job.prompt != "" }}';
+setInterval(async()=>{try{const r=await fetch('/video/{{ job.id }}/durum');const d=await r.json();
+document.getElementById('st').textContent=d.label;if(d.stage!==stage)location.reload();}catch(e){}},4000);})();
 </script>
+{% endif %}
 {% endblock %}

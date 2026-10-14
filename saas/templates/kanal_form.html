@@ -1,35 +1,56 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% block title %}{{ ch.name if ch else 'Yeni kanal' }} · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap page" style="max-width:860px">
-  <div class="page-head"><div><span class="eyebrow">Otomatik kanal</span><h1>{{ ch.name if ch else 'Yeni kanal' }}</h1></div><a class="btn ghost small" href="/kanallar">← Kanallar</a></div>
-  <form class="card reveal" method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}" data-loading="Kaydediliyor…">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    {% set n0 = 2 %}
-    <div class="section-title" style="margin-top:0"><span class="n">1</span>Kanal adı</div><input name="name" maxlength="100" required value="{{ ch.name if ch else '' }}" placeholder="Örn: Komik Meyveler">
-    <div class="section-title"><span class="n">2</span>Konu / tema</div>
-    <textarea name="topic" maxlength="600" placeholder="Örn: Konuşan meyveler gündelik hayatta başlarına gelen saçma olayları yaşar. Her video farklı bir mekânda geçsin.">{{ ch.topic if ch else '' }}</textarea>
-    <div class="hint">Her gün bu temaya uygun, birbirini tekrar etmeyen yeni fikirler bulunur.</div>
-    {% include "_video_fields.html" %}
-    <div class="section-title"><span class="n">7</span>Video saatleri</div>
-    <input name="times" value="{{ ch.times if ch else '12:00 19:00' }}" placeholder="09:45 13:00 18:30">
-    <div class="hint">SS:DD biçiminde, aralarında boşluk bırak. Her saat 1 video demek. Saat dilimi: Türkiye.</div>
-    <div class="summary-bar">
-      <div><div class="muted" style="font-size:13px">Her video</div><div class="cost" id="cost-summary">–</div></div>
-      <button class="btn big" type="submit">{{ 'Kaydet' if ch else 'Kanalı oluştur 🚀' }}</button>
-    </div>
-  </form>
-  {% if ch %}
-  <h2 style="margin-top:32px">Bu kanalın videoları</h2>
-  {% if jobs %}
-  <div class="vgrid">{% for j in jobs %}
-    <a class="vcard" href="/video/{{ j.id }}"><div class="vthumb">{% if j.status == 'hazir' %}<video src="/video/{{ j.id }}/dosya#t=0.5" muted preload="metadata"></video>{% elif j.status == 'hata' %}⚠️{% else %}<div class="spinner"></div>{% endif %}</div>
-    <div class="meta"><b>{{ j.title or 'Video' }}</b><span class="status st-{{ j.status }}">{{ status_labels[j.status] }}</span> <span class="muted">{{ j.slot or '' }}</span></div></a>
-  {% endfor %}</div>
-  {% else %}<p class="muted">Henüz video yok. İlk video bir sonraki saatte üretilecek.</p>{% endif %}
-  <form method="post" action="/kanallar/{{ ch.id }}/sil" style="margin-top:32px" onsubmit="return confirm('Kanal silinsin mi? Üretilmiş videolar silinmez.')">
-    <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn danger small">Kanalı sil</button>
-  </form>
-  {% endif %}
+<div class="page-head">
+  <div class="t"><a class="faint small row" href="/kanallar" style="gap:6px">{{ icon('arrow-left', 15) }} Kanallar</a><h1>{{ ch.name if ch else 'Yeni otomatik kanal' }}</h1></div>
+  {% if ch %}<span class="badge {{ 'b-ok' if ch.active else 'b-off' }}">{{ 'Aktif' if ch.active else 'Durduruldu' }}</span>{% endif %}
 </div>
+<form method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}" data-studio data-balance="{{ user.credits }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="studio">
+    <div class="card card-lg reveal">
+      {% set n0 = 2 %}
+      <div class="step-title"><span class="n">1</span><h3>Kanal adı</h3></div>
+      <input class="input" name="name" maxlength="100" required value="{{ ch.name if ch else '' }}" placeholder="Örn: Komik Meyveler">
+      <div class="step-title"><span class="n">2</span><h3>Konu ve tema</h3></div>
+      <textarea class="textarea" name="topic" maxlength="600" placeholder="Örn: Konuşan meyveler gündelik hayatta saçma olaylar yaşar. Her video farklı bir mekânda geçsin.">{{ ch.topic if ch else '' }}</textarea>
+      <div class="ideas">
+        {% for i in ['Konuşan meyveler gündelik hayatta saçma olaylar yaşar','Bir kedi her gün yeni bir meslek dener','Ofiste çalışan robotun komik günlüğü','Dinozorlar modern şehirde yaşamaya çalışıyor'] %}
+        <button type="button" data-idea="{{ i }}">{{ icon('sparkles', 13) }} {{ i }}</button>{% endfor %}
+      </div>
+      {% include "_video_fields.html" %}
+      <div class="step-title"><span class="n">7</span><h3>Video saatleri</h3><span class="faint">Türkiye saati</span></div>
+      <input class="input mono" name="times" value="{{ ch.times if ch else '12:00 19:00' }}" placeholder="09:45 13:00 18:30">
+      <div class="times">{% for t in ['08:00','09:45','12:00','13:00','15:45','18:30','19:00','21:15','22:30'] %}<button type="button" data-time="{{ t }}">{{ t }}</button>{% endfor %}</div>
+      <p class="hint" style="margin-top:8px">Her saat günde 1 video demek. Listeden seç ya da kendin yaz (SS:DD, aralarında boşluk).</p>
+    </div>
+    <aside class="aside reveal" data-delay="1">
+      {% include "_preview.html" %}
+      <div class="card summary">
+        <div class="line"><span>Tarz</span><b id="pv-style">–</b></div>
+        <div class="line"><span>Dil</span><b id="pv-lang">–</b></div>
+        <div class="line"><span>Kalite</span><b id="pv-quality">–</b></div>
+        <div class="line"><span>Video başı</span><b><span id="pv-cost" class="mono">–</span> kredi</b></div>
+        <div class="total" style="display:block"><span class="muted small">Günlük harcama</span><div id="pv-per" style="font-weight:500;margin-top:4px">–</div></div>
+        <button class="btn btn-accent btn-lg btn-block" type="submit">{{ icon('check', 17) }} {{ 'Kaydet' if ch else 'Kanalı oluştur' }}</button>
+        <p class="hint center">Kredin bitince kanal kendiliğinden durur.</p>
+      </div>
+    </aside>
+  </div>
+</form>
+{% if ch %}
+<div class="row between" style="margin:44px 0 16px"><h2 style="font-size:22px;letter-spacing:-.025em">Bu kanalın videoları</h2><span class="faint small mono">{{ jobs|length }} video</span></div>
+{% if jobs %}
+<div class="vgrid">{% for j in jobs %}
+  <a class="vcard" href="/video/{{ j.id }}"><div class="thumb">
+    {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" onerror="this.remove()"><span class="play">{{ icon('play', 18) }}</span>
+    {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}Üretilemedi</div>{% else %}<div class="state"><span class="ring"></span>Üretiliyor…</div>{% endif %}</div>
+  <div class="vmeta"><b>{{ j.title or 'Video' }}</b><div class="row"><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span><span class="tiny faint mono">{{ j.slot or '' }}</span></div></div></a>
+{% endfor %}</div>
+{% else %}<div class="card empty"><span class="icon-box">{{ icon('clock', 22) }}</span><p>Henüz video yok. İlk video bir sonraki saatte üretilecek.</p></div>{% endif %}
+<div class="card" style="margin-top:44px;border-color:rgba(248,113,113,.2)"><div class="row between">
+  <div><h3>Kanalı sil</h3><p class="small faint">Kanal silinir; üretilmiş videoların panelinde kalır.</p></div>
+  <form method="post" action="/kanallar/{{ ch.id }}/sil" onsubmit="return confirm('Kanal silinsin mi? Üretilmiş videolar silinmez.')"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">{{ icon('trash', 14) }} Kanalı sil</button></form>
+</div></div>
+{% endif %}
 {% endblock %}
