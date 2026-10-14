@@ -18,6 +18,8 @@ set VERI_KLASORU=%~dp0saas_veri_deneme
 set PORT=8000
 echo.
 echo Site aciliyor: http://localhost:8000
+echo Telefondan bakmak icin (ayni Wi-Fi):
+powershell -NoProfile -Command "Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } | ForEach-Object { '   http://' + $_.IPAddress + ':8000' }"
 echo Kayit olurken admin@deneme.com yazarsan Yonetim paneli de acilir.
 echo Her yeni hesaba deneme icin 1000 kredi verilir. Videolar sahtedir.
 echo Kapatmak icin bu pencereyi kapat.
