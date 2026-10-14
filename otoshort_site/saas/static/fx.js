@@ -29,6 +29,15 @@
   }), { threshold: .12, rootMargin: '0px 0px -40px 0px' }) : null;
   $$('.reveal').forEach(el => { el.style.transitionDelay = `${(+el.dataset.delay || 0) * 90}ms`; io ? io.observe(el) : el.classList.add('in'); });
 
+  // Ürün vitrini: kaydırdıkça 3D açıdan düzleşir
+  const sc = $('[data-showcase]');
+  if (sc) {
+    if (reduce) sc.style.setProperty('--p', 1);
+    else { let raf; const f = () => { raf = 0; const r = sc.getBoundingClientRect(), vh = innerHeight;
+        const p = Math.min(1, Math.max(0, (vh - r.top) / (vh * .75))); sc.style.setProperty('--p', p.toFixed(3)); };
+      f(); addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(f); }, { passive: true }); addEventListener('resize', f); }
+  }
+
   // 3D eğilme + ışık
   if (!reduce && fine) $$('[data-tilt]').forEach(el => {
     const max = parseFloat(el.dataset.tilt) || 6; let raf;
