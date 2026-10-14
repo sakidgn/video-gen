@@ -31,6 +31,18 @@ def init(url: str | None = None) -> None:
     from . import models  # noqa: F401
 
     Base.metadata.create_all(engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """Eski veritabanlarına sonradan eklenen sütunları ekler (veri kaybı olmadan)."""
+    from sqlalchemy import inspect, text
+
+    cols = {c["name"] for c in inspect(engine).get_columns("users")}
+    with engine.begin() as conn:
+        if "google_sub" not in cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN google_sub VARCHAR(64)"))
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_sub ON users (google_sub)"))
 
 
 @contextmanager

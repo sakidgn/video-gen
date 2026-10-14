@@ -25,6 +25,20 @@ Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yöne
 6. Yasal sayfalardaki `[ŞİRKET UNVANI]`, `[ADRES]`, `[E-POSTA]`, `[TARİH]` yerlerini doldur
    (`saas/templates/yasal_*.html`). Satışa başlamadan önce bir muhasebeciye/avukata göster.
 
+## Google ile giriş (ücretsiz, kart gerekmez)
+1. https://console.cloud.google.com → üstten **yeni proje** oluştur (ör. "Otoshort").
+2. Menüden **Google Auth Platform** (APIs & Services → OAuth consent screen) → **Get started**:
+   uygulama adı "Otoshort", destek e-postası, **Audience: External**, iletişim e-postası → Create.
+3. **Clients → Create client** → Application type: **Web application** → *Authorized redirect URIs*:
+   - deneme için `http://localhost:8000/auth/google/donus`
+   - canlı site için `https://ALANADIN/auth/google/donus`
+4. Çıkan **Client ID** ve **Client secret**'ı `.env`'de `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`'a yaz,
+   canlıda `SITE_ADRESI=https://ALANADIN` da yaz.
+5. **Audience → Publish app** (yayına al). Sadece ad/e-posta istediğimiz için Google incelemesi gerekmez.
+
+Yeni kullanıcı Google ile ilk girişte kullanım şartları ve KVKK onayını verir; aynı e-postayla açılmış hesap
+varsa Google o hesaba bağlanır.
+
 ## Günlük kullanım (yönetici)
 - **Yönetim** sayfası: bekleyen havaleler → banka hesabında parayı gördükten sonra **Onayla**.
 - Elle kredi: arkadaşlarına deneme kredisi vermek ya da düzeltme için.

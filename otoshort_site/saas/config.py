@@ -15,6 +15,9 @@ DATABASE_URL = _env("VERITABANI", f"sqlite:///{DATA_DIR / 'site.db'}")
 ADMIN_EMAILS = {e.strip().lower() for e in _env("ADMIN_EPOSTALAR").split(",") if e.strip()}
 IBAN = _env("IBAN", "TR00 0000 0000 0000 0000 0000 00")
 IBAN_NAME = _env("IBAN_ALICI", "Ad Soyad")
+GOOGLE_CLIENT_ID = _env("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = _env("GOOGLE_CLIENT_SECRET")
+SITE_URL = _env("SITE_ADRESI").rstrip("/")  # ör. https://otoshort.com (boşsa istekten bulunur)
 SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
 FAKE_AI = _env("SAHTE_AI") == "1"  # geliştirme/test: API'ye gitmeden sahte video üretir
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")

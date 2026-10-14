@@ -473,6 +473,9 @@ tr:last-child td{border-bottom:0}
 .auth-card h1{font-size:30px;text-align:center;letter-spacing:-.035em}
 .auth-card .sub{text-align:center;color:var(--text-2);margin-top:-12px}
 
+.btn-google{gap:10px;font-weight:500}
+.or{display:flex;align-items:center;gap:12px;margin:20px 0 16px;color:var(--text-3);font-size:12.5px}
+.or:before,.or:after{content:"";flex:1;height:1px;background:var(--border-2)}
 /* hukuki metin */
 .prose{max-width:760px;margin:0 auto;padding:48px 0}
 .prose h1{font-size:40px;margin-bottom:8px}.prose h2{font-size:20px;letter-spacing:-.02em;margin:34px 0 10px}

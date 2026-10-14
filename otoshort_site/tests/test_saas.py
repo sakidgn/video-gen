@@ -194,3 +194,76 @@ def test_site_updater_writes_only_site_files_and_keeps_data(tmp_path):
     assert (tmp_path / "saas" / "app.py").read_text() == "yeni"
     assert (tmp_path / ".env").read_text() == "benim" and not (tmp_path / "saas_veri").exists()
     assert not (tmp_path / "shitpost").exists()
+
+
+@pytest.fixture
+def google_on(monkeypatch):
+    from saas import oauth
+
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", "cid")
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", "sec")
+    prof = {"sub": "g-123", "email": "yeni@gmail.com", "email_verified": True, "name": "Yeni Kişi"}
+    monkeypatch.setattr(oauth, "exchange_code", lambda code, uri: dict(prof))
+    return prof
+
+
+def google_round(c):
+    r = c.get("/auth/google", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"].startswith("https://accounts.google.com/")
+    state = re.search(r"state=([^&]+)", r.headers["location"]).group(1)
+    return c.get(f"/auth/google/donus?code=abc&state={state}", follow_redirects=False)
+
+
+def test_google_new_user_must_accept_terms(client, google_on):
+    r = google_round(client)
+    assert r.headers["location"] == "/kayit/google"
+    page = client.get("/kayit/google").text
+    assert "yeni@gmail.com" in page
+    t = re.search(r'name="csrf" value="([^"]+)"', page).group(1)
+    client.post("/kayit/google", data={"csrf": t, "accept": "1"})  # rıza eksik
+    with db.session() as s:
+        assert s.scalar(select(User).where(User.email == "yeni@gmail.com")) is None
+    r = client.post("/kayit/google", data={"csrf": t, "accept": "1", "consent": "1"}, follow_redirects=False)
+    assert r.headers["location"] == "/panel"
+    with db.session() as s:
+        u = s.scalar(select(User).where(User.email == "yeni@gmail.com"))
+        assert u.google_sub == "g-123" and u.pw_hash == ""
+    assert client.get("/panel").status_code == 200
+
+
+def test_google_links_existing_email_account(client, google_on):
+    signup(client, "yeni@gmail.com")
+    client.post("/cikis", data={"csrf": csrf(client, "/panel")})
+    r = google_round(client)
+    assert r.headers["location"] == "/panel"
+    with db.session() as s:
+        assert s.scalar(select(User.google_sub).where(User.email == "yeni@gmail.com")) == "g-123"
+
+
+def test_google_rejects_bad_state(client, google_on):
+    client.get("/auth/google", follow_redirects=False)
+    r = client.get("/auth/google/donus?code=abc&state=sahte", follow_redirects=False)
+    assert r.headers["location"] == "/giris"
+
+
+def test_google_button_hidden_when_not_configured(client, monkeypatch):
+    monkeypatch.setattr(config, "FAKE_AI", False)
+    assert "Google ile devam et" not in client.get("/giris").text
+    r = client.get("/auth/google", follow_redirects=False)
+    assert r.headers["location"] == "/giris"
+
+
+def test_migration_adds_google_column_to_old_db(tmp_path, monkeypatch):
+    import sqlite3
+
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    path = tmp_path / "eski.db"
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, email VARCHAR(255) UNIQUE, name VARCHAR(100), "
+                "pw_hash VARCHAR(255), credits INTEGER, is_admin BOOLEAN, created_at DATETIME)")
+    con.execute("INSERT INTO users (email, name, pw_hash, credits, is_admin) VALUES ('a@b.com','A','x',5,0)")
+    con.commit(); con.close()
+    db.init(f"sqlite:///{path}")
+    with db.session() as s:
+        u = s.scalar(select(User))
+        assert u.credits == 5 and u.google_sub is None

@@ -1,5 +1,6 @@
 import logging
 import re
+import secrets
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -10,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import config, credits, db, worker
+from . import config, credits, db, oauth, worker
 from .icons import LOGO, icon
 from .models import Channel, CreditTx, Job, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
@@ -55,6 +56,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         request=request, user=user, site=config.SITE_NAME, csrf=csrf_token(request.session),
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
         languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
+        google_button=oauth.enabled() or config.FAKE_AI,
         quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS,
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
@@ -181,12 +183,97 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             user = s.scalar(select(User).where(User.email == email))
             if user and email in config.ADMIN_EMAILS and not user.is_admin:
                 user.is_admin = True
+        if user and not user.pw_hash and user.google_sub:
+            flash(request, "Bu hesap Google ile açılmış. “Google ile devam et” butonunu kullan.", "warn")
+            return go("/giris")
         if not user or not check_password(password, user.pw_hash):
             flash(request, "E-posta ya da şifre yanlış.", "err")
             return go("/giris")
         request.session.clear()
         request.session["uid"] = user.id
         return go("/panel")
+
+    # --- Google ile giriş ---
+    def _google_redirect_uri(request: Request) -> str:
+        if config.SITE_URL:
+            return f"{config.SITE_URL}/auth/google/donus"
+        return str(request.url_for("google_callback"))
+
+    def _login_as(request: Request, uid: int):
+        request.session.clear()
+        request.session["uid"] = uid
+        return go("/panel")
+
+    @app.get("/auth/google")
+    def google_start(request: Request):
+        if not oauth.enabled():
+            flash(request, "Google ile giriş henüz ayarlanmadı. Şimdilik e-posta ile devam et.", "warn")
+            return go("/giris")
+        state = secrets.token_urlsafe(24)
+        request.session["g_state"] = state
+        return RedirectResponse(oauth.auth_url(_google_redirect_uri(request), state), status_code=303)
+
+    @app.get("/auth/google/donus", name="google_callback")
+    def google_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+        expected = request.session.pop("g_state", None)
+        if error or not code or not expected or not secrets.compare_digest(state, expected):
+            flash(request, "Google ile giriş tamamlanmadı, tekrar dene.", "err")
+            return go("/giris")
+        try:
+            prof = oauth.exchange_code(code, _google_redirect_uri(request))
+        except oauth.OAuthError:
+            log.exception("Google girişi başarısız")
+            flash(request, "Google ile giriş şu an yapılamadı, biraz sonra tekrar dene.", "err")
+            return go("/giris")
+        if not prof["email_verified"]:
+            flash(request, "Google hesabının e-postası doğrulanmamış.", "err")
+            return go("/giris")
+        with db.session() as s:
+            user = s.scalar(select(User).where(User.google_sub == prof["sub"]))
+            if not user:
+                user = s.scalar(select(User).where(User.email == prof["email"]))
+                if user and not user.google_sub:
+                    user.google_sub = prof["sub"]  # aynı e-postalı hesaba Google bağlandı
+            if user:
+                if prof["email"] in config.ADMIN_EMAILS:
+                    user.is_admin = True
+                uid = user.id
+            else:
+                uid = None
+        if uid:
+            return _login_as(request, uid)
+        request.session["g_pending"] = prof  # yeni kullanıcı: önce sözleşme onayı
+        return go("/kayit/google")
+
+    @app.get("/kayit/google", response_class=HTMLResponse)
+    def google_signup_page(request: Request):
+        prof = request.session.get("g_pending")
+        if not prof:
+            return go("/kayit")
+        return render(request, "kayit_google.html", None, prof=prof)
+
+    @app.post("/kayit/google", dependencies=[Depends(check_csrf)])
+    def google_signup(request: Request, accept: str = Form(""), consent: str = Form("")):
+        prof = request.session.get("g_pending")
+        if not prof:
+            return go("/kayit")
+        if not accept or not consent:
+            flash(request, "Devam etmek için iki onayı da işaretle.", "err")
+            return go("/kayit/google")
+        with db.session() as s:
+            if s.scalar(select(User.id).where((User.email == prof["email"]) | (User.google_sub == prof["sub"]))):
+                flash(request, "Bu hesap zaten var, giriş yap.", "err")
+                return go("/giris")
+            user = User(email=prof["email"], name=prof["name"], pw_hash="", google_sub=prof["sub"],
+                        is_admin=prof["email"] in config.ADMIN_EMAILS)
+            s.add(user)
+            s.flush()
+            if config.SIGNUP_BONUS:
+                credits.add(s, user.id, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
+            uid = user.id
+        resp = _login_as(request, uid)
+        flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
+        return resp
 
     @app.post("/cikis", dependencies=[Depends(check_csrf)])
     def logout(request: Request):
