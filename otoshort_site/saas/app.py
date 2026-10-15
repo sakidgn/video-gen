@@ -127,13 +127,9 @@ def mark_verified(s, user: User) -> None:
     user.email_verified = True
     if config.SIGNUP_BONUS:
         credits.add(s, user.id, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
-    from .models import Waitlist
+    from . import waitlist
 
-    # erken erişim listesindeydi: hediye bir kez (aynı anda iki doğrulamada da tek sefer)
-    w = s.scalar(select(Waitlist).where(Waitlist.email == user.email))
-    if w and config.EARLY_BONUS and s.execute(update(Waitlist).where(Waitlist.id == w.id, Waitlist.rewarded.is_(False))
-                                               .values(rewarded=True)).rowcount == 1:
-        credits.add(s, user.id, config.EARLY_BONUS, "Erken erişim hediyesi")
+    waitlist.reward_on_verify(s, user)  # erken erişim listesindeyse hediyeler (bir kez)
 
 
 def send_email(request: Request, to: str, subject: str, html: str) -> None:
@@ -416,7 +412,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         if config.SHOWCASE:  # geçici demo adresi aranmasın
             return "User-agent: *\nDisallow: /\n"
         private = ["/panel", "/video", "/videolar", "/kanallar", "/kredi", "/hesap", "/admin", "/dev", "/auth",
-                   "/dogrula", "/sifre-yenile", "/api", "/baglantilar", "/baglan", "/yayin", "/davet", "/d/"]
+                   "/dogrula", "/sifre-yenile", "/api", "/baglantilar", "/baglan", "/yayin", "/davet", "/d/",
+                   "/liste", "/e/"]
         lines = ["User-agent: *", *(f"Disallow: {pre}{p}" for pre in ("", "/en") for p in private),
                  f"Sitemap: {site_url(request)}/sitemap.xml"]
         return "\n".join(lines) + "\n"
@@ -490,8 +487,6 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.post("/erken-erisim", dependencies=[Depends(check_csrf)])
     def waitlist_join(request: Request, email: str = Form(""), consent: str = Form(""), kaynak: str = Form(""),
                       next: str = Form("/")):
-        from .models import Waitlist
-
         back = next if SAFE_NEXT.match(next) and not next.startswith("//") else "/"
         email = email.strip().lower()
         ip = request.client.host if request.client else "?"
@@ -502,15 +497,42 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         elif not consent:
             flash(request, "Açılış duyurusu için e-posta iznini işaretlemelisin.", "err")
         else:
+            from . import waitlist
+
             with db.session() as s:
-                if not s.scalar(select(Waitlist.id).where(Waitlist.email == email)):
-                    s.add(Waitlist(email=email, lang=i18n.current(), source=clean(kaynak, 30)))
-            if config.EARLY_BONUS:
-                flash(request, "Listedesin! 🎉 Açılışta haber vereceğiz; bu e-postayla kaydolunca {n} hediye kredi seni bekliyor.",
-                      n=config.EARLY_BONUS)
-            else:
-                flash(request, "Listedesin! 🎉 Açılışta haber vereceğiz.")
+                code = waitlist.join(s, email, i18n.current(), clean(kaynak, 30), request.session.get("wref", "")).code
+            request.session["wcode"] = code
+            flash(request, "Listedesin! 🎉 Açılışta haber vereceğiz.")
+            return go(i18n.localized_path(f"/liste/{code}", public=()))
         return go(back)
+
+    @app.get("/e/{code}")
+    def waitlist_invite(request: Request, code: str):
+        """Erken erişim davet bağlantısı: kodu hatırla, ana sayfadaki listeye götür."""
+        from .models import Waitlist
+
+        code = growth.norm_code(code)
+        with db.session() as s:
+            if code and s.scalar(select(Waitlist.id).where(Waitlist.code == code)):
+                request.session["wref"] = code
+        return go(i18n.localized_path("/", public=tuple(PUBLIC_PAGES)) + "#erken")
+
+    @app.get("/liste/{code}", response_class=HTMLResponse)
+    def waitlist_status(request: Request, code: str):
+        """Listedeki kişinin sayfası: davet bağlantısı ve kazandıkları (bağlantıyı bilen görür; e-posta gizli)."""
+        from . import waitlist
+        from .models import Waitlist
+
+        with db.session() as s:
+            w = s.scalar(select(Waitlist).where(Waitlist.code == growth.norm_code(code)))
+            if not w:
+                raise HTTPException(404)
+            st = waitlist.stats(s, w)
+            user_part, _, domain = w.email.partition("@")
+            masked = f"{user_part[:2]}•••@{domain}"
+        return render(request, "liste.html", current_user(request), w=w, st=st, masked=masked,
+                      link=f"{site_url(request)}/e/{w.code}", invite_bonus=config.EARLY_INVITE_BONUS,
+                      invite_cap=config.EARLY_INVITE_CAP)
 
     @app.get("/kayit", response_class=HTMLResponse)
     def register_page(request: Request, ref: str = "", fikir: str = ""):

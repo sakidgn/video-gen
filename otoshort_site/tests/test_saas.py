@@ -1537,7 +1537,9 @@ def test_waitlist_join_reward_and_export(client, tmp_path, monkeypatch):
     assert "Geçerli bir e-posta" in anon.post("/erken-erisim", data={"email": "x", "consent": "1", "csrf": t}).text
     r = anon.post("/erken-erisim", data={"email": " A@b.com ", "consent": "1", "kaynak": "ana-sayfa", "next": "/#erken",
                                          "csrf": t}, follow_redirects=False)
-    assert r.headers["location"] == "/#erken"
+    assert r.headers["location"].startswith("/liste/")
+    status = anon.get(r.headers["location"]).text
+    assert "Listedesin" in status and "a@b.com" not in status and "a•••@b.com" in status  # e-posta gizli
     anon.post("/erken-erisim", data={"email": "a@b.com", "consent": "1", "next": "https://kotu.site", "csrf": t})
     with db.session() as s:
         assert [w.email for w in s.scalars(select(Waitlist))] == ["a@b.com"]  # tekrar eklenmez
@@ -1613,3 +1615,39 @@ def test_showcase_demo_video_offers_waitlist(client, monkeypatch):
 
     with db.session() as s:
         assert s.scalar(select(Waitlist.source)) == "demo-video"
+
+
+def test_waitlist_invites_reward_inviter_once_verified(client, tmp_path, monkeypatch):
+    from saas.models import Waitlist
+
+    monkeypatch.setattr(config, "EARLY_BONUS", 100)
+    monkeypatch.setattr(config, "EARLY_INVITE_BONUS", 20)
+    monkeypatch.setattr(config, "EARLY_INVITE_CAP", 30)
+
+    def join(c, email):
+        return c.post("/erken-erisim", data={"email": email, "consent": "1", "csrf": csrf(c, "/kayit")},
+                      follow_redirects=False).headers["location"]
+
+    host = TestClient(client.app)
+    code = join(host, "ev@b.com").rsplit("/", 1)[1]
+    for i, email in enumerate(["k1@b.com", "k2@b.com", "ev@b.com"]):
+        friend = TestClient(client.app)
+        assert friend.get(f"/e/{code}", follow_redirects=False).headers["location"] == "/#erken"
+        join(friend, email)
+    with db.session() as s:
+        refs = {w.email: w.ref for w in s.scalars(select(Waitlist))}
+    assert refs["k1@b.com"] == refs["k2@b.com"] == code and refs["ev@b.com"] == ""  # kendini davet sayılmaz
+    # davetliler kaydolup doğrulayınca: davet edenin hesabı yokken kredi bekler (sınır 30: 20 + 10)
+    for email in ["k1@b.com", "k2@b.com"]:
+        c = TestClient(client.app)
+        signup(c, email, verify=False)
+        c.get(mail_link(tmp_path, "/dogrula"))
+        assert balance(email) == 100
+    with db.session() as s:
+        ev = s.scalar(select(Waitlist).where(Waitlist.email == "ev@b.com"))
+        assert (ev.pending, ev.earned) == (30, 30)
+    assert "Kaydolan" in host.get(f"/liste/{code}").text
+    signup(host, "ev@b.com", verify=False)
+    host.get(mail_link(tmp_path, "/dogrula"))
+    assert balance("ev@b.com") == 130  # 100 erken erişim + 30 davet
+    assert TestClient(client.app).get("/liste/YOKBOYLE").status_code == 404

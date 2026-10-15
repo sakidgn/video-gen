@@ -176,5 +176,9 @@ class Waitlist(Base):
     lang: Mapped[str] = mapped_column(String(5), default="tr")
     source: Mapped[str] = mapped_column(String(30), default="")  # hangi butondan geldi (ana sayfa, video...)
     rewarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    code: Mapped[str | None] = mapped_column(String(12), nullable=True, unique=True)  # kişiye özel davet kodu
+    ref: Mapped[str] = mapped_column(String(12), default="")  # davet edenin kodu
+    pending: Mapped[int] = mapped_column(Integer, default=0)  # hesabı açılınca yüklenecek davet kredisi
+    earned: Mapped[int] = mapped_column(Integer, default=0)  # davetlerden kazanılan toplam (sınır için)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 

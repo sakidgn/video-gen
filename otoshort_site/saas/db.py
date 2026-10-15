@@ -48,6 +48,10 @@ NEW_COLUMNS = [
     ("users", "lang", "VARCHAR(5) NOT NULL DEFAULT 'tr'"),
     ("users", "blocked", "BOOLEAN NOT NULL DEFAULT 0"),
     ("jobs", "error_detail", "TEXT NOT NULL DEFAULT ''"),
+    ("waitlist", "code", "VARCHAR(12)"),
+    ("waitlist", "ref", "VARCHAR(12) NOT NULL DEFAULT ''"),
+    ("waitlist", "pending", "INTEGER NOT NULL DEFAULT 0"),
+    ("waitlist", "earned", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 
@@ -75,6 +79,8 @@ def _migrate() -> None:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}"))
         conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_sub ON users (google_sub)"))
         conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_ref_code ON users (ref_code)"))
+        if "waitlist" in tables or "waitlist" in set(inspect(engine).get_table_names()):
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_waitlist_code ON waitlist (code)"))
 
 
 @contextmanager

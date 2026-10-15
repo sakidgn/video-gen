@@ -23,7 +23,9 @@ Açılış öncesi dönemde (vitrin modunda ya da `.env`'de `ERKEN_ERISIM=1`) an
 telefonda altta sabit bir çağrı çubuğu görünür. E-postasını bırakan, gerçek sitede aynı e-postayla kaydolup
 doğrulayınca `ERKEN_ERISIM_HEDIYE` (varsayılan 100) kredi alır. Vitrinde toplanan listeyi gerçek siteye taşımak:
 `python -m saas.erken_erisim disari liste.csv --vitrin`, sunucuda `python -m saas.erken_erisim iceri liste.csv`.
-Yönetim panelinden de CSV indirilebilir. Ana sayfadaki **Fikir makinesi** (`saas/fikirler.py`) ziyaretçiye
+Yönetim panelinden de CSV indirilebilir. Listeye katılan herkes kendi sayfasında (`/liste/KOD`) kişiye özel davet
+bağlantısı alır; o bağlantıyla gelen biri açılışta kaydolup doğrulayınca davet edene `ERKEN_DAVET_ODULU` (20) kredi,
+en fazla `ERKEN_DAVET_SINIRI` (200). Davet eden henüz kaydolmadıysa kredi birikir, kaydolunca yüklenir. Ana sayfadaki **Fikir makinesi** (`saas/fikirler.py`) ziyaretçiye
 rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle açar.
 
 ## Gerçek API denemesi (satıştan önce)

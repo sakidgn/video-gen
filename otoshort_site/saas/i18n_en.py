@@ -697,6 +697,19 @@ EN = {
     "Kaydolunca {n} hediye kredi.": "{n} bonus credits when you sign up.",
     "Haber ver": "Notify me",
     "Erken erişim hediyesi": "Early access gift",
+    "Erken erişim davet ödülü": "Early access invite reward",
+    'Listedesin. <span class="hl">#{n}</span>': 'You\'re on the list. <span class="hl">#{n}</span>',
+    "{email} adresine açılışta haber vereceğiz.": "We'll email {email} at launch.",
+    "Bu e-postayla kaydolunca {n} hediye kredi seni bekliyor.": "Sign up with this email and {n} bonus credits are waiting for you.",
+    "Arkadaşını getir, açılışta kredi kazan": "Bring friends, earn credits at launch",
+    "Bu bağlantıyla listeye katılan her arkadaşın açılışta kaydolup e-postasını doğrulayınca sana +{n} kredi (en fazla {cap}).":
+        "For every friend who joins with this link and verifies their email at launch, you get +{n} credits (up to {cap}).",
+    "Yapay zekâ ile otomatik Reels/TikTok/Shorts videoları üreten bir site açılıyor, erken erişim listesine katıl: {link}":
+        "A site that makes automatic Reels/TikTok/Shorts videos with AI is launching soon. Join the early access list: {link}",
+    "Listeye katılan": "Joined the list",
+    "Kaydolan": "Signed up",
+    "Bu sayfanın bağlantısını sakla; davetlerini buradan takip edersin.": "Save this page's link to keep track of your invites.",
+    "Bu arada fikir makinesini dene": "Meanwhile, try the idea machine",
 
     # --- vitrin (demo yayını) ---
     "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",
