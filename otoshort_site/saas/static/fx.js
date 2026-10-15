@@ -52,20 +52,20 @@
   const outs = $$('.home main .reveal, .home main .marquee, .home [data-showcase]').filter(el => !el.parentElement.closest('.reveal'));
   const hfc = $('.hf-copy'), hfv = $('.hf-video');
   if (!reduce && (outs.length || hfc)) {
-    const maxB = fine ? 10 : 6; let raf = 0;
+    const maxB = fine ? 6 : 4; let raf = 0;
     outs.forEach(el => el.setAttribute('data-out', ''));
     const apply = (el, p) => {
       if (p <= .002) { if (el._o) { el.style.filter = el.style.opacity = el.style.scale = ''; el._o = 0; } return; }
-      const e = Math.pow(p, 1.3); el._o = 1;
-      el.style.filter = `blur(${(e * maxB).toFixed(2)}px)`; el.style.opacity = (1 - e * .85).toFixed(3); el.style.scale = (1 - e * .05).toFixed(4);
+      const e = Math.pow(p, 1.6); el._o = 1;
+      el.style.filter = `blur(${(e * maxB).toFixed(2)}px)`; el.style.opacity = (1 - e * .6).toFixed(3); el.style.scale = (1 - e * .03).toFixed(4);
     };
     const run = () => {
       raf = 0; const vh = innerHeight;
-      // öğenin alt kenarı ekranın üst yarısına girince başlar, menünün altına varınca tamamlanır
+      // öğenin alt kenarı ekranın üst üçte birine girince başlar, menünün altına varınca tamamlanır
       outs.forEach(el => { if (el.classList.contains('reveal') && !el.classList.contains('done')) return;
-        const r = el.getBoundingClientRect(); apply(el, Math.min(1, Math.max(0, (vh * .5 + 70 - r.bottom) / (vh * .5)))); });
-      if (hfc) { const p = Math.min(1, Math.max(0, scrollY / (vh * .75))); apply(hfc, p);
-        if (hfv) { hfv.style.scale = (1 + p * .08).toFixed(4); hfv.style.filter = p > .005 ? `blur(${(p * p * 14).toFixed(1)}px) brightness(${(1 - p * .55).toFixed(3)})` : ''; } }
+        const r = el.getBoundingClientRect(); apply(el, Math.min(1, Math.max(0, (vh * .3 + 70 - r.bottom) / (vh * .3)))); });
+      if (hfc) { const p = Math.min(1, Math.max(0, (scrollY - vh * .15) / (vh * .85))); apply(hfc, p);
+        if (hfv) { hfv.style.scale = (1 + p * .05).toFixed(4); hfv.style.filter = p > .005 ? `blur(${(p * p * 7).toFixed(1)}px) brightness(${(1 - p * .4).toFixed(3)})` : ''; } }
     };
     addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(run); }, { passive: true }); addEventListener('resize', run); run();
   }
