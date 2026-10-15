@@ -3,6 +3,7 @@ kullanım: python kare.py <0=yatay|1=dikey> <ilk> <son>"""
 import sys
 from pathlib import Path
 
+
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).resolve().parent
@@ -19,6 +20,8 @@ with sync_playwright() as p:
     pg.goto((HERE / "film.html").as_uri() + f"?m={m}")
     pg.wait_for_timeout(1500)
     for i in range(a, b):
+        if (out / f"{i:04d}.jpg").exists():  # yarıda kaldıysa kaldığı yerden devam
+            continue
         pg.evaluate(f"render({i / FPS})")
-        pg.screenshot(path=str(out / f"{i:04d}.jpg"), quality=94)
+        pg.screenshot(path=str(out / f"{i:04d}.jpg"), quality=94, timeout=180_000)
     br.close()

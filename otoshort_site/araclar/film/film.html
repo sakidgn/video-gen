@@ -194,8 +194,8 @@ function drawGrain(f) { const im = noiseImgs[f % 6]; for (let x = 0; x < 2; x++)
 const vc = $('vid'), vx = vc.getContext('2d'); const VD = 2; vc.width = 278 * VD; vc.height = 628 * VD;
 let BG = null;
 function makeBG() { // raflar + bokeh, bulanık; bir kez çizilir
-  const w = 278 + 60, h = 628; const c = document.createElement('canvas'); c.width = w * VD; c.height = h * VD; const x = c.getContext('2d'); x.scale(VD, VD);
-  x.filter = 'blur(2.2px)';
+  // düşük çözünürlükte çizilip büyütülür: ucuz ve yumuşak bir bulanıklık
+  const w = 278 + 60, h = 628, LO = .22; const c = document.createElement('canvas'); c.width = Math.round(w * LO); c.height = Math.round(h * LO); const x = c.getContext('2d'); x.scale(LO, LO);
   let g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#3a2a1c'); g.addColorStop(.55, '#6b4a2c'); g.addColorStop(1, '#2a1d12'); x.fillStyle = g; x.fillRect(0, 0, w, h);
   for (let r = 0; r < 4; r++) { const y = 70 + r * 95; x.fillStyle = 'rgba(20,12,6,.55)'; x.fillRect(0, y + 70, w, 10);
     for (let k = 0; k < 8; k++) { const xx = k * 44 + r * 17 - 20; const hue = [28, 8, 45, 95, 200, 340, 18][(k + r) % 7];
@@ -206,7 +206,7 @@ function makeBG() { // raflar + bokeh, bulanık; bir kez çizilir
 }
 function drawVideo(lt) { // lt: video içindeki zaman (sn)
   const W = vc.width, H = vc.height; vx.save(); vx.scale(VD, VD); const w = 278, h = 628;
-  if (!BG) makeBG(); vx.drawImage(BG, -Math.min(50, lt * 6), 0, BG.width / VD, BG.height / VD);
+  if (!BG) makeBG(); vx.imageSmoothingQuality = 'high'; vx.drawImage(BG, -Math.min(50, lt * 6), 0, 278 + 60, 628);
   vx.filter = 'none';
   // bulanıklık hissi + ön plan karartma
   g = vx.createLinearGradient(0, h * .45, 0, h); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.65)'); vx.fillStyle = g; vx.fillRect(0, 0, w, h);
