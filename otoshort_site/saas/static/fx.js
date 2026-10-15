@@ -32,9 +32,16 @@
   // Tanıtım filmi: telefonda dikey, masaüstünde yatay sürüm
   const hv = $('[data-hero-video]');
   if (hv) {
-    const mob = matchMedia('(max-width: 700px)').matches;
-    if (mob) hv.poster = hv.dataset.posterM;
-    if (!reduce) { hv.src = mob ? hv.dataset.srcM : hv.dataset.src; const p = hv.play(); if (p) p.catch(() => {}); }
+    const mq = matchMedia('(max-width: 700px), (max-aspect-ratio: 4/5)');  // telefon ya da dikey tablet
+    const go = () => { const p = hv.play(); if (p) p.catch(() => {}); };
+    const pick = () => {
+      const mob = mq.matches; hv.poster = mob ? hv.dataset.posterM : '/static/hero/hero.jpg';
+      if (reduce) return;
+      const src = mob ? hv.dataset.srcM : hv.dataset.src;
+      if (hv.getAttribute('src') !== src) { hv.muted = true; hv.playsInline = true; hv.src = src; go(); }
+    };
+    pick(); mq.addEventListener ? mq.addEventListener('change', pick) : mq.addListener(pick);
+    addEventListener('touchstart', go, { once: true, passive: true });  // iOS bazen ilk dokunuşu bekler
   }
 
   // Başlıkları kelimelere böl: bölüm göründüğünde kelime kelime belirsin

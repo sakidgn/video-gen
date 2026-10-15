@@ -4,14 +4,16 @@
 set -e
 cd "$(dirname "$0")"; EXE=$1; ST=../../saas/static
 FF=$(command -v ffmpeg || python3 -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())")
-[ "$2" = "devam" ] || rm -rf kareler
-for m in 0 1; do
+[ "$2" = "devam" ] || rm -rf kareler/1 $([ "$3" = "m" ] || echo kareler)
+# 3. argüman "m" ise sadece telefon sürümü üretilir
+MS="0 1"; [ "$3" = "m" ] && MS="1"
+for m in $MS; do
   for k in 0 1 2 3; do python3 kare.py $m $((k*120)) $(((k+1)*120)) $EXE & done; wait
 done
 mkdir -p $ST/hero
-$FF -y -loglevel error -framerate 30 -i kareler/0/%04d.jpg -vf format=yuv420p -c:v libx264 -preset slow -crf 24 -movflags +faststart -an $ST/hero/hero.mp4
+[ "$3" = "m" ] || $FF -y -loglevel error -framerate 30 -i kareler/0/%04d.jpg -vf format=yuv420p -c:v libx264 -preset slow -crf 24 -movflags +faststart -an $ST/hero/hero.mp4
 $FF -y -loglevel error -framerate 30 -i kareler/1/%04d.jpg -vf format=yuv420p,scale=720:1280:flags=lanczos -c:v libx264 -preset slow -crf 24 -movflags +faststart -an $ST/hero/hero-m.mp4
-$FF -y -loglevel error -i kareler/0/0045.jpg -vf scale=-2:720 -q:v 4 $ST/hero/hero.jpg
+[ "$3" = "m" ] || $FF -y -loglevel error -i kareler/0/0045.jpg -vf scale=-2:720 -q:v 4 $ST/hero/hero.jpg
 $FF -y -loglevel error -i kareler/1/0045.jpg -vf scale=720:-2 -q:v 4 $ST/hero/hero-m.jpg
 python3 - "$EXE" <<'PY'
 import sys

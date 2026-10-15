@@ -6,7 +6,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100vw;height:100vh;overflow:hidden;font-variant-numeric:lining-nums;background:#0c0b0a;font-family:"Plus Jakarta Sans",sans-serif;color:var(--ivory);-webkit-font-smoothing:antialiased}
 #smoke{position:absolute;inset:0;width:100%;height:100%}
-.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at var(--cx) 48%,transparent 40%,rgba(0,0,0,.72) 100%)}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at var(--cx) var(--cy),transparent 40%,rgba(0,0,0,.72) 100%)}
 #grain{position:absolute;inset:0;width:100%;height:100%;opacity:.07;mix-blend-mode:overlay;pointer-events:none}
 .stage{position:absolute;left:var(--cx);top:var(--cy);width:0;height:0;perspective:1400px}
 .shadow{position:absolute;left:-190px;top:300px;width:380px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.75),transparent);filter:blur(14px)}
@@ -143,7 +143,7 @@ const seg = (t, a, b) => cl((t - a) / (b - a));
 const eo = x => 1 - Math.pow(1 - x, 3), eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const spring = x => x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.exp(-6 * x) * Math.cos(9 * x);
 document.documentElement.style.setProperty('--cx', M ? '50%' : '64%');
-document.documentElement.style.setProperty('--cy', M ? '40%' : '50%');
+document.documentElement.style.setProperty('--cy', M ? '26%' : '50%');
 
 // ---------- duman (WebGL) ----------
 const cv = $('smoke'), gl = cv.getContext('webgl', { preserveDrawingBuffer: true });
@@ -179,7 +179,7 @@ function drawSmoke(t) {
   const w = Math.round(innerWidth * devicePixelRatio * SS), hh = Math.round(innerHeight * devicePixelRatio * SS);
   if (cv.width !== w) { cv.width = w; cv.height = hh; }
   gl.viewport(0, 0, w, hh); gl.uniform2f(uR, w, hh); gl.uniform1f(uT, t);
-  gl.uniform2f(uC, w * (M ? .5 : .64), hh * (M ? .6 : .5)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish();
+  gl.uniform2f(uC, w * (M ? .5 : .64), hh * (M ? .74 : .5)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish();
 }
 
 // ---------- gren ----------
@@ -243,15 +243,15 @@ const SUBS = [[0, 'Bu son <em>indirim</em>'], [1.1, '<em>Benim</em> dedim!'], [2
 function render(t) {
   t = ((t % T) + T) % T;
   const ph = $('phone'), stg = $('stage');
-  const S = M ? Math.min(innerWidth / 300 * .62, innerHeight / 650 * .64) : innerHeight / 650 * .84;
+  const S = M ? innerHeight * .4 / 650 : innerHeight / 650 * .84;
   const ang = Math.sin(t / T * Math.PI * 2) * 9 - (M ? 0 : 6), tilt = Math.sin(t / T * Math.PI * 4) * 2.2 + 3, fl = Math.sin(t / T * Math.PI * 4) * 7;
   ph.style.transform = `translateY(${fl}px) scale(${S}) rotateY(${ang}deg) rotateX(${tilt}deg)`;
   $('shadow').style.transform = `scale(${S}) scaleX(${1 - fl / 120})`; $('shadow').style.top = (300 * S - 280) + 'px';
   ph.style.setProperty('--ga', (110 + ang * 3) + 'deg');
   // ölçek: pill yerleşimi
   const P = (id, x, y, a, b) => { const e = $(id), k = spring(seg(t, a, a + .9)), out = seg(t, b, b + .5);
-    e.style.opacity = Math.min(seg(t, a, a + .35), 1 - out); e.style.transform = `translate(${x * S}px,${y * S + (1 - k) * 30}px) scale(${(.85 + .15 * k) * Math.min(S, 1.3) * (M ? .74 : 1)})`; e.style.left = '0'; e.style.top = '0'; };
-  if (M) { P('p1', -235, -268, 12, 15.2); P('p2', 22, -196, 12.35, 15.2); P('p3', -245, -124, 12.7, 15.2); $('p4').style.display = 'none'; }
+    e.style.opacity = Math.min(seg(t, a, a + .35), 1 - out); e.style.transform = M ? `translate(${x}px,${y + (1 - k) * 24}px) scale(${(.85 + .15 * k) * .8})` : `translate(${x * S}px,${y * S + (1 - k) * 30}px) scale(${(.85 + .15 * k) * Math.min(S, 1.3)})`; e.style.left = '0'; e.style.top = '0'; };
+  if (M) { P('p1', -228, -150, 12, 15.2); P('p2', 56, -70, 12.35, 15.2); P('p3', -228, 20, 12.7, 15.2); P('p4', 62, 110, 13.05, 15.2); }
   else { P('p1', -330, -280, 12, 15.2); P('p2', 190, -190, 12.35, 15.2); P('p3', -350, -40, 12.7, 15.2); P('p4', 200, 120, 13.05, 15.2); }
   $('views').textContent = Math.round(eo(seg(t, 13, 15)) * 12400).toLocaleString('tr-TR') + ' izlenme';
   // A: 0-4.4

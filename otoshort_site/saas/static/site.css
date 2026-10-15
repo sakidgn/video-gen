@@ -226,15 +226,20 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:24px 0}
 @keyframes hfup{to{opacity:1;transform:none;filter:none}}
 @keyframes hfin{from{opacity:0;transform:scale(1.04)}}
 @keyframes bob{50%{transform:translate(-50%,6px)}}
+@media(max-aspect-ratio:4/5) and (min-width:701px){.hf-shade{background:linear-gradient(0deg,#0c0b0a 0%,rgba(12,11,10,.92) 30%,rgba(12,11,10,0) 56%)}}
 @media(max-width:700px){
-  .hero-film{height:100svh;min-height:600px}
-  .hf-shade{background:linear-gradient(0deg,#0c0b0a 0%,rgba(12,11,10,.92) 30%,rgba(12,11,10,0) 56%),linear-gradient(180deg,rgba(12,11,10,.55) 0%,rgba(12,11,10,0) 16%)}
-  .hf-copy{gap:18px;padding-bottom:64px}
-  .hf-copy h1{font-size:clamp(44px,12.5vw,58px)}
+  /* telefonda film ekranın üst kısmını kaplar; yazı her zaman filmdeki telefonun altından başlar,
+     sığmazsa bölüm aşağı uzar (kısa ekranlarda üst üste binmez) */
+  .hero-film{height:auto;min-height:100svh;max-height:none}
+  .hf-video,.hf-shade{bottom:auto;height:100svh;object-position:50% 0}
+  .hf-shade{background:linear-gradient(0deg,#0c0b0a 0%,rgba(12,11,10,.9) 30%,rgba(12,11,10,0) 54%),linear-gradient(180deg,rgba(12,11,10,.55) 0%,rgba(12,11,10,0) 14%)}
+  .hero-film .hf-copy{gap:16px;padding-top:calc(47svh + 8px);padding-bottom:48px}
+  .hf-copy h1{font-size:clamp(40px,11.5vw,56px)}
   .hf-copy .lead{font-size:calc(15.5px * var(--fs))}
   .hf-copy .row .btn-ghost{display:none}
   .hf-scroll{display:none}
 }
+@media(max-width:700px) and (max-height:720px){.hf-copy .trust{display:none}}
 .platforms{display:flex;align-items:center;justify-content:center;gap:clamp(18px,4vw,48px);flex-wrap:wrap;padding:26px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--text-3)}
 .platforms .eyebrow:before{display:none}
 .platforms .pf{display:inline-flex;align-items:center;gap:9px;font-size:calc(15px * var(--fs));font-weight:700;color:var(--text-2);letter-spacing:0}
