@@ -34,10 +34,18 @@ def init(url: str | None = None) -> None:
     _migrate()
 
 
+# sonradan eklenen sütunlar: (tablo, sütun, tanım)
+NEW_COLUMNS = [
+    ("jobs", "ref_image", "VARCHAR(120) NOT NULL DEFAULT ''"),
+    ("channels", "ref_image", "VARCHAR(120) NOT NULL DEFAULT ''"),
+]
+
+
 def _migrate() -> None:
     """Eski veritabanlarına sonradan eklenen sütunları ekler (veri kaybı olmadan)."""
     from sqlalchemy import inspect, text
 
+    tables = set(inspect(engine).get_table_names())
     cols = {c["name"] for c in inspect(engine).get_columns("users")}
     with engine.begin() as conn:
         if "google_sub" not in cols:
@@ -52,6 +60,9 @@ def _migrate() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN referred_by INTEGER"))
         if "ref_rewarded" not in cols:
             conn.execute(text("ALTER TABLE users ADD COLUMN ref_rewarded BOOLEAN NOT NULL DEFAULT 0"))
+        for table, col, ddl in NEW_COLUMNS:
+            if table in tables and col not in {c["name"] for c in inspect(engine).get_columns(table)}:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}"))
         conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_sub ON users (google_sub)"))
         conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_ref_code ON users (ref_code)"))
 

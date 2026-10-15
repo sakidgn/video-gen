@@ -56,11 +56,11 @@ def notify(user_id: int, subject: str, title: str, intro: str, button: tuple[str
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
-               channel_id: int | None = None, slot: str | None = None) -> Job:
+               channel_id: int | None = None, slot: str | None = None, ref_image: str = "") -> Job:
     """İşi oluşturur ve krediyi düşer (yetmezse credits.NotEnoughCredits)."""
     cost = config.QUALITIES[quality]["credits"]
     job = Job(user_id=user_id, channel_id=channel_id, slot=slot, idea=idea, characters=characters, style=style,
-              language=language, quality=quality, cost=cost)
+              language=language, quality=quality, cost=cost, ref_image=ref_image or "")
     s.add(job)
     s.flush()
     credits.charge(s, user_id, cost, f"Video #{job.id} ({config.QUALITIES[quality]['label']})", job.id)
@@ -79,6 +79,12 @@ def run_job(job_id: int, generator) -> None:
         past = _past_summaries(s, job)
         params = dict(idea=job.idea, characters=job.characters, style=job.style, language=job.language)
         quality = job.quality
+        from . import media
+
+        ref = media.ref_path(job.ref_image) if job.ref_image and config.supports_refs(job.quality) else None
+        refs = [ref] if ref else []
+        if refs:
+            params["has_ref"] = True
     try:
         script = generator.write_script(**params, past=past)
         with db.session() as s:
@@ -86,7 +92,7 @@ def run_job(job_id: int, generator) -> None:
                 prompt=script.video_prompt, title=script.title, caption=script.caption,
                 hashtags=" ".join(script.hashtags), summary=script.summary))
         rel = f"{job_id}.mp4"
-        generator.make_video(prompt=script.video_prompt, quality=quality, out=video_dir() / rel)
+        generator.make_video(prompt=script.video_prompt, quality=quality, out=video_dir() / rel, refs=refs)
         make_poster(video_dir() / rel)
         with db.session() as s:
             s.execute(update(Job).where(Job.id == job_id).values(status="hazir", video_file=rel, finished_at=now()))
@@ -155,7 +161,8 @@ def schedule_channels(at: datetime | None = None) -> list[int]:
             try:
                 with db.session() as s:
                     job = create_job(s, ch.user_id, idea=ch.topic, characters=ch.characters, style=ch.style,
-                                     language=ch.language, quality=ch.quality, channel_id=ch.id, slot=slot)
+                                     language=ch.language, quality=ch.quality, channel_id=ch.id, slot=slot,
+                                     ref_image=ch.ref_image)
                     s.execute(update(Channel).where(Channel.id == ch.id).values(notice=""))
                     created.append(job.id)
             except credits.NotEnoughCredits:

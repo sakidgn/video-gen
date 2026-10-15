@@ -32,18 +32,41 @@ TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")
 TIMEZONE = _env("SAAT_DILIMI", "Europe/Istanbul")
 WORKER_ENABLED = _env("ISCI", "1") != "0"
 
-# Kalite seçenekleri: kullanıcıdan düşen kredi (1 kredi ≈ 1 TL). Maliyet: 8 sn Veo 3.1 (Google fiyat listesi).
+# Kalite seçenekleri: kullanıcıdan düşen kredi (1 kredi ≈ 1 TL).
+# model: "google:<veo modeli>" (ön ek yazılmazsa google) ya da "fal:<fal.ai uç noktası>"; her kademe farklı firma olabilir.
+# MODEL_<KADEME>_ARGS: fal.ai'ye gönderilecek ek JSON (ör. {"duration": "5"}); MODEL_<KADEME>_REF: referans görselli
+# (image-to-video) fal uç noktası. Google Veo 3.1 referans görseli kendisi destekler.
+def _quality(key: str, label: str, model: str, resolution: str, credits: int, desc: str) -> dict:
+    env = key.upper()
+    return {"label": label, "model": _env(f"MODEL_{env}", model), "args": _env(f"MODEL_{env}_ARGS"),
+            "ref_model": _env(f"MODEL_{env}_REF"), "resolution": _env(f"MODEL_{env}_COZUNURLUK", resolution),
+            "credits": int(_env(f"KREDI_{env}", str(credits)) or credits), "desc": desc}
+
+
 QUALITIES = {
-    "lite": {"label": "Ekonomik", "model": _env("MODEL_LITE", "veo-3.1-lite-generate-preview"),
-             "resolution": "720p", "credits": 35, "desc": "Hızlı ve ucuz, denemeler için"},
-    "fast": {"label": "Standart", "model": _env("MODEL_FAST", "veo-3.1-fast-generate-preview"),
-             "resolution": "720p", "credits": 65, "desc": "Çoğu kanal için en iyi denge"},
-    "standard": {"label": "Premium", "model": _env("MODEL_STANDARD", "veo-3.1-generate-preview"),
-                 "resolution": "1080p", "credits": 250, "desc": "En yüksek kalite"},
+    "lite": _quality("lite", "Ekonomik", "veo-3.1-lite-generate-preview", "720p", 35, "Hızlı ve ucuz, denemeler için"),
+    "fast": _quality("fast", "Standart", "veo-3.1-fast-generate-preview", "720p", 65, "Çoğu kanal için en iyi denge"),
+    "standard": _quality("standard", "Premium", "veo-3.1-generate-preview", "1080p", 250, "En yüksek kalite"),
 }
+FAL_KEY = _env("FAL_KEY")
+
+
+def provider(quality: str) -> tuple[str, str]:
+    """('google' | 'fal', model adı)"""
+    spec = QUALITIES[quality]["model"]
+    name, _, rest = spec.partition(":")
+    return (name, rest) if rest and name in ("google", "fal") else ("google", spec)
+
+
+def supports_refs(quality: str) -> bool:
+    """Bu kalitede referans karakter görseli kullanılabilir mi?"""
+    return provider(quality)[0] == "google" or bool(QUALITIES[quality]["ref_model"])
+
+
 DURATION_SECONDS = 8
 # Yönetim panelindeki kâr tahmini için: 8 sn videonun Google fiyatı (USD) ve dolar kuru
-VIDEO_COST_USD = {"lite": 0.40, "fast": 0.80, "standard": 3.20}
+VIDEO_COST_USD = {k: float(_env(f"MALIYET_{k.upper()}", v) or v) for k, v in
+                  {"lite": "0.40", "fast": "0.80", "standard": "3.20"}.items()}
 USD_TRY = float(_env("DOLAR_KURU", "42") or 42)
 
 # Kredi paketleri: (TL, verilen kredi)

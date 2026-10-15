@@ -29,13 +29,16 @@ RULES = (
 )
 
 
-def build_script_request(*, idea: str, characters: str, style: str, language: str, past: list[str]) -> str:
+def build_script_request(*, idea: str, characters: str, style: str, language: str, past: list[str],
+                         has_ref: bool = False) -> str:
     lang = config.LANGUAGES.get(language, language)
     style_desc = config.STYLES.get(style, style)
     parts = [
         f"Write one {config.DURATION_SECONDS}-second vertical (9:16) short video for TikTok/Reels/Shorts.",
         f"Visual style: {style_desc}.",
         f"Characters: {characters.strip() or 'invent 1-2 memorable original characters'}.",
+        *(["A reference image of the main character is provided to the video model: describe that character "
+           "consistently and keep its exact look (do not invent a different design)."] if has_ref else []),
         f"Idea from the user: {idea.strip()}" if idea.strip() else "Invent a fresh, funny, surprising idea.",
         f"Spoken dialogue language: {lang}.",
         RULES,
@@ -79,7 +82,7 @@ class RealAI:
             client = genai.Client(http_options=types.HttpOptions(timeout=120_000))
         self.client = client
 
-    def write_script(self, *, idea, characters, style, language, past) -> Script:
+    def write_script(self, *, idea, characters, style, language, past, has_ref=False) -> Script:
         from google.genai import types
 
         schema = {
@@ -94,7 +97,7 @@ class RealAI:
         resp = self.client.models.generate_content(
             model=config.TEXT_MODEL,
             contents=build_script_request(idea=idea, characters=characters, style=style, language=language,
-                                          past=past),
+                                          past=past, has_ref=has_ref),
             config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
                                                temperature=1.1),
         )
@@ -124,17 +127,34 @@ class RealAI:
                                                temperature=1.2))
         return [i.strip() for i in json.loads(resp.text).get("ideas", []) if i.strip()][:n]
 
-    def make_video(self, *, prompt: str, quality: str, out: Path, poll_s: int = 10, timeout_s: int = 900) -> Path:
+    def make_video(self, *, prompt: str, quality: str, out: Path, refs: list[Path] | None = None,
+                   poll_s: int = 10, timeout_s: int = 900) -> Path:
+        """Kalitenin ayarlı sağlayıcısıyla (Google Veo ya da fal.ai) videoyu üretip out'a kaydeder."""
+        name, model = config.provider(quality)
+        refs = list(refs or [])[:3]
+        if name == "fal":
+            return FalVideo().make(quality=quality, model=model, prompt=prompt, out=out, refs=refs,
+                                   poll_s=poll_s, timeout_s=timeout_s)
+        return self._veo(model=model, prompt=prompt, quality=quality, out=out, refs=refs, poll_s=poll_s,
+                         timeout_s=timeout_s)
+
+    def _veo(self, *, model: str, prompt: str, quality: str, out: Path, refs: list[Path], poll_s: int,
+             timeout_s: int) -> Path:
         from google.genai import types
 
         q = config.QUALITIES[quality]
+        extra = {}
+        if refs:  # referans karakter: videoda aynı görünüm korunur
+            extra["reference_images"] = [
+                types.VideoGenerationReferenceImage(image=types.Image(image_bytes=r.read_bytes(), mime_type="image/png"),
+                                                    reference_type=types.VideoGenerationReferenceType.ASSET)
+                for r in refs]
         op = self.client.models.generate_videos(
-            model=q["model"],
+            model=model,
             prompt=prompt,
             config=types.GenerateVideosConfig(
                 aspect_ratio="9:16", resolution=q["resolution"], duration_seconds=config.DURATION_SECONDS,
-                negative_prompt="watermark, logo, text, subtitles, captions, username, social media interface",
-                number_of_videos=1,
+                negative_prompt=NEGATIVE, number_of_videos=1, **extra,
             ),
         )
         start = time.time()
@@ -156,6 +176,78 @@ class RealAI:
         return out
 
 
+NEGATIVE = "watermark, logo, text, subtitles, captions, username, social media interface"
+
+
+class FalVideo:
+    """fal.ai kuyruk API'si: tek anahtarla Kling, Hailuo, Wan, Seedance gibi modeller.
+    POST https://queue.fal.run/<uç nokta> → durum adresini yokla → sonuç JSON'undaki video.url'i indir."""
+    BASE = "https://queue.fal.run"
+
+    def __init__(self, session=None, key: str | None = None):
+        import requests
+
+        self.http = session or requests.Session()
+        self.key = key if key is not None else config.FAL_KEY
+        if not self.key:
+            raise RuntimeError("FAL_KEY ayarlı değil")
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Key {self.key}", "Content-Type": "application/json"}
+
+    def payload(self, quality: str, prompt: str, refs: list[Path]) -> dict:
+        import base64
+
+        data = {"prompt": prompt, "aspect_ratio": "9:16", "duration": str(config.DURATION_SECONDS),
+                "negative_prompt": NEGATIVE, "generate_audio": True}
+        if config.QUALITIES[quality]["args"]:
+            data.update(json.loads(config.QUALITIES[quality]["args"]))
+        if refs:
+            data["image_url"] = "data:image/png;base64," + base64.b64encode(refs[0].read_bytes()).decode()
+        return data
+
+    def make(self, *, quality: str, model: str, prompt: str, out: Path, refs: list[Path], poll_s: int = 10,
+             timeout_s: int = 900) -> Path:
+        endpoint = config.QUALITIES[quality]["ref_model"] if refs and config.QUALITIES[quality]["ref_model"] else model
+        r = self.http.post(f"{self.BASE}/{endpoint}", headers=self._headers(),
+                           json=self.payload(quality, prompt, refs if endpoint != model else []), timeout=60)
+        self._check(r)
+        job = r.json()
+        start = time.time()
+        while True:
+            st = self.http.get(job["status_url"], headers=self._headers(), timeout=30)
+            self._check(st)
+            status = st.json().get("status")
+            if status == "COMPLETED":
+                break
+            if status in ("FAILED", "ERROR", "CANCELLED"):
+                raise RuntimeError(f"fal.ai hatası: {st.text[:300]}")
+            if time.time() - start > timeout_s:
+                raise TimeoutError("Video üretimi zaman aşımına uğradı")
+            time.sleep(poll_s)
+        res = self.http.get(job["response_url"], headers=self._headers(), timeout=60)
+        self._check(res)
+        url = ((res.json() or {}).get("video") or {}).get("url")
+        if not url:
+            raise ContentBlocked("fal.ai video döndürmedi")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with self.http.get(url, stream=True, timeout=300) as dl:
+            self._check(dl)
+            with open(out, "wb") as f:
+                for chunk in dl.iter_content(1 << 16):
+                    f.write(chunk)
+        return out
+
+    @staticmethod
+    def _check(r) -> None:
+        if r.status_code < 400:
+            return
+        body = r.text[:300]
+        if r.status_code == 422 and any(w in body.lower() for w in ("content", "policy", "safety", "nsfw")):
+            raise ContentBlocked(body)
+        raise RuntimeError(f"fal.ai {r.status_code}: {body}")
+
+
 class FakeAI:
     """API'ye gitmeden çalışan sahte üretici (geliştirme ve testler için)."""
 
@@ -164,7 +256,7 @@ class FakeAI:
         self.pretty = pretty  # True: karakterli demo klip (~10 sn sürer); False: hızlı test görüntüsü
         self.calls = 0
 
-    def write_script(self, *, idea, characters, style, language, past) -> Script:
+    def write_script(self, *, idea, characters, style, language, past, has_ref=False) -> Script:
         self.calls += 1
         n = len(past) + 1
         return Script(video_prompt=f"[sahte] {idea or 'rastgele fikir'} #{n}", title=f"Deneme videosu {n} 😂",
@@ -175,7 +267,8 @@ class FakeAI:
 
         return random.sample(IDEA_POOL, n)
 
-    def make_video(self, *, prompt: str, quality: str, out: Path, **_) -> Path:
+    def make_video(self, *, prompt: str, quality: str, out: Path, refs=None, **_) -> Path:
+        self.last_refs = list(refs or [])
         if self.fail_with:
             raise self.fail_with
         out.parent.mkdir(parents=True, exist_ok=True)

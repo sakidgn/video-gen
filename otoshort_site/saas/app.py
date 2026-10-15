@@ -4,7 +4,7 @@ import secrets
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -12,7 +12,7 @@ from sqlalchemy import func, or_, select
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
-from . import config, credits, db, growth, mailer, oauth, tokens, worker
+from . import config, credits, db, growth, mailer, media, oauth, tokens, worker
 from .icons import LOGO, brand, icon
 from .models import Channel, CreditTx, Job, PromoCode, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
@@ -120,6 +120,20 @@ def remember_ref(request: Request, code: str) -> bool:
     return True
 
 
+async def read_reference(request: Request, upload, user_id: int, keep: str = "") -> str | None:
+    """Formdan gelen referans görseli kaydeder. Görsel yoksa keep (kullanıcının mevcut görseli) döner.
+    Hatalı görselde flash mesajı bırakıp None döner."""
+    if upload is not None and getattr(upload, "filename", ""):
+        data = await upload.read(media.MAX_REF_BYTES + 1)
+        try:
+            return media.save_reference(data, user_id)
+        except media.MediaError as e:
+            flash(request, str(e), "err")
+            return None
+    keep = keep or ""
+    return keep if keep.startswith(f"{user_id}/") and media.ref_path(keep) else ""
+
+
 def require_verified(request: Request, user: User):
     """Doğrulanmamış hesap video/kanal/kredi işlemi yapamaz; yönlendirme döndürür (yoksa None)."""
     if user.email_verified:
@@ -145,6 +159,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
         google_button=oauth.enabled() or config.FAKE_AI, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
         quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS,
+        ref_qualities=[k for k in config.QUALITIES if config.supports_refs(k)],
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
@@ -566,18 +581,22 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return render(request, "video_yeni.html", user, idea=clean(idea) or (pre.idea if pre else ""), pre=pre)
 
     @app.post("/video/yeni", dependencies=[Depends(check_csrf)])
-    def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
-                  characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
-                  quality: str = Form("fast")):
+    async def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
+                        characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
+                        quality: str = Form("fast"), ref: UploadFile | None = File(None), ref_keep: str = Form(""),
+                        ref_remove: str = Form("")):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
+        ref_image = "" if ref_remove else await read_reference(request, ref, user.id, ref_keep)
+        if ref_image is None:
+            return go("/video/yeni")
         try:
             with db.session() as s:
                 job = worker.create_job(
                     s, user.id, idea=clean(idea), characters=clean(characters),
                     style=_valid_choice(style, config.STYLES, "cartoon"),
-                    language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality)
+                    language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image)
                 job_id = job.id
         except credits.NotEnoughCredits:
             flash(request, f"Yeterli kredin yok. Bu kalite {config.QUALITIES[quality]['credits']} kredi.", "err")
@@ -629,7 +648,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             if old.user_id != user.id:
                 raise HTTPException(404)
             params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
-                          quality=old.quality)
+                          quality=old.quality, ref_image=old.ref_image)
         try:
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
@@ -659,6 +678,13 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             log.exception("Fikir üretilemedi")
             return JSONResponse({"error": "Şu an fikir üretilemedi, biraz sonra tekrar dene."}, status_code=503)
         return {"ideas": [clean(i, 200) for i in ideas][:4]}
+
+    @app.get("/referans/{uid}/{name}")
+    def reference_image(uid: int, name: str, user: User = Depends(require_user)):
+        path = media.ref_path(f"{uid}/{name}")
+        if (uid != user.id and not user.is_admin) or not path:
+            raise HTTPException(404)
+        return FileResponse(path, media_type="image/png", headers={"Cache-Control": "private, max-age=86400"})
 
     @app.get("/video/{job_id}/durum")
     def job_status(job_id: int, user: User = Depends(require_user)):
@@ -736,10 +762,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                         f.unlink()
                 job.channel_id = None
                 job.idea = job.characters = job.prompt = job.title = job.caption = job.hashtags = job.summary = ""
+                job.ref_image = ""
                 job.video_file = ""
             # muhasebe kayıtları (ödeme/kredi hareketleri) yasal süre boyunca kalır; kişisel bilgiler silinir
             u.email = f"silindi-{u.id}@silindi.invalid"
             u.name, u.pw_hash, u.google_sub, u.notify, u.email_verified, u.is_admin = "", "", None, False, False, False
+        media.delete_user_media(user.id)
         request.session.clear()
         flash(request, "Hesabın ve videoların silindi. Görüşmek üzere. 👋")
         return go("/")
@@ -770,7 +798,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     async def channel_new(request: Request, user: User = Depends(require_user)):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
-        data = _channel_from_form(await request.form())
+        form = await request.form()
+        data = _channel_from_form(form)
+        ref_image = await read_reference(request, form.get("ref"), user.id)
+        if ref_image is None:
+            return go("/kanallar/yeni")
+        data["ref_image"] = ref_image
         with db.session() as s:
             if s.scalar(select(func.count(Channel.id)).where(Channel.user_id == user.id)) >= 10:
                 flash(request, "En fazla 10 kanal açabilirsin.", "err")
@@ -794,7 +827,14 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     @app.post("/kanallar/{cid}", dependencies=[Depends(check_csrf)])
     async def channel_edit(request: Request, cid: int, user: User = Depends(require_user)):
-        data = _channel_from_form(await request.form())
+        form = await request.form()
+        data = _channel_from_form(form)
+        with db.session() as s:
+            current = _own_channel(s, user, cid).ref_image
+        ref_image = "" if form.get("ref_remove") else await read_reference(request, form.get("ref"), user.id, current)
+        if ref_image is None:
+            return go(f"/kanallar/{cid}")
+        data["ref_image"] = ref_image
         with db.session() as s:
             ch = _own_channel(s, user, cid)
             for k, v in data.items():
@@ -820,7 +860,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         with db.session() as s:
             ch = _own_channel(s, user, cid)
             params = dict(idea=ch.topic, characters=ch.characters, style=ch.style, language=ch.language,
-                          quality=ch.quality, channel_id=ch.id)
+                          quality=ch.quality, channel_id=ch.id, ref_image=ch.ref_image)
         slot = "elle " + datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S.%f")
         try:
             with db.session() as s:

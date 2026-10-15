@@ -90,6 +90,7 @@ class Channel(Base):
     times: Mapped[str] = mapped_column(String(200), default="12:00")  # "09:45 18:30"
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     notice: Mapped[str] = mapped_column(String(300), default="")
+    ref_image: Mapped[str] = mapped_column(String(120), default="")  # referans karakter görseli ("uid/ad.png")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
     def time_list(self) -> list[str]:
@@ -116,6 +117,7 @@ class Job(Base):
     hashtags: Mapped[str] = mapped_column(String(400), default="")
     summary: Mapped[str] = mapped_column(Text, default="")
     video_file: Mapped[str] = mapped_column(String(300), default="")
+    ref_image: Mapped[str] = mapped_column(String(120), default="")
     error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

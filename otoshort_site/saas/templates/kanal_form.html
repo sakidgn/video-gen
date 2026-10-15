@@ -5,7 +5,7 @@
   <div class="t"><a class="faint small row" href="/kanallar" style="gap:6px">{{ icon('arrow-left', 15) }} Kanallar</a><h1>{{ ch.name if ch else 'Yeni otomatik kanal' }}</h1></div>
   {% if ch %}<span class="badge {{ 'b-ok' if ch.active else 'b-off' }}">{{ 'Aktif' if ch.active else 'Durduruldu' }}</span>{% endif %}
 </div>
-<form method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}" data-studio data-balance="{{ user.credits }}">
+<form method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}" enctype="multipart/form-data" data-studio data-balance="{{ user.credits }}">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="studio">
     <div class="card card-lg reveal">

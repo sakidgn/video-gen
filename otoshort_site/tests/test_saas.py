@@ -633,3 +633,154 @@ def test_index_calculator_and_faq(client):
     html = client.get("/").text
     assert "data-calc" in html and 'data-packages=\'[[250, 250]' in html
     assert "Arkadaşımı davet edersem" in html
+
+
+def _make_png() -> bytes:
+    import subprocess
+    import tempfile
+
+    import imageio_ffmpeg
+
+    with tempfile.TemporaryDirectory() as d:
+        out = f"{d}/x.png"
+        subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-loglevel", "error", "-f", "lavfi", "-i",
+                        "color=c=orange:s=64x64", "-frames:v", "1", out], check=True)
+        return open(out, "rb").read()
+
+
+PNG_1PX = _make_png()
+
+
+def test_reference_image_flow(client, tmp_path):
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    r = client.post("/video/yeni", data={"idea": "maskot", "style": "cartoon", "language": "tr", "quality": "fast",
+                                         "csrf": t}, files={"ref": ("maskot.png", PNG_1PX, "image/png")},
+                    follow_redirects=False)
+    jid = int(r.headers["location"].rsplit("/", 1)[1])
+    with db.session() as s:
+        ref = s.get(Job, jid).ref_image
+    assert ref.endswith(".png") and (tmp_path / "referanslar" / ref).read_bytes().startswith(b"\x89PNG")
+    assert client.get(f"/referans/{ref}").status_code == 200
+    gen = ai.FakeAI()
+    run_queue(gen)
+    assert gen.last_refs and gen.last_refs[0].name == ref.split("/")[1]
+    # benzerini üret görseli de taşır
+    r = client.post(f"/video/{jid}/tekrar", data={"csrf": t}, follow_redirects=False)
+    with db.session() as s:
+        assert s.get(Job, int(r.headers["location"].rsplit("/", 1)[1])).ref_image == ref
+    # başkası göremez
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    assert other.get(f"/referans/{ref}").status_code == 404
+    # görsel olmayan dosya reddedilir, kredi düşmez
+    before = balance("a@b.com")
+    r = client.post("/video/yeni", data={"idea": "x", "csrf": t}, files={"ref": ("a.png", b"not an image", "image/png")})
+    assert "Sadece PNG, JPG ya da WEBP" in r.text and balance("a@b.com") == before
+    # başkasının görseli "koru" alanıyla kullanılamaz
+    give("o@b.com", 100)
+    r = other.post("/video/yeni", data={"idea": "x", "ref_keep": ref, "csrf": csrf(other, "/video/yeni")},
+                   follow_redirects=False)
+    with db.session() as s:
+        assert s.get(Job, int(r.headers["location"].rsplit("/", 1)[1])).ref_image == ""
+
+
+def test_channel_reference_copied_to_scheduled_jobs(client):
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/kanallar/yeni")
+    client.post("/kanallar/yeni", data={"name": "Maskot", "topic": "x", "times": "09:00", "csrf": t},
+                files={"ref": ("m.png", PNG_1PX, "image/png")})
+    with db.session() as s:
+        ch = s.scalar(select(Channel))
+        ref, cid = ch.ref_image, ch.id
+    assert ref
+    worker.schedule_channels(datetime(2026, 1, 5, 9, 1, tzinfo=ZoneInfo(config.TIMEZONE)))
+    with db.session() as s:
+        assert s.scalar(select(Job.ref_image).where(Job.channel_id == cid)) == ref
+    client.post(f"/kanallar/{cid}", data={"name": "Maskot", "times": "09:00", "ref_remove": "1", "csrf": t})
+    with db.session() as s:
+        assert s.get(Channel, cid).ref_image == ""
+
+
+def test_provider_config_and_refs(monkeypatch):
+    q = dict(config.QUALITIES["lite"])
+    monkeypatch.setitem(config.QUALITIES, "lite", {**q, "model": "fal:fal-ai/wan/v3/text-to-video", "ref_model": ""})
+    assert config.provider("lite") == ("fal", "fal-ai/wan/v3/text-to-video") and not config.supports_refs("lite")
+    assert config.provider("standard")[0] == "google" and config.supports_refs("standard")
+
+
+def test_veo_sends_reference_images(tmp_path):
+    from types import SimpleNamespace
+
+    seen = {}
+
+    class Models:
+        def generate_videos(self, **kw):
+            seen.update(kw)
+            video = SimpleNamespace(save=lambda p: open(p, "wb").write(b"mp4"))
+            return SimpleNamespace(done=True, error=None, response=SimpleNamespace(
+                generated_videos=[SimpleNamespace(video=video)]))
+
+    ref = tmp_path / "r.png"
+    ref.write_bytes(PNG_1PX)
+    real = ai.RealAI(client=SimpleNamespace(models=Models(), files=SimpleNamespace(download=lambda file: None)))
+    real.make_video(prompt="p", quality="standard", out=tmp_path / "o.mp4", refs=[ref])
+    imgs = seen["config"].reference_images
+    assert len(imgs) == 1 and imgs[0].image.image_bytes == PNG_1PX and (tmp_path / "o.mp4").exists()
+
+
+def test_fal_video_flow_and_content_block(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    q = dict(config.QUALITIES["lite"])
+    monkeypatch.setitem(config.QUALITIES, "lite", {**q, "model": "fal:fal-ai/kling/v3", "args": '{"duration": "5"}'})
+    calls = []
+
+    def resp(code=200, data=None, text="", chunks=()):
+        return SimpleNamespace(status_code=code, json=lambda: data, text=text or str(data),
+                               iter_content=lambda n: iter(chunks), __enter__=None)
+
+    class Dl:
+        status_code, text = 200, ""
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def iter_content(self, n):
+            return iter([b"video", b"bytes"])
+
+    class Http:
+        polls = 0
+
+        def post(self, url, headers, json, timeout):
+            calls.append(("post", url, json))
+            assert headers["Authorization"] == "Key k"
+            return resp(data={"status_url": "S", "response_url": "R"})
+
+        def get(self, url, headers=None, timeout=None, stream=False):
+            calls.append(("get", url))
+            if url == "S":
+                Http.polls += 1
+                return resp(data={"status": "IN_PROGRESS" if Http.polls < 2 else "COMPLETED"})
+            if url == "R":
+                return resp(data={"video": {"url": "https://cdn/v.mp4"}})
+            return Dl()
+
+    out = ai.FalVideo(session=Http(), key="k").make(quality="lite", model="fal-ai/kling/v3", prompt="p",
+                                                    out=tmp_path / "v.mp4", refs=[], poll_s=0)
+    assert out.read_bytes() == b"videobytes"
+    post = calls[0]
+    assert post[1] == "https://queue.fal.run/fal-ai/kling/v3" and post[2]["duration"] == "5" and post[2]["aspect_ratio"] == "9:16"
+
+    class Blocked(Http):
+        def post(self, url, headers, json, timeout):
+            return resp(422, text='{"detail": "content policy violation"}')
+
+    with pytest.raises(ai.ContentBlocked):
+        ai.FalVideo(session=Blocked(), key="k").make(quality="lite", model="m", prompt="p", out=tmp_path / "x.mp4",
+                                                     refs=[], poll_s=0)

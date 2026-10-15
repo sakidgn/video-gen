@@ -2,6 +2,18 @@
 <div class="step-title"><span class="n">{{ n0 + 1 }}</span><h3>Karakterler</h3><span class="faint">İsteğe bağlı</span></div>
 <textarea class="textarea" name="characters" maxlength="600" placeholder="Örn: Sinirli, kocaman kaşlı bir portakal ve her şeye gülen saf bir muz.">{{ ch.characters if ch else '' }}</textarea>
 <p class="hint" style="margin-top:8px">Görünüşlerini ve kişiliklerini anlat. Boş bırakırsan yapay zekâ karakter uydurur. Ünlüler ve başkasına ait karakterler kullanılamaz.</p>
+<div class="ref-up">
+  <label class="ref-drop">
+    <input type="file" name="ref" accept="image/png,image/jpeg,image/webp" data-ref-input>
+    <span class="ref-thumb" data-ref-thumb>{% if ch and ch.ref_image %}<img src="/referans/{{ ch.ref_image }}" alt="Referans karakter">{% else %}{{ icon('user', 22) }}{% endif %}</span>
+    <span class="ref-txt"><b>Referans karakter görseli <span class="opt">(isteğe bağlı)</span></b>
+      <small>Maskotunun ya da karakterinin görselini yükle; videolarda hep aynı görünsün. PNG, JPG ya da WEBP · en fazla 6 MB. Kendine ait olmayan karakter ve kişi görselleri yükleme.</small></span>
+    <span class="btn btn-ghost btn-sm">{{ icon('plus', 14) }} {{ 'Değiştir' if ch and ch.ref_image else 'Görsel seç' }}</span>
+  </label>
+  {% if ch and ch.ref_image %}<input type="hidden" name="ref_keep" value="{{ ch.ref_image }}">
+  <label class="check small" style="margin-top:10px"><input type="checkbox" name="ref_remove" value="1"><span>Görseli kaldır</span></label>{% endif %}
+  {% if ref_qualities|length < qualities|length %}<p class="hint" style="margin-top:8px">{{ icon('info', 13) }} Referans görsel şu kalitelerde kullanılır: {% for k in ref_qualities %}{{ qualities[k].label }}{{ ', ' if not loop.last }}{% endfor %}.</p>{% endif %}
+</div>
 
 <div class="step-title"><span class="n">{{ n0 + 2 }}</span><h3>Görsel tarz</h3></div>
 <div class="opts opts-5">

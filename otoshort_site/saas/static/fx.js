@@ -249,6 +249,13 @@
     calc.addEventListener('input', upd); calc.addEventListener('change', upd); upd();
   }
 
+  // Referans görsel: seçilince küçük önizleme
+  $$('[data-ref-input]').forEach(inp => inp.addEventListener('change', () => {
+    const f = inp.files && inp.files[0], th = inp.closest('.ref-drop').querySelector('[data-ref-thumb]');
+    if (!f || !th) return;
+    th.innerHTML = ''; const img = document.createElement('img'); img.alt = ''; img.src = URL.createObjectURL(f); th.appendChild(img);
+  }));
+
   // Stüdyo: canlı önizleme ve özet
   const studio = $('[data-studio]');
   if (studio) {
