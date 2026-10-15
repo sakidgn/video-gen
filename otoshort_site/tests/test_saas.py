@@ -1332,3 +1332,24 @@ def test_readiness_page_and_legal_info(client, monkeypatch):
 
     monkeypatch.setattr(config, "SECRET_KEY", "x" * 40)
     assert next(c for c in hazirlik.checks() if c.title == "Gizli anahtar").ok
+
+
+def test_api_trial_tool_with_fake_generator(tmp_path, monkeypatch, capsys):
+    import json
+
+    from saas import api_dene
+
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    assert api_dene.main(["--kalite", "hepsi", "--evet"], generator=ai.FakeAI()) == 0
+    out = capsys.readouterr().out
+    assert "Senaryo" in out and "Özet" in out and out.count("✓") >= 4
+    report = json.loads(next((tmp_path / "api_deneme").glob("*-sonuc.json")).read_text(encoding="utf-8"))
+    assert [r["kalite"] for r in report["sonuclar"]] == list(config.QUALITIES) and all(r["ok"] for r in report["sonuclar"])
+    assert api_dene.main(["--sadece-metin"], generator=ai.FakeAI()) == 0
+    assert not list((tmp_path / "api_deneme").glob("*-lite.mp4"))[1:]  # sadece metinde yeni video yok
+    assert api_dene.main(["--kalite", "yok"], generator=ai.FakeAI()) == 2
+    failing = ai.FakeAI(fail_with=RuntimeError("400 FAILED_PRECONDITION: billing is not enabled"))
+    assert api_dene.main(["--evet"], generator=failing) == 1
+    assert "faturalandırma" in capsys.readouterr().out
+    assert "geçersiz" in api_dene.explain(RuntimeError("API key not valid. Please pass a valid API key."))
+    assert "Model adı" in api_dene.explain(RuntimeError("404 NOT_FOUND models/veo-x"))

@@ -11,6 +11,15 @@ Bu klasör kendi başına bir projedir (shitpost otomatiğinden ayrı).
 - Elle: `pip install -r saas/requirements.txt` sonra `SAHTE_AI=1 ADMIN_EPOSTALAR=sen@mail.com python -m saas`
 Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yönetim'den kendine kredi ver → video üret.
 
+## Gerçek API denemesi (satıştan önce)
+1. `.env.ornek` dosyasını `.env` adıyla kopyala, `GEMINI_API_KEY=` satırına Google AI Studio anahtarını yaz
+   (fal.ai modeli seçtiysen `FAL_KEY` de). Anahtarı kimseyle paylaşma.
+2. `API_Dene.bat`'ı çalıştır. Önce **5** ile sadece anahtarı ve senaryo yazımını dene (neredeyse ücretsiz),
+   sonra **1** ile tek bir Ekonomik video üret.
+3. Videolar ve rapor `saas_veri_deneme/api_deneme/` klasörüne düşer: süre, çözünürlük, dosya boyutu.
+4. Gerçek maliyeti Google/fal.ai faturasından kontrol et; `.env`'deki `MALIYET_*` ve gerekirse `KREDI_*`
+   değerlerini güncelle. Yönetim → **Yayına hazırlık** sayfası kâr payını gösterir.
+
 ## Gerçek kurulum (sunucu)
 1. **Google API anahtarı:** https://aistudio.google.com → API key oluştur → projede **faturalandırmayı aç** (kart).
    Google Cloud'da **bütçe uyarısı** kur (ör. aylık 50$). Veo'nun ücretsiz kotası yok, her video ücretli.
