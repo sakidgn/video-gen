@@ -52,6 +52,24 @@
       {% endif %}
       <p class="hint" style="margin-top:14px">{{ icon('info', 14) }} Paylaşırken platformdaki “yapay zekâ ile oluşturuldu” etiketini açmayı unutma.</p>
       {% if job.user_id == user.id %}
+      <div class="pub-box">
+        <span class="tiny faint mono">PLATFORMLARA GÖNDER</span>
+        {% for p, meta in platforms.items() %}{% set pb = pubs.get(p) %}
+        <div class="pub-row">
+          <span class="plat-logo sm plat-{{ p }}">{{ brand(meta.icon, 15) }}</span>
+          <span class="pub-t">{{ meta.label }}{% if pb and pb.error %}<span class="tiny err-text">{{ pb.error }}</span>{% elif p in linked and not pb %}<span class="tiny faint">{{ linked[p] }}</span>{% endif %}</span>
+          {% if pb %}
+            {% if pb.url %}<a class="btn btn-text btn-sm" href="{{ pb.url }}" target="_blank" rel="noopener">Aç {{ icon('arrow-right', 13) }}</a>{% endif %}
+            {% if pb.status == 'hata' %}<form method="post" action="/yayin/{{ pb.id }}/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('repeat', 13) }} Tekrar</button></form>{% endif %}
+            <span class="badge {{ {'bekliyor':'b-wait','yukleniyor':'b-wait','yayinda':'b-ok','hata':'b-err'}[pb.status] }}">{{ {'bekliyor':'Sırada','yukleniyor':'Yükleniyor','yayinda':'Yayında','hata':'Hata'}[pb.status] }}</span>
+          {% elif p in linked %}
+            <form method="post" action="/video/{{ job.id }}/yayinla/{{ p }}" data-confirm="Video {{ meta.label }} hesabına ({{ linked[p] }}) yüklensin mi?"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-primary btn-sm" type="submit">{{ icon('share', 13) }} Gönder</button></form>
+          {% else %}
+            <a class="btn btn-text btn-sm" href="/baglantilar">Bağla</a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
       <form class="explore-opt" method="post" action="/video/{{ job.id }}/kesfet"><input type="hidden" name="csrf" value="{{ csrf }}">
         <div><b>{{ icon('globe', 15) }} Keşfet'te {{ 'paylaşılıyor' if job.public else 'paylaş' }}</b>
           <small>{{ 'Videon herkese açık galeride görünüyor. İstediğin an kaldırabilirsin.' if job.public else 'Videon herkese açık galeride başlığı ve tarzıyla görünür; adın ve e-postan gösterilmez. İstediğin an kaldırabilirsin.' }}</small></div>

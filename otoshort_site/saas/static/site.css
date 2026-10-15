@@ -767,4 +767,38 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
 @media(max-width:640px){.bento{grid-template-columns:1fr;grid-auto-rows:auto}.bx-wide{grid-column:auto}.bx-viz.styles .swatch{height:70px}.bx-viz.styles{gap:8px}.bx-viz.styles small{font-size:calc(10.5px * var(--fs))}
   .mq-item{font-size:calc(13px * var(--fs));padding:10px 16px}.sc-bar{height:28px}.sc-bar>i{width:8px;height:8px}.sc-url{font-size:calc(10px * var(--fs));padding:1px 8px}.sc-frame{border-radius:12px}.sc-frame img{aspect-ratio:1/1;object-fit:cover;object-position:38% 0}}
 
+/* otomatik paylaşım: bağlantılar, kanal seçimi, video sayfası */
+.plats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.plat{display:flex;flex-direction:column;gap:12px}
+.plat .btn,.plat form{margin-top:auto}
+.plat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.plat-logo{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;flex:none;border:1px solid var(--border-2);background:var(--surface-2);color:var(--text)}
+.plat-logo.sm{width:32px;height:32px;border-radius:10px}
+.plat-youtube{color:#e8a49a}.plat-instagram{color:#e3b9a6}.plat-tiktok{color:#cfe3e0}
+.plat-acc{display:flex;gap:12px;align-items:center;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface)}
+.plat-acc b{font-weight:600}
+.pub-list{display:grid}
+.pub-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border)}
+.pub-row:first-child{border-top:0}
+.pub-t{flex:1;min-width:0;display:grid;gap:2px;font-weight:500}
+a.pub-t:hover{color:var(--accent)}
+.pub-t>.tiny{font-weight:400;overflow:hidden;text-overflow:ellipsis}
+.err-text{color:var(--err)}
+.pub-box{display:grid;margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+.pub-box>.mono{margin-bottom:4px}
+.pub-box .pub-row:nth-child(2){border-top:0}
+.pub-pick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pub-opt{position:relative;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--border-2);cursor:pointer;transition:border-color .2s,background .2s}
+.pub-opt:hover{border-color:var(--border-3)}
+.pub-opt input{position:absolute;opacity:0;pointer-events:none}
+.pub-opt>span:nth-of-type(2){flex:1;min-width:0;display:grid;gap:1px}.pub-opt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pub-opt small{color:var(--text-3);font-size:calc(12px * var(--fs));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pub-opt .tick{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--border-2);color:transparent;transition:all .25s var(--ease)}
+.pub-opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.pub-opt input:checked~.tick{background:var(--accent);border-color:var(--accent);color:#1a1612}
+.pub-opt input:focus-visible~.tick{outline:2px solid var(--accent);outline-offset:2px}
+.pub-opt.off{opacity:.62;border-style:dashed}.pub-opt.off:hover{opacity:1}
+@media(max-width:1080px){.plats{grid-template-columns:1fr 1fr}#pub-grid{grid-template-columns:1fr!important}.pub-pick{grid-template-columns:1fr}}
+@media(max-width:640px){.plats{grid-template-columns:1fr}}
+
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none;filter:none}}

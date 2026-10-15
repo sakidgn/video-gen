@@ -92,6 +92,7 @@ class Channel(Base):
     notice: Mapped[str] = mapped_column(String(300), default="")
     ref_image: Mapped[str] = mapped_column(String(120), default="")  # referans karakter görseli ("uid/ad.png")
     subtitles: Mapped[bool] = mapped_column(Boolean, default=False)  # videolara altyazı basılsın mı
+    publish_to: Mapped[str] = mapped_column(String(60), default="")  # otomatik paylaşım: "youtube tiktok instagram"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
     def time_list(self) -> list[str]:
@@ -128,3 +129,37 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     channel: Mapped[Channel | None] = relationship()
+
+
+class SocialAccount(Base):
+    """Bağlı sosyal medya hesabı (kullanıcı başına platformda bir tane). Jetonlar şifreli saklanır."""
+    __tablename__ = "social_accounts"
+    __table_args__ = (UniqueConstraint("user_id", "platform", name="uq_user_platform"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    platform: Mapped[str] = mapped_column(String(20))
+    name: Mapped[str] = mapped_column(String(120), default="")
+    remote_id: Mapped[str] = mapped_column(String(120), default="")
+    access_enc: Mapped[str] = mapped_column(Text, default="")
+    refresh_enc: Mapped[str] = mapped_column(Text, default="")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class Publication(Base):
+    """Bir videonun bir platforma paylaşımı: bekliyor → yukleniyor → yayinda / hata."""
+    __tablename__ = "publications"
+    __table_args__ = (UniqueConstraint("job_id", "platform", name="uq_job_platform"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    platform: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20), default="bekliyor", index=True)
+    remote_id: Mapped[str] = mapped_column(String(120), default="")
+    url: Mapped[str] = mapped_column(String(300), default="")
+    error: Mapped[str] = mapped_column(String(400), default="")
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    job: Mapped["Job"] = relationship()

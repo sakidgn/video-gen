@@ -44,6 +44,7 @@ NEW_COLUMNS = [
     ("jobs", "public", "BOOLEAN NOT NULL DEFAULT 0"),
     ("jobs", "featured", "BOOLEAN NOT NULL DEFAULT 0"),
     ("jobs", "public_at", "DATETIME"),
+    ("channels", "publish_to", "VARCHAR(60) NOT NULL DEFAULT ''"),
 ]
 
 

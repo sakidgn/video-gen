@@ -23,6 +23,19 @@
       <input class="input mono" name="times" value="{{ ch.times if ch else '12:00 19:00' }}" placeholder="09:45 13:00 18:30">
       <div class="times">{% for t in ['08:00','09:45','12:00','13:00','15:45','18:30','19:00','21:15','22:30'] %}<button type="button" data-time="{{ t }}">{{ t }}</button>{% endfor %}</div>
       <p class="hint" style="margin-top:8px">Her saat günde 1 video demek. Listeden seç ya da kendin yaz (SS:DD, aralarında boşluk).</p>
+      <div class="step-title"><span class="n">8</span><h3>Otomatik paylaşım</h3><span class="faint">isteğe bağlı</span></div>
+      {% set chosen = (ch.publish_to if ch else '').split() %}
+      <div class="pub-pick">
+        {% for p, meta in platforms.items() %}
+        {% if p in linked %}
+        <label class="pub-opt"><input type="checkbox" name="pub_{{ p }}" value="1" {% if p in chosen %}checked{% endif %}>
+          <span class="plat-logo sm plat-{{ p }}">{{ brand(meta.icon, 15) }}</span><span><b>{{ meta.short }}</b><small>{{ linked[p] }}</small></span><span class="tick">{{ icon('check', 14) }}</span></label>
+        {% else %}
+        <a class="pub-opt off" href="/baglantilar"><span class="plat-logo sm plat-{{ p }}">{{ brand(meta.icon, 15) }}</span><span><b>{{ meta.short }}</b><small>Bağlı değil · bağla</small></span>{{ icon('arrow-right', 14) }}</a>
+        {% endif %}
+        {% endfor %}
+      </div>
+      <p class="hint" style="margin-top:8px">Seçtiğin platformlara her video hazır olur olmaz başlığı ve hashtag'leriyle yüklenir.</p>
     </div>
     <aside class="aside reveal" data-delay="1">
       {% include "_preview.html" %}

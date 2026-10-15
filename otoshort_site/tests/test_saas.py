@@ -872,3 +872,329 @@ def test_explore_gallery_opt_in_and_moderation(client):
     admin.post(f"/admin/kesfet/{jid}/kaldir", data={"csrf": ta})
     assert anon.get(f"/kesfet/{jid}/video").status_code == 404 and f"/kesfet/{jid}/video" not in anon.get("/").text
     assert "<loc>http://testserver/kesfet</loc>" in anon.get("/sitemap.xml").text
+
+
+# --- otomatik paylaşım ---
+class FakeResp:
+    def __init__(self, data=None, status=200, headers=None):
+        self.data, self.status_code, self.headers = data or {}, status, headers or {}
+        self.text = str(self.data)
+
+    def json(self):
+        return self.data
+
+
+class FakeHTTP:
+    """URL parçasına göre sırayla yanıt veren sahte requests oturumu; çağrıları kaydeder."""
+
+    def __init__(self, routes):
+        self.routes, self.calls = routes, []
+
+    def _go(self, method, url, **kw):
+        self.calls.append((method, url, kw))
+        for (m, part), answers in self.routes.items():
+            if m == method and part in url:
+                return answers.pop(0) if len(answers) > 1 else answers[0]
+        raise AssertionError(f"beklenmeyen istek: {method} {url}")
+
+    def get(self, url, **kw):
+        return self._go("GET", url, **kw)
+
+    def post(self, url, **kw):
+        return self._go("POST", url, **kw)
+
+    def put(self, url, **kw):
+        if hasattr(kw.get("data"), "read"):
+            kw["data"] = kw["data"].read()
+        return self._go("PUT", url, **kw)
+
+
+def test_secretbox_roundtrip_and_tamper():
+    from saas import secretbox
+
+    sealed = secretbox.seal("ya29.gizli-jeton")
+    assert "gizli" not in sealed and secretbox.open_(sealed) == "ya29.gizli-jeton"
+    assert secretbox.seal("x") != secretbox.seal("x")  # her seferinde farklı nonce
+    import base64
+
+    raw = bytearray(base64.urlsafe_b64decode(sealed[3:]))
+    raw[20] ^= 1  # şifreli metinde tek bit değişse bile açılmaz
+    for bad in ["v1:" + base64.urlsafe_b64encode(bytes(raw)).decode(), "v1:kısa", "v1:QUJD", "v0:x"]:
+        with pytest.raises(secretbox.SecretError):
+            secretbox.open_(bad)
+    assert secretbox.open_(secretbox.seal("")) == ""
+
+
+def _demo_connect(c, platform):
+    r = c.get(f"/baglan/{platform}", follow_redirects=False)
+    assert r.status_code == 303 and f"/baglan/{platform}/donus?code=demo" in r.headers["location"]
+    return c.get(r.headers["location"])
+
+
+def test_demo_connect_and_channel_autopublish(client, monkeypatch):
+    from saas import publisher
+    from saas.models import Publication, SocialAccount
+
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    page = client.get("/baglantilar").text
+    assert "YouTube hesabını bağla" in page and "Demo modu" in page
+    assert "Demo YouTube Shorts hesabı" in _demo_connect(client, "youtube").text
+    with db.session() as s:
+        acc = s.scalar(select(SocialAccount))
+        assert acc.platform == "youtube" and "demo" not in acc.access_enc  # jeton şifreli saklanır
+    # kanal formunda bağlı platform seçilebilir, bağlı olmayan "bağla" bağlantısı
+    form = client.get("/kanallar/yeni").text
+    assert 'name="pub_youtube"' in form and 'name="pub_tiktok"' not in form
+    client.post("/kanallar/yeni", data={"name": "K", "quality": "lite", "times": "10:00", "pub_youtube": "1",
+                                        "pub_tiktok": "1", "csrf": csrf(client, "/kanallar/yeni")})
+    with db.session() as s:
+        ch = s.scalar(select(Channel))
+        assert ch.publish_to == "youtube tiktok"
+    assert 'name="pub_youtube" value="1" checked' in client.get(f"/kanallar/{ch.id}").text
+    client.post(f"/kanallar/{ch.id}/simdi", data={"csrf": csrf(client, "/kanallar")})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        pubs = s.scalars(select(Publication)).all()
+        assert [(p.platform, p.status) for p in pubs] == [("youtube", "bekliyor")]  # TikTok bağlı değil
+        jid = pubs[0].job_id
+    pid = publisher.claim()
+    assert pid and publisher.claim() is None
+    publisher.run(pid)
+    with db.session() as s:
+        assert s.get(Publication, pid).status == "yayinda"
+    page = client.get(f"/video/{jid}").text
+    assert "Yayında" in page and f"/video/{jid}/yayinla/tiktok" not in page
+    assert "Yayında" in client.get("/baglantilar").text
+    # bağlantıyı kaldır
+    client.post("/baglanti/youtube/kaldir", data={"csrf": csrf(client, "/baglantilar")})
+    with db.session() as s:
+        assert s.scalar(select(SocialAccount)) is None
+
+
+def test_connect_rejects_bad_state_and_unconfigured(client, monkeypatch):
+    from saas.models import SocialAccount
+
+    signup(client, "a@b.com")
+    r = client.get("/baglan/tiktok", follow_redirects=False)  # anahtar yok, demo değil
+    assert r.headers["location"] == "/baglantilar"
+    assert "Çok yakında" in client.get("/baglantilar").text
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    client.get("/baglan/youtube", follow_redirects=False)
+    assert "tamamlanmadı" in client.get("/baglan/youtube/donus?code=demo&state=sahte").text
+    assert "tamamlanmadı" in client.get("/baglan/youtube/donus?error=access_denied").text
+    with db.session() as s:
+        assert s.scalar(select(SocialAccount)) is None
+
+
+def test_publish_single_video_retry_and_ownership(client, monkeypatch):
+    from saas import publisher
+    from saas.models import Publication
+
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid = s.scalar(select(Job.id))
+    assert "/baglantilar" in client.get(f"/video/{jid}").text  # bağlı değil → bağla
+    _demo_connect(client, "tiktok")
+    assert f"/video/{jid}/yayinla/tiktok" in client.get(f"/video/{jid}").text
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    assert other.post(f"/video/{jid}/yayinla/tiktok", data={"csrf": csrf(other, "/panel")}).status_code == 404
+    assert "sıraya alındı" in client.post(f"/video/{jid}/yayinla/tiktok", data={"csrf": t}).text
+    assert "zaten" in client.post(f"/video/{jid}/yayinla/tiktok", data={"csrf": t}).text
+    # platform hatası: tekrar denenir, sonra hata olur ve kullanıcı yeniden sıraya alabilir
+    monkeypatch.setattr(social_mod().DemoClient, "publish", lambda *a, **k: (_ for _ in ()).throw(ConnectionError("x")))
+    pid = publisher.claim()
+    publisher.run(pid)
+    with db.session() as s:
+        p = s.get(Publication, pid)
+        assert (p.status, p.attempts) == ("bekliyor", 1)
+    assert publisher.claim() is None  # hemen değil, biraz sonra tekrar denenir
+    for _ in range(publisher.MAX_ATTEMPTS - 1):
+        with db.session() as s:
+            s.get(Publication, pid).status = "yukleniyor"
+        publisher.run(pid)
+    with db.session() as s:
+        p = s.get(Publication, pid)
+        assert p.status == "hata" and p.error
+    assert other.post(f"/yayin/{pid}/tekrar", data={"csrf": csrf(other, "/panel")}).status_code == 404
+    client.post(f"/yayin/{pid}/tekrar", data={"csrf": t})
+    with db.session() as s:
+        p = s.get(Publication, pid)
+        assert (p.status, p.attempts, p.error) == ("bekliyor", 0, "")
+
+
+def social_mod():
+    from saas import social
+
+    return social
+
+
+def test_media_link_is_signed(client):
+    from saas import tokens
+
+    signup(client, "a@b.com")
+    give("a@b.com", 100)
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": csrf(client, "/video/yeni")})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid = s.scalar(select(Job.id))
+    anon = TestClient(client.app)
+    assert anon.get(f"/yayin/dosya/{tokens.make_media(jid)}").status_code == 200
+    assert anon.get(f"/yayin/dosya/{tokens.make_media(jid)}x").status_code == 404
+    assert anon.get(f"/yayin/dosya/{jid}").status_code == 404
+
+
+def _post():
+    return social_mod().Post(title="Kedi <şef> pizza yapıyor", caption="Çok komik\n\n#kedi #ai", tags=["kedi", "ai"])
+
+
+def test_youtube_client_connect_publish_and_refresh(tmp_path, monkeypatch):
+    from saas import social
+
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", "cid")
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", "sec")
+    http = FakeHTTP({
+        ("POST", "oauth2.googleapis.com/token"): [FakeResp({"access_token": "A1", "refresh_token": "R1", "expires_in": 3599}),
+                                                  FakeResp({"access_token": "A2", "expires_in": 3599})],
+        ("GET", "youtube/v3/channels"): [FakeResp({"items": [{"id": "UC1", "snippet": {"title": "Kanalım"}}]})],
+        ("POST", "upload/youtube/v3/videos"): [FakeResp(headers={"Location": "https://up.example/1"})],
+        ("PUT", "up.example/1"): [FakeResp({"id": "vid123"})],
+    })
+    yt = social.client("youtube", http)
+    url = yt.auth_url("https://x/baglan/youtube/donus", "st")
+    assert "access_type=offline" in url and "youtube.upload" in url and "state=st" in url
+    acc = yt.exchange("code", "https://x/baglan/youtube/donus")
+    assert (acc.name, acc.remote_id, acc.access, acc.refresh) == ("Kanalım", "UC1", "A1", "R1")
+    v = tmp_path / "v.mp4"
+    v.write_bytes(b"video")
+    rid, link = yt.publish("A1", "UC1", v, _post())
+    assert (rid, link) == ("vid123", "https://youtube.com/shorts/vid123")
+    meta = [c for c in http.calls if c[0] == "POST" and "upload" in c[1]][0][2]["json"]
+    assert meta["snippet"]["title"] == "Kedi şef pizza yapıyor #Shorts" and meta["status"]["containsSyntheticMedia"]
+    assert [c for c in http.calls if c[0] == "PUT"][0][2]["data"] == b"video"
+    assert yt.refresh("R1") == ("A2", 3599, "R1")
+    http2 = FakeHTTP({("GET", "youtube/v3/channels"): [FakeResp({"items": []})],
+                      ("POST", "token"): [FakeResp({"access_token": "A"})]})
+    with pytest.raises(social.PublishError, match="kanal"):
+        social.client("youtube", http2).exchange("c", "r")
+
+
+def test_publisher_refreshes_expiring_token(client, monkeypatch):
+    from datetime import timedelta
+
+    from saas import publisher, secretbox
+    from saas.models import Publication, SocialAccount, now
+
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_ID", "cid")
+    monkeypatch.setattr(config, "GOOGLE_CLIENT_SECRET", "sec")
+    signup(client, "a@b.com")
+    give("a@b.com", 100)
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": csrf(client, "/video/yeni")})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        job = s.scalar(select(Job))
+        s.add(SocialAccount(user_id=job.user_id, platform="youtube", name="K", remote_id="UC1",
+                            access_enc=secretbox.seal("ESKI"), refresh_enc=secretbox.seal("R1"),
+                            expires_at=now() + timedelta(minutes=2)))
+        s.flush()
+        assert publisher.queue(s, job, ["youtube", "tiktok", "yok"]) == ["youtube"]
+    http = FakeHTTP({
+        ("POST", "oauth2.googleapis.com/token"): [FakeResp({"access_token": "YENI", "expires_in": 3600})],
+        ("POST", "upload/youtube/v3/videos"): [FakeResp(headers={"Location": "https://up.example/2"})],
+        ("PUT", "up.example/2"): [FakeResp({"id": "v9"})],
+    })
+    pid = publisher.claim()
+    publisher.run(pid, http)
+    with db.session() as s:
+        p, acc = s.get(Publication, pid), s.scalar(select(SocialAccount))
+        assert (p.status, p.url) == ("yayinda", "https://youtube.com/shorts/v9")
+        assert secretbox.open_(acc.access_enc) == "YENI" and secretbox.open_(acc.refresh_enc) == "R1"
+    upload = [c for c in http.calls if "upload" in c[1]][0]
+    assert upload[2]["headers"]["Authorization"] == "Bearer YENI"
+
+
+def test_tiktok_client_publish_and_failure(tmp_path, monkeypatch):
+    from saas import social
+
+    monkeypatch.setattr(config, "TIKTOK_CLIENT_KEY", "k")
+    monkeypatch.setattr(config, "TIKTOK_CLIENT_SECRET", "s")
+    monkeypatch.setattr(social.TikTok, "poll_s", 0)
+    v = tmp_path / "v.mp4"
+    v.write_bytes(b"12345")
+    routes = lambda final: {  # noqa: E731
+        ("POST", "oauth/token"): [FakeResp({"access_token": "T", "open_id": "o1", "refresh_token": "TR", "expires_in": 86400})],
+        ("GET", "user/info"): [FakeResp({"data": {"user": {"display_name": "Kedici"}}})],
+        ("POST", "creator_info/query"): [FakeResp({"data": {"privacy_level_options": ["SELF_ONLY", "PUBLIC_TO_EVERYONE"]}})],
+        ("POST", "video/init"): [FakeResp({"data": {"publish_id": "p1", "upload_url": "https://tt.up/1"}})],
+        ("PUT", "tt.up/1"): [FakeResp()],
+        ("POST", "status/fetch"): [FakeResp({"data": {"status": "PROCESSING_UPLOAD"}}), FakeResp({"data": final})],
+    }
+    http = FakeHTTP(routes({"status": "PUBLISH_COMPLETE"}))
+    tt = social.client("tiktok", http)
+    assert "video.publish" in tt.auth_url("r", "s")
+    acc = tt.exchange("c", "r")
+    assert (acc.name, acc.remote_id, acc.refresh) == ("Kedici", "o1", "TR")
+    assert tt.publish("T", "o1", v, _post()) == ("p1", "")
+    init = [c for c in http.calls if "video/init" in c[1]][0][2]["json"]
+    assert init["post_info"]["is_aigc"] and init["post_info"]["privacy_level"] == "PUBLIC_TO_EVERYONE"
+    assert init["source_info"]["video_size"] == 5
+    put = [c for c in http.calls if c[0] == "PUT"][0][2]
+    assert put["headers"]["Content-Range"] == "bytes 0-4/5"
+    bad = social.client("tiktok", FakeHTTP(routes({"status": "FAILED", "fail_reason": "spam_risk"})))
+    with pytest.raises(social.PublishError, match="spam_risk"):
+        bad.publish("T", "o1", v, _post())
+
+
+def test_instagram_client_needs_https_and_publishes(tmp_path, monkeypatch):
+    from saas import social
+
+    monkeypatch.setattr(config, "INSTAGRAM_APP_ID", "i")
+    monkeypatch.setattr(config, "INSTAGRAM_APP_SECRET", "s")
+    monkeypatch.setattr(social.Instagram, "poll_s", 0)
+    v = tmp_path / "v.mp4"
+    v.write_bytes(b"x")
+    http = FakeHTTP({
+        ("POST", "api.instagram.com/oauth/access_token"): [FakeResp({"access_token": "S", "user_id": 5})],
+        ("GET", "graph.instagram.com/access_token"): [FakeResp({"access_token": "L", "expires_in": 5184000})],
+        ("GET", "/me"): [FakeResp({"user_id": "17841", "username": "kedici"})],
+        ("POST", "/17841/media_publish"): [FakeResp({"id": "m1"})],
+        ("POST", "/17841/media"): [FakeResp({"id": "c1"})],
+        ("GET", "/c1"): [FakeResp({"status_code": "IN_PROGRESS"}), FakeResp({"status_code": "FINISHED"})],
+        ("GET", "/m1"): [FakeResp({"permalink": "https://instagram.com/reel/abc"})],
+    })
+    ig = social.client("instagram", http)
+    acc = ig.exchange("c", "r")
+    assert (acc.name, acc.remote_id, acc.access) == ("@kedici", "17841", "L")
+    with pytest.raises(social.PublishError, match="https"):
+        ig.publish("L", "17841", v, _post(), "http://localhost/yayin/dosya/x")
+    assert ig.publish("L", "17841", v, _post(), "https://cutless.app/yayin/dosya/t") == ("m1", "https://instagram.com/reel/abc")
+    create = [c for c in http.calls if c[1].endswith("/17841/media")][0][2]["data"]
+    assert create["media_type"] == "REELS" and create["video_url"] == "https://cutless.app/yayin/dosya/t"
+
+
+def test_account_delete_removes_social_links(client, monkeypatch):
+    from saas import publisher
+    from saas.models import Publication, SocialAccount
+
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    signup(client, "a@b.com")
+    give("a@b.com", 100)
+    _demo_connect(client, "instagram")
+    t = csrf(client, "/video/yeni")
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid = s.scalar(select(Job.id))
+    client.post(f"/video/{jid}/yayinla/instagram", data={"csrf": t})
+    client.post("/hesap/sil", data={"csrf": csrf(client, "/hesap"), "confirm": "a@b.com"})
+    with db.session() as s:
+        assert s.scalar(select(SocialAccount)) is None and s.scalar(select(Publication)) is None
+        assert s.get(Job, jid).video_file == ""
+    assert publisher.claim() is None

@@ -10,6 +10,7 @@
     {% for href, ic, label in side_nav %}
       <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
     {% endfor %}
+    <a class="side-link {{ 'on' if active == '/baglantilar' }}" href="/baglantilar">{% if active == '/baglantilar' %}<span class="side-pill"></span>{% endif %}{{ icon('share', 18) }} Bağlantılar</a>
     <a class="side-link {{ 'on' if active == '/davet' }}" href="/davet">{% if active == '/davet' %}<span class="side-pill"></span>{% endif %}{{ icon('gift', 18) }} Davet et</a>
     <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{% if active == '/hesap' %}<span class="side-pill"></span>{% endif %}{{ icon('user', 18) }} Hesabım</a>
     {% if user.is_admin %}<div class="side-label">Yönetim</div><a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{% if active == '/admin' %}<span class="side-pill"></span>{% endif %}{{ icon('shield', 18) }} Yönetim paneli</a>{% endif %}

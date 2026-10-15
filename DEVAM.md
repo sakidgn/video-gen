@@ -67,6 +67,13 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   kanalda "şimdi üret", stüdyoda yapay zekâ fikir önerisi (/api/fikirler), telefonda dosyalı paylaşım (Web Share),
   yönetimde 14 günlük grafikler + kâr tahmini (VIDEO_COST_USD × DOLAR_KURU), ana sayfada maliyet hesaplayıcı.
   Güvenlik: sıkı CSP (satır içi script YOK — yeni JS fx.js'e), /saglik, robots/sitemap, PWA manifest, günlük DB yedeği.
+- Video modelleri: her kalite kademesi ayrı firma olabilir (`MODEL_LITE/FAST/STANDARD` = `google:<veo>` ya da `fal:<uç nokta>`,
+  `saas/ai.py` FalVideo). Referans karakter görseli (Veo kendisi; fal için `MODEL_X_REF`), altyazı (Gemini döküm → ASS →
+  ffmpeg/libass, ham dosya `<id>-ham.mp4` kalır), Keşfet galerisi (/kesfet, kullanıcı izniyle, yönetim öne çıkarır/kaldırır).
+- Otomatik paylaşım: /baglantilar (OAuth; `saas/social.py` YouTube/TikTok/Instagram + SAHTE_AI'de DemoClient), jetonlar
+  `saas/secretbox.py` ile şifreli (cryptography paketi bu ortamda bozuk → stdlib). Kanal `publish_to`, `Publication` kuyruğu
+  işçide (`saas/publisher.py`, 3 deneme, 3 dk arayla). Instagram videoyu `/yayin/dosya/<imzalı jeton>`'dan indirir.
+  Gerçek kullanım için platform onayları gerekiyor (BENIOKU'da adımlar).
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

@@ -49,3 +49,18 @@ def reset_uid(token: str) -> int | None:
         return _s("sifre-yenile").loads(token, max_age=RESET_MAX_AGE).get("u")
     except (BadSignature, SignatureExpired):
         return None
+
+
+MEDIA_MAX_AGE = 3 * 3600
+
+
+def make_media(job_id: int) -> str:
+    """Paylaşım platformunun videoyu indirebilmesi için süreli imzalı jeton."""
+    return _s("medya").dumps({"j": job_id})
+
+
+def read_media(token: str) -> int | None:
+    try:
+        return int(_s("medya").loads(token, max_age=MEDIA_MAX_AGE)["j"])
+    except (BadSignature, SignatureExpired, KeyError, TypeError, ValueError):
+        return None

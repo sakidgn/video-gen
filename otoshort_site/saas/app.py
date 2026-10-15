@@ -9,12 +9,13 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
-from . import config, credits, db, growth, mailer, media, oauth, tokens, worker
+from . import config, credits, db, growth, mailer, media, oauth, publisher, secretbox, social, tokens, worker
 from .icons import LOGO, brand, icon
-from .models import Channel, CreditTx, Job, PromoCode, TopUp, User, now
+from .models import Channel, CreditTx, Job, PromoCode, Publication, SocialAccount, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
 
 log = logging.getLogger("saas")
@@ -143,7 +144,7 @@ def require_verified(request: Request, user: User):
 
 
 def _active(path: str) -> str:
-    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar"):
+    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar", "/baglantilar"):
         if path.startswith(prefix):
             return prefix
     if path.startswith("/video/"):
@@ -303,7 +304,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.get("/robots.txt", response_class=PlainTextResponse)
     def robots(request: Request):
         private = ["/panel", "/video", "/videolar", "/kanallar", "/kredi", "/hesap", "/admin", "/dev", "/auth",
-                   "/dogrula", "/sifre-yenile", "/api"]
+                   "/dogrula", "/sifre-yenile", "/api", "/baglantilar", "/baglan", "/yayin", "/davet", "/d/"]
         lines = ["User-agent: *", *(f"Disallow: {p}" for p in private), f"Sitemap: {site_url(request)}/sitemap.xml"]
         return "\n".join(lines) + "\n"
 
@@ -680,7 +681,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         with db.session() as s:
             job = _own_job(s, user, job_id)
             _ = job.channel  # şablonda kanal adı gösterilecek
-        return render(request, "video.html", user, job=job)
+            pubs = {p.platform: p for p in s.scalars(select(Publication).where(Publication.job_id == job.id))}
+        return render(request, "video.html", user, job=job, pubs=pubs, linked=_linked(job.user_id),
+                      platforms=social.PLATFORMS)
 
     @app.post("/video/{job_id}/kesfet", dependencies=[Depends(check_csrf)])
     def job_public_toggle(request: Request, job_id: int, user: User = Depends(require_user)):
@@ -824,6 +827,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 job.ref_image = job.raw_file = ""
                 job.public = job.featured = False
                 job.video_file = ""
+            # bağlı hesap jetonları ve paylaşım kayıtları (sıradakiler de yüklenmesin)
+            for row in [*s.scalars(select(SocialAccount).where(SocialAccount.user_id == u.id)),
+                        *s.scalars(select(Publication).where(Publication.user_id == u.id))]:
+                s.delete(row)
             # muhasebe kayıtları (ödeme/kredi hareketleri) yasal süre boyunca kalır; kişisel bilgiler silinir
             u.email = f"silindi-{u.id}@silindi.invalid"
             u.name, u.pw_hash, u.google_sub, u.notify, u.email_verified, u.is_admin = "", "", None, False, False, False
@@ -843,17 +850,22 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             quality=_valid_choice(form.get("quality", ""), config.QUALITIES, "fast"),
             times=" ".join(sorted(set(times), key=lambda t: (int(t.split(":")[0]), t)))[:200] or "12:00",
             subtitles=bool(form.get("subtitles")),
+            publish_to=" ".join(p for p in social.PLATFORMS if form.get(f"pub_{p}")),
         )
 
     @app.get("/kanallar", response_class=HTMLResponse)
     def channels(request: Request, user: User = Depends(require_user)):
         with db.session() as s:
             chans = s.scalars(select(Channel).where(Channel.user_id == user.id).order_by(Channel.id)).all()
-        return render(request, "kanallar.html", user, channels=chans)
+        return render(request, "kanallar.html", user, channels=chans, linked=_linked(user.id))
+
+    def _linked(user_id: int) -> dict:
+        with db.session() as s:
+            return {p: a.name for p, a in publisher.accounts(s, user_id).items()}
 
     @app.get("/kanallar/yeni", response_class=HTMLResponse)
     def channel_new_page(request: Request, user: User = Depends(require_user)):
-        return render(request, "kanal_form.html", user, ch=None)
+        return render(request, "kanal_form.html", user, ch=None, linked=_linked(user.id), platforms=social.PLATFORMS)
 
     @app.post("/kanallar/yeni", dependencies=[Depends(check_csrf)])
     async def channel_new(request: Request, user: User = Depends(require_user)):
@@ -884,7 +896,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         with db.session() as s:
             ch = _own_channel(s, user, cid)
             jobs = s.scalars(select(Job).where(Job.channel_id == cid).order_by(Job.id.desc()).limit(30)).all()
-        return render(request, "kanal_form.html", user, ch=ch, jobs=jobs)
+        return render(request, "kanal_form.html", user, ch=ch, jobs=jobs, linked=_linked(user.id),
+                      platforms=social.PLATFORMS)
 
     @app.post("/kanallar/{cid}", dependencies=[Depends(check_csrf)])
     async def channel_edit(request: Request, cid: int, user: User = Depends(require_user)):
@@ -912,6 +925,100 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             active = ch.active
         flash(request, "Kanal açıldı." if active else "Kanal durduruldu.")
         return go("/kanallar")
+
+    # --- otomatik paylaşım: hesap bağlantıları ---
+    def _connect_redirect(request: Request, platform: str) -> str:
+        return f"{site_url(request)}/baglan/{platform}/donus"
+
+    @app.get("/baglantilar", response_class=HTMLResponse)
+    def connections(request: Request, user: User = Depends(require_user)):
+        with db.session() as s:
+            accs = publisher.accounts(s, user.id)
+            recent = s.scalars(select(Publication).where(Publication.user_id == user.id)
+                               .options(selectinload(Publication.job))
+                               .order_by(Publication.id.desc()).limit(20)).all()
+        info = {p: {**meta, "available": social.available(p), "demo": social.demo(p), "account": accs.get(p)}
+                for p, meta in social.PLATFORMS.items()}
+        return render(request, "baglantilar.html", user, info=info, recent=recent)
+
+    @app.get("/baglan/{platform}")
+    def connect_start(request: Request, platform: str, user: User = Depends(require_user)):
+        if platform not in social.PLATFORMS or not social.available(platform):
+            flash(request, "Bu platform henüz ayarlanmadı.", "warn")
+            return go("/baglantilar")
+        state = secrets.token_urlsafe(24)
+        request.session["s_state"] = f"{platform}:{state}"
+        return RedirectResponse(social.client(platform).auth_url(_connect_redirect(request, platform), state),
+                                status_code=303)
+
+    @app.get("/baglan/{platform}/donus")
+    def connect_callback(request: Request, platform: str, code: str = "", state: str = "", error: str = "",
+                         user: User = Depends(require_user)):
+        expected = request.session.pop("s_state", "")
+        if (platform not in social.PLATFORMS or error or not code
+                or not secrets.compare_digest(f"{platform}:{state}", expected)):
+            flash(request, "Bağlantı tamamlanmadı, tekrar dene.", "err")
+            return go("/baglantilar")
+        try:
+            acc = social.client(platform).exchange(code, _connect_redirect(request, platform))
+        except Exception as e:
+            log.exception("%s bağlantısı başarısız", platform)
+            flash(request, str(e) if isinstance(e, social.PublishError) else "Platform şu an yanıt vermedi.", "err")
+            return go("/baglantilar")
+        from datetime import timedelta
+
+        with db.session() as s:
+            row = s.scalar(select(SocialAccount).where(SocialAccount.user_id == user.id, SocialAccount.platform == platform))
+            if not row:
+                row = SocialAccount(user_id=user.id, platform=platform)
+                s.add(row)
+            row.name, row.remote_id = acc.name[:120], acc.remote_id[:120]
+            row.access_enc, row.refresh_enc = secretbox.seal(acc.access), secretbox.seal(acc.refresh)
+            row.expires_at = now() + timedelta(seconds=acc.expires_in) if acc.expires_in else None
+        flash(request, f"{social.PLATFORMS[platform]['label']} bağlandı: {acc.name} ✅")
+        return go("/baglantilar")
+
+    @app.post("/baglanti/{platform}/kaldir", dependencies=[Depends(check_csrf)])
+    def connect_remove(request: Request, platform: str, user: User = Depends(require_user)):
+        with db.session() as s:
+            row = s.scalar(select(SocialAccount).where(SocialAccount.user_id == user.id, SocialAccount.platform == platform))
+            if row:
+                s.delete(row)
+        flash(request, "Bağlantı kaldırıldı.")
+        return go("/baglantilar")
+
+    @app.post("/video/{job_id}/yayinla/{platform}", dependencies=[Depends(check_csrf)])
+    def publish_now(request: Request, job_id: int, platform: str, user: User = Depends(require_user)):
+        with db.session() as s:
+            job = _own_job(s, user, job_id)
+            if job.user_id != user.id or job.status != "hazir":
+                raise HTTPException(404)
+            added = publisher.queue(s, job, [platform])
+        flash(request, "Paylaşım sıraya alındı; birkaç dakika içinde yüklenecek." if added else
+              "Bu platform bağlı değil ya da video zaten gönderildi.", "ok" if added else "warn")
+        return go(f"/video/{job_id}")
+
+    @app.post("/yayin/{pid}/tekrar", dependencies=[Depends(check_csrf)])
+    def publish_retry(request: Request, pid: int, user: User = Depends(require_user)):
+        with db.session() as s:
+            pub = s.get(Publication, pid)
+            if not pub or pub.user_id != user.id:
+                raise HTTPException(404)
+            if pub.status == "hata":
+                pub.status, pub.error, pub.attempts = "bekliyor", "", 0
+            job_id = pub.job_id
+        flash(request, "Paylaşım tekrar sıraya alındı.")
+        return go(f"/video/{job_id}")
+
+    @app.get("/yayin/dosya/{token}")
+    def publish_media(token: str):
+        """Instagram'ın videoyu indirdiği süreli imzalı adres (giriş gerektirmez)."""
+        job_id = tokens.read_media(token)
+        with db.session() as s:
+            job = s.get(Job, job_id) if job_id else None
+        if not job or job.status != "hazir" or not job.video_file:
+            raise HTTPException(404)
+        return FileResponse(worker.video_dir() / job.video_file, media_type="video/mp4")
 
     @app.post("/kanallar/{cid}/simdi", dependencies=[Depends(check_csrf)])
     def channel_now(request: Request, cid: int, user: User = Depends(require_user)):

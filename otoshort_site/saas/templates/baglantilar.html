@@ -1,0 +1,62 @@
+{% extends "app_base.html" %}
+{% block title %}Bağlantılar · {{ site }}{% endblock %}
+{% set pub_labels = {'bekliyor': 'Sırada', 'yukleniyor': 'Yükleniyor', 'yayinda': 'Yayında', 'hata': 'Hata'} %}
+{% set pub_badge = {'bekliyor': 'b-wait', 'yukleniyor': 'b-wait', 'yayinda': 'b-ok', 'hata': 'b-err'} %}
+{% block content %}
+<div class="page-head">
+  <div class="t"><span class="eyebrow">Otomatik paylaşım</span><h1>Videoların kendiliğinden <span class="hl">yayında.</span></h1>
+    <p class="muted">Hesaplarını bir kere bağla; otomatik kanalların ürettiği her video seçtiğin platformlara başlığı, açıklaması ve hashtag'leriyle yüklensin.</p></div>
+</div>
+<div class="plats">
+  {% for p, it in info.items() %}
+  <div class="card plat reveal" data-delay="{{ loop.index0 }}">
+    <div class="plat-top">
+      <span class="plat-logo plat-{{ p }}">{{ brand(it.icon, 24) }}</span>
+      {% if it.account %}<span class="badge b-ok">Bağlı</span>
+      {% elif not it.available %}<span class="badge b-off">Yakında</span>{% endif %}
+    </div>
+    <h3>{{ it.label }}</h3>
+    <p class="small muted">{{ it.note }}</p>
+    {% if it.account %}
+      <div class="plat-acc"><span class="avatar">{{ it.account.name[:1]|upper }}</span><div><b>{{ it.account.name }}</b><div class="tiny faint">{{ it.account.created_at|tarih }} tarihinden beri</div></div></div>
+      <form method="post" action="/baglanti/{{ p }}/kaldir" data-confirm="{{ it.label }} bağlantısı kaldırılsın mı? Sıradaki paylaşımlar yüklenmez.">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm btn-block" type="submit">Bağlantıyı kaldır</button></form>
+    {% elif it.available %}
+      <a class="btn btn-primary btn-block" href="/baglan/{{ p }}">{{ icon('plus', 15) }} {{ it.short }} hesabını bağla</a>
+      {% if it.demo %}<p class="tiny faint center">Demo modu: gerçek hesaba bağlanmaz.</p>{% endif %}
+    {% else %}
+      <button class="btn btn-ghost btn-block" type="button" disabled>Çok yakında</button>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start;margin-top:18px" id="pub-grid">
+  <div class="card card-lg reveal">
+    <div class="card-head"><h3>{{ icon('share', 18) }} Son paylaşımlar</h3></div>
+    {% if recent %}
+    <div class="pub-list">
+      {% for r in recent %}
+      <div class="pub-row">
+        <span class="plat-logo sm plat-{{ r.platform }}">{{ brand(info[r.platform].icon, 15) }}</span>
+        <a class="pub-t" href="/video/{{ r.job_id }}">{{ r.job.title or ('Video #%d' % r.job_id) }}<span class="tiny faint mono">{{ (r.updated_at or r.created_at)|tarih }}</span></a>
+        {% if r.url %}<a class="btn btn-text btn-sm" href="{{ r.url }}" target="_blank" rel="noopener">Aç {{ icon('arrow-right', 13) }}</a>{% endif %}
+        <span class="badge {{ pub_badge[r.status] }}" {% if r.error %}title="{{ r.error }}"{% endif %}>{{ pub_labels[r.status] }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty" style="padding:28px 0"><span class="icon-box">{{ icon('share', 22) }}</span><p class="small muted">Henüz paylaşım yok. Bir hesap bağlayıp kanal ayarlarından platform seçtiğinde burada görünür.</p></div>
+    {% endif %}
+  </div>
+  <div class="card reveal" data-delay="1">
+    <div class="card-head"><h3>{{ icon('info', 18) }} Nasıl çalışır?</h3></div>
+    <div class="steps3" style="margin-top:6px">
+      {% for n, t, d in [('1','Hesabını bağla','Platformun kendi giriş sayfasında izin verirsin; şifren bize gelmez.'),('2','Kanalında platform seç','Otomatik kanal ayarlarındaki “Otomatik paylaşım” adımından.'),('3','Gerisi kendiliğinden','Video hazır olunca yüklenir. Tek videoları da video sayfasından gönderebilirsin.')] %}
+      <div class="s3"><span class="n">{{ n }}</span><div><b>{{ t }}</b><p class="small muted">{{ d }}</p></div></div>
+      {% endfor %}
+    </div>
+    <p class="hint" style="margin-top:14px">{{ icon('info', 14) }} Videolar platformların yapay zekâ içerik etiketiyle yüklenir. Bağlantıyı istediğin an kaldırabilirsin.</p>
+  </div>
+</div>
+{% endblock %}

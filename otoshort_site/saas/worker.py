@@ -104,6 +104,9 @@ def run_job(job_id: int, generator) -> None:
             ch_name = job.channel.name if job.channel else None
             uid = job.user_id
         log.info("İş %s hazır", job_id)
+        from . import publisher
+
+        publisher.queue_for_channel_job(job_id)
         if ch_name:  # otomatik kanal videosu: kullanıcı başında değil, haber ver
             from html import escape
 
@@ -201,12 +204,15 @@ def recover() -> None:
     """Sunucu yeniden başlarken yarıda kalan işleri sıraya geri koyar."""
     with db.session() as s:
         s.execute(update(Job).where(Job.status == "uretiliyor").values(status="sirada"))
+        from .models import Publication
+
+        s.execute(update(Publication).where(Publication.status == "yukleniyor").values(status="bekliyor"))
 
 
 class Worker:
     def __init__(self, generator=None):
         self.generator = generator or ai_mod.default_ai()
-        self.pool = ThreadPoolExecutor(max_workers=MAX_PARALLEL)
+        self.pool = ThreadPoolExecutor(max_workers=MAX_PARALLEL + 2)  # +2: paylaşım yüklemeleri
         self.running = 0
         self.lock = threading.Lock()
         self.stop = threading.Event()
@@ -218,6 +224,7 @@ class Worker:
     def tick(self) -> None:
         schedule_channels()
         self.daily_backup()
+        self.publish_tick()
         while True:
             with self.lock:
                 if self.running >= MAX_PARALLEL:
@@ -228,6 +235,25 @@ class Worker:
             with self.lock:
                 self.running += 1
             self.pool.submit(run_job, job_id, self.generator).add_done_callback(self._done)
+
+    def publish_tick(self) -> None:
+        """Sıradaki paylaşımları yükler (video üretiminden ayrı, en fazla 2 aynı anda)."""
+        from . import publisher
+
+        while True:
+            with self.lock:
+                if getattr(self, "publishing", 0) >= 2:
+                    return
+            pid = publisher.claim()
+            if pid is None:
+                return
+            with self.lock:
+                self.publishing = getattr(self, "publishing", 0) + 1
+
+            def done(_):
+                with self.lock:
+                    self.publishing -= 1
+            self.pool.submit(publisher.run, pid).add_done_callback(done)
 
     def daily_backup(self) -> None:
         from . import yedek

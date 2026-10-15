@@ -49,6 +49,11 @@ QUALITIES = {
     "standard": _quality("standard", "Premium", "veo-3.1-generate-preview", "1080p", 250, "En yüksek kalite"),
 }
 FAL_KEY = _env("FAL_KEY")
+# Otomatik paylaşım uygulama anahtarları (YouTube, Google ile girişteki istemciyi kullanır)
+TIKTOK_CLIENT_KEY = _env("TIKTOK_CLIENT_KEY")
+TIKTOK_CLIENT_SECRET = _env("TIKTOK_CLIENT_SECRET")
+INSTAGRAM_APP_ID = _env("INSTAGRAM_APP_ID")
+INSTAGRAM_APP_SECRET = _env("INSTAGRAM_APP_SECRET")
 
 
 def provider(quality: str) -> tuple[str, str]:

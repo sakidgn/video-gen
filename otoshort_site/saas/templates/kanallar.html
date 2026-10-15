@@ -5,6 +5,7 @@
   <div class="t"><span class="eyebrow">Otomatik kanallar</span><h1>Kanalların</h1><p class="muted">Her kanal seçtiğin saatlerde kendiliğinden yeni video üretir. Kredin bitince durur.</p></div>
   <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} Yeni kanal</a>
 </div>
+<a class="card invite-cta reveal" href="/baglantilar" style="margin-bottom:18px"><span class="icon-box accent">{{ icon('share', 18) }}</span><div><b>Otomatik paylaşım</b><span class="small muted">{% if linked %}Bağlı: {{ linked.values()|join(', ') }}{% else %}YouTube, TikTok ve Instagram hesabını bağla; videolar kendiliğinden yüklensin{% endif %}</span></div>{{ icon('arrow-right', 16) }}</a>
 {% set avgrad = {'meme3d':'linear-gradient(140deg,#7aa7ff,#5fbf62)','cartoon':'linear-gradient(140deg,#ff8fb1,#ffcf6b)','realistic':'linear-gradient(140deg,#3b4a63,#a06a4a)','claymation':'linear-gradient(140deg,#e66a4e,#d8a978)','anime':'linear-gradient(140deg,#b58cff,#ffc1e3)'} %}
 {% if channels %}
 <div class="grid g2">

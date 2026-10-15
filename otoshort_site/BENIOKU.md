@@ -39,6 +39,26 @@ Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yöne
 Yeni kullanıcı Google ile ilk girişte kullanım şartları ve KVKK onayını verir; aynı e-postayla açılmış hesap
 varsa Google o hesaba bağlanır.
 
+## Otomatik paylaşım (YouTube / TikTok / Instagram)
+Kullanıcı **Bağlantılar** sayfasından hesabını bağlar, otomatik kanalında platformları seçer; video hazır olunca
+başlığı, açıklaması ve hashtag'leriyle yüklenir (tek videolar video sayfasından da gönderilebilir). Jetonlar
+veritabanında şifreli durur (`GIZLI_ANAHTAR`'ı değiştirirsen herkes yeniden bağlanır). `SAHTE_AI=1` iken anahtarsız
+"demo" bağlantıyla akış denenebilir. Hepsi `https://` adresli canlı site ister.
+
+- **YouTube Shorts:** Google girişindeki projede **YouTube Data API v3**'ü etkinleştir, istemciye
+  `https://ALANADIN/baglan/youtube/donus` yönlendirmesini ekle, izinlere `youtube.upload` ve `youtube.readonly` ekle.
+  Bu izinler hassas olduğu için Google **uygulama doğrulaması** ister (birkaç hafta); doğrulanana kadar yüklenen
+  videolar gizli kalır ve en fazla 100 test kullanıcısı bağlanabilir. API kotası günde ~100 yüklemeye yeter;
+  fazlası için Google'dan kota artışı istenir.
+- **TikTok:** https://developers.tiktok.com → uygulama oluştur → **Login Kit** + **Content Posting API**
+  (Direct Post) ekle, yönlendirme `https://ALANADIN/baglan/tiktok/donus`. Anahtarları `.env`'de `TIKTOK_CLIENT_KEY` /
+  `TIKTOK_CLIENT_SECRET`'a yaz. TikTok incelemesi (audit) bitene kadar videolar yalnızca **"sadece ben"** görünür.
+- **Instagram Reels:** https://developers.facebook.com → uygulama → **Instagram API with Instagram Login** →
+  izinler `instagram_business_basic`, `instagram_business_content_publish`, yönlendirme
+  `https://ALANADIN/baglan/instagram/donus`. `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET`'ı yaz. Kullanıcının
+  hesabı **İşletme ya da İçerik üreticisi** olmalı. Meta **App Review**'dan geçene kadar sadece uygulamaya eklenen
+  test hesapları bağlanabilir. Instagram videoyu siteden kendisi indirir (`/yayin/dosya/…`, 3 saat geçerli imzalı adres).
+
 ## E-posta (doğrulama, şifre sıfırlama, bildirimler)
 Kayıt olan herkes e-postasını doğrular (hediye kredi doğrulamada yüklenir); şifremi unuttum ve bildirim e-postaları
 da buradan gider. Ücretsiz bir SMTP servisi yeterli (ör. Brevo günde 300 e-posta ücretsiz): hesap aç, alan adını
@@ -62,5 +82,4 @@ Fiyatlar `saas/config.py` → `QUALITIES` ve `PACKAGES`. Model adları Google de
 
 ## Sonraki adımlar
 - Kartla ödeme (iyzico / PayTR) — şirket kurulunca.
-- YouTube / TikTok / Instagram'a otomatik paylaşım (resmi API onayları gerekiyor).
-- E-posta bildirimleri, şifre sıfırlama, Google ile giriş.
+- Otomatik paylaşım için platform onayları (Google doğrulaması, TikTok audit, Meta App Review).
