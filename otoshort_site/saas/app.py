@@ -188,8 +188,12 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
 
 
 def _pw_mark(user: User) -> str:
-    """Oturuma yazılan şifre izi: şifre değişince eski oturumlar (başka cihazlar) geçersiz olur."""
-    return (user.pw_hash or "")[-12:]
+    """Oturuma yazılan şifre izi (şifre özetinden türetilmiş HMAC; özetin kendisi çereze girmez):
+    şifre değişince eski oturumlar (başka cihazlar) geçersiz olur."""
+    import hashlib
+    import hmac
+
+    return hmac.new(config.SECRET_KEY.encode(), (user.pw_hash or "").encode(), hashlib.sha256).hexdigest()[:16]
 
 
 def start_session(request: Request, user: User) -> None:
