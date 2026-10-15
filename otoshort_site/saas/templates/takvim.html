@@ -1,0 +1,48 @@
+{% extends "app_base.html" %}
+{% block title %}{{ _('Takvim') }} · {{ site }}{% endblock %}
+{% set avgrad = {'meme3d':'linear-gradient(140deg,#7aa7ff,#5fbf62)','cartoon':'linear-gradient(140deg,#ff8fb1,#ffcf6b)','realistic':'linear-gradient(140deg,#3b4a63,#a06a4a)','claymation':'linear-gradient(140deg,#e66a4e,#d8a978)','anime':'linear-gradient(140deg,#b58cff,#ffc1e3)'} %}
+{% block content %}
+<div class="page-head">
+  <div class="t"><span class="eyebrow">{{ _('Planlama') }}</span><h1>{{ _('İçerik takvimi') }}</h1>
+    <p class="muted">{{ _('Son günlerin videoları ve otomatik kanallarının önümüzdeki günlerde üreteceği videolar.') }}</p></div>
+  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} {{ _('Yeni kanal') }}</a>
+</div>
+{% if has_channels %}
+<div class="stats" style="margin-bottom:22px">
+  <div class="card stat reveal"><div class="k">{{ icon('calendar', 15) }} {{ _('Önümüzdeki 7 gün') }}</div><div class="v">{{ week_count }} <small>{{ _('video') }}</small></div><span class="more faint">{{ _('{n} kredi', n=week_cost) }}</span></div>
+  <div class="card stat reveal" data-delay="1"><div class="k">{{ icon('gem', 15) }} {{ _('Bakiye') }}</div><div class="v">{{ user.credits }} <small>{{ _('kredi') }}</small></div><a class="more" href="/kredi">{{ _('Kredi yükle') }} {{ icon('arrow-right', 14) }}</a></div>
+  <div class="card stat reveal" data-delay="2"><div class="k">{{ icon('clock', 15) }} {{ _('Kredi durumu') }}</div>
+    <div class="v small-v">{% if runs_out %}<span style="color:var(--warn)">{{ _('{date} itibarıyla yetmez', date=runs_out.strftime('%d.%m %H:%M')) }}</span>{% else %}{{ _('Planlananlara yetiyor') }}{% endif %}</div></div>
+</div>
+{% else %}
+<div class="card empty reveal" style="margin-bottom:22px"><span class="icon-box accent">{{ icon('calendar', 22) }}</span><h3 style="font-size:20px">{{ _('Henüz otomatik kanalın yok') }}</h3>
+  <p>{{ _('Bir kanal kurduğunda her gün hangi saatte video geleceğini burada görürsün.') }}</p>
+  <div class="row" style="justify-content:center"><a class="btn btn-accent" href="/sablonlar">{{ icon('layers', 16) }} {{ _('Şablondan başla') }}</a></div></div>
+{% endif %}
+<div class="cal">
+  {% for d in days %}{% set items = per_day[d] %}
+  <section class="cal-day {{ 'today' if d == today }} {{ 'past' if d < today }} reveal">
+    <header><b>{{ labels[d] }}</b><span class="mono faint small">{{ d.strftime('%d.%m') }}</span>{% if items %}<span class="tiny faint">· {{ items|length }}</span>{% endif %}</header>
+    {% if items %}
+    <div class="cal-items">
+      {% for i in items %}
+      {% if i.kind == 'job' %}{% set j = i.job %}
+      <a class="cal-item" href="/video/{{ j.id }}">
+        <span class="cal-thumb">{% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" data-hide-broken>{% else %}{{ icon('alert' if j.status == 'hata' else 'clock', 14) }}{% endif %}</span>
+        <span class="mono small">{{ i.at }}</span>
+        <span class="cal-t">{{ j.title or j.idea or _('Video') }}{% if i.channel %}<small>{{ i.channel }}</small>{% endif %}</span>
+        <span class="badge {{ status_badge[j.status] }}">{{ _(status_labels[j.status]) }}</span></a>
+      {% else %}
+      <a class="cal-item plan" href="/kanallar/{{ i.cid }}">
+        <span class="cal-thumb" style="background:{{ avgrad.get(i.style) }}">{{ i.channel[:1]|upper }}</span>
+        <span class="mono small">{{ i.at }}</span>
+        <span class="cal-t">{{ i.channel }}<small>{{ _('Planlandı · {n} kredi', n=i.cost) }}</small></span>
+        <span class="badge b-off">{{ _('Planlı') }}</span></a>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% else %}<p class="tiny faint cal-empty">{{ _('Video yok') }}</p>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -49,7 +49,7 @@ FAQS = [
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
-PUBLIC_PAGES = ["/", "/kesfet", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
+PUBLIC_PAGES = ["/", "/kesfet", "/sablonlar", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
 
 
 class CachedStatic(StaticFiles):
@@ -200,7 +200,8 @@ def require_verified(request: Request, user: User):
 
 
 def _active(path: str) -> str:
-    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar", "/baglantilar"):
+    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar", "/baglantilar",
+                   "/takvim"):
         if path.startswith(prefix):
             return prefix
     if path.startswith("/video/"):
@@ -350,9 +351,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                    for q, a in FAQS]
         with db.session() as s:
             showcase = s.scalars(_public_q().order_by(Job.featured.desc(), Job.public_at.desc()).limit(8)).all()
-        from . import fikirler
+        from . import fikirler, sablonlar
 
         return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase,
+                      tpls=sablonlar.all_for(i18n.current())[:6],
                       ideas=[{**i, "l": i18n.t(config.STYLE_LABELS[i["s"]])} for i in fikirler.for_lang(i18n.current())])
 
     def _public_q():
@@ -413,7 +415,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return "User-agent: *\nDisallow: /\n"
         private = ["/panel", "/video", "/videolar", "/kanallar", "/kredi", "/hesap", "/admin", "/dev", "/auth",
                    "/dogrula", "/sifre-yenile", "/api", "/baglantilar", "/baglan", "/yayin", "/davet", "/d/",
-                   "/liste", "/e/"]
+                   "/liste", "/e/", "/takvim"]
         lines = ["User-agent: *", *(f"Disallow: {pre}{p}" for pre in ("", "/en") for p in private),
                  f"Sitemap: {site_url(request)}/sitemap.xml"]
         return "\n".join(lines) + "\n"
@@ -476,9 +478,11 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             flash(request, "Davet bağlantısı geçersiz, yine de kayıt olabilirsin.", "warn")
         return go("/kayit")
 
-    def _after_signup(idea: str) -> str:
+    def _after_signup(idea: str, tpl: str = "") -> str:
         from urllib.parse import quote
 
+        if tpl:
+            return f"/kanallar/yeni?sablon={tpl}"
         return f"/video/yeni?idea={quote(idea)}" if idea else "/panel"
 
     # --- erken erişim listesi ---
@@ -535,10 +539,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                       invite_cap=config.EARLY_INVITE_CAP)
 
     @app.get("/kayit", response_class=HTMLResponse)
-    def register_page(request: Request, ref: str = "", fikir: str = ""):
+    def register_page(request: Request, ref: str = "", fikir: str = "", sablon: str = ""):
         remember_ref(request, ref)
         if fikir:  # fikir makinesinden geldi: kayıttan sonra stüdyoda hazır olsun
             request.session["fikir"] = clean(fikir, 300)
+        if sablon and re.fullmatch(r"[a-z0-9-]{1,40}", sablon):  # şablondan geldi: kayıttan sonra kanal formu dolu açılsın
+            request.session["sablon"] = sablon
         return render(request, "kayit.html", current_user(request), invited=bool(request.session.get("ref")))
 
     signup_limiter = RateLimiter(limit=8, window=3600)  # aynı IP'den saatte en fazla 8 hesap
@@ -572,6 +578,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             growth.attach_referrer(s, user, request.session.get("ref"))
             uid = user.id
         idea = request.session.get("fikir", "")
+        tpl = request.session.get("sablon", "")
         start_session(request, user)
         if config.SHOWCASE:  # herkese açık demo: gerçek e-posta yok, hesap hemen açılır
             with db.session() as s:
@@ -580,10 +587,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 if config.SIGNUP_BONUS:
                     credits.add(s, uid, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
             flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
-            return go(_after_signup(idea))
+            return go(_after_signup(idea, tpl))
         flash(request, "Hesabın oluşturuldu! E-postana bir doğrulama bağlantısı gönderdik. 🎉")
         send_verification(request, uid, email)
-        return go(_after_signup(idea))
+        return go(_after_signup(idea, tpl))
 
     @app.get("/giris", response_class=HTMLResponse)
     def login_page(request: Request):
@@ -847,14 +854,96 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)
-    def new_video_page(request: Request, idea: str = "", src: int = Query(0, alias="from"),
+    def new_video_page(request: Request, idea: str = "", src: int = Query(0, alias="from"), sablon: str = "",
                        user: User = Depends(require_user)):
-        pre = None
+        from . import sablonlar
+
+        pre, tpl_name = None, ""
         if src:  # "Düzenleyip üret": eski videonun ayarlarıyla doldur
             with db.session() as s:
                 job = s.get(Job, src)
                 pre = job if job and job.user_id == user.id else None
-        return render(request, "video_yeni.html", user, idea=clean(idea) or (pre.idea if pre else ""), pre=pre)
+        elif sablon and (t := sablonlar.get(sablon, i18n.current())):  # hazır şablonun karakter ve tarzıyla
+            pre, tpl_name = sablonlar.as_channel(t, i18n.current()), t.name
+        return render(request, "video_yeni.html", user, idea=clean(idea) or (pre.idea if pre else ""), pre=pre,
+                      tpl_name=tpl_name)
+
+    @app.get("/takvim", response_class=HTMLResponse)
+    def content_calendar(request: Request, user: User = Depends(require_user)):
+        """İçerik takvimi: son 3 günün videoları ve önümüzdeki günlerde otomatik kanalların üreteceği videolar."""
+        from datetime import time as dtime
+        from datetime import timedelta, timezone
+
+        tz = ZoneInfo(config.TIMEZONE)
+        now_l = datetime.now(tz)
+        today = now_l.date()
+        days = [today + timedelta(days=i) for i in range(-3, 11)]
+        since = datetime.combine(days[0], dtime.min, tz).astimezone(timezone.utc)
+        with db.session() as s:
+            chans = s.scalars(select(Channel).where(Channel.user_id == user.id).order_by(Channel.id)).all()
+            jobs = s.scalars(select(Job).where(Job.user_id == user.id, Job.created_at >= since).order_by(Job.id)).all()
+        names = {c.id: c.name for c in chans}
+
+        def loc(dt):
+            return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).astimezone(tz)
+
+        per_day = {d: [] for d in days}
+        done = set()
+        for j in jobs:
+            if j.slot and j.channel_id:
+                done.add((j.channel_id, j.slot))
+            at = loc(j.created_at)
+            if at.date() in per_day:
+                per_day[at.date()].append({"kind": "job", "at": at.strftime("%H:%M"), "job": j,
+                                           "channel": names.get(j.channel_id, "")})
+        planned = []
+        for ch in chans:
+            if not ch.active:
+                continue
+            cost = config.QUALITIES[ch.quality]["credits"]
+            for d in days:
+                if d < today:
+                    continue
+                for t in ch.time_list():
+                    try:
+                        hh, mm = (int(x) for x in t.split(":"))
+                    except ValueError:
+                        continue
+                    when = datetime.combine(d, dtime(hh, mm), tz)
+                    if (ch.id, when.strftime("%Y-%m-%d %H:%M")) in done or when < now_l - worker.SLOT_GRACE:
+                        continue
+                    item = {"kind": "plan", "at": t, "when": when, "channel": ch.name, "cid": ch.id, "cost": cost,
+                            "style": ch.style}
+                    per_day[d].append(item)
+                    planned.append(item)
+        for items in per_day.values():
+            items.sort(key=lambda i: i["at"])
+        planned.sort(key=lambda i: i["when"])
+        week_end = today + timedelta(days=7)
+        week = [i for i in planned if i["when"].date() < week_end]
+        runs_out, left = None, user.credits
+        for i in planned:  # kredi hangi videoda biter?
+            left -= i["cost"]
+            if left < 0:
+                runs_out = i["when"]
+                break
+        wd = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
+        labels = {d: (i18n.t("Bugün") if d == today else i18n.t("Yarın") if d == today + timedelta(days=1)
+                      else i18n.t("Dün") if d == today - timedelta(days=1) else i18n.t(wd[d.weekday()])) for d in days}
+        # boş geçmiş günler gizlenir; kanal yoksa yalnızca video olan günler
+        days = [d for d in days if per_day[d] or (d >= today and chans)]
+        return render(request, "takvim.html", user, days=days, per_day=per_day, labels=labels, today=today,
+                      week_count=len(week), week_cost=sum(i["cost"] for i in week), runs_out=runs_out,
+                      has_channels=bool(chans))
+
+    @app.get("/sablonlar", response_class=HTMLResponse)
+    def templates_page(request: Request, kategori: str = ""):
+        from . import sablonlar
+
+        items = sablonlar.all_for(i18n.current())
+        cats = {k: v for k, v in sablonlar.CATEGORIES.items() if any(t.category == k for t in items)}
+        kategori = kategori if kategori in cats else ""
+        return render(request, "sablonlar.html", current_user(request), items=items, cats=cats, kategori=kategori)
 
     @app.post("/video/yeni", dependencies=[Depends(check_csrf)])
     async def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
@@ -916,6 +1005,25 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             pubs = {p.platform: p for p in s.scalars(select(Publication).where(Publication.job_id == job.id))}
         return render(request, "video.html", user, job=job, pubs=pubs, linked=_linked(job.user_id),
                       platforms=social.PLATFORMS)
+
+    @app.post("/video/{job_id}/metin", dependencies=[Depends(check_csrf)])
+    def job_text_edit(request: Request, job_id: int, user: User = Depends(require_user), title: str = Form(""),
+                      caption: str = Form(""), hashtags: str = Form("")):
+        """Paylaşım metnini elle düzenle (otomatik paylaşım da bu metni kullanır)."""
+        tags = []
+        for h in re.split(r"[\s,]+", hashtags):
+            h = re.sub(r"[^\w]", "", h.lstrip("#"))[:40]
+            if h and h.lower() not in (x.lower() for x in tags):
+                tags.append(h)
+        with db.session() as s:
+            job = _own_job(s, user, job_id)
+            if job.user_id != user.id or job.status != "hazir":
+                raise HTTPException(404)
+            job.title = clean(title, 100) or job.title
+            job.caption = (caption or "").strip()[:2000]
+            job.hashtags = " ".join(tags[:30])
+        flash(request, "Paylaşım metni kaydedildi.")
+        return go(f"/video/{job_id}")
 
     @app.post("/video/{job_id}/kesfet", dependencies=[Depends(check_csrf)])
     def job_public_toggle(request: Request, job_id: int, user: User = Depends(require_user)):
@@ -1100,8 +1208,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return {p: a.name for p, a in publisher.accounts(s, user_id).items()}
 
     @app.get("/kanallar/yeni", response_class=HTMLResponse)
-    def channel_new_page(request: Request, user: User = Depends(require_user)):
-        return render(request, "kanal_form.html", user, ch=None, linked=_linked(user.id), platforms=social.PLATFORMS)
+    def channel_new_page(request: Request, sablon: str = "", user: User = Depends(require_user)):
+        from . import sablonlar
+
+        t = sablonlar.get(sablon, i18n.current()) if sablon else None
+        return render(request, "kanal_form.html", user, ch=None, linked=_linked(user.id), platforms=social.PLATFORMS,
+                      tpl=sablonlar.as_channel(t, i18n.current()) if t else None, tpl_name=t.name if t else "")
 
     @app.post("/kanallar/yeni", dependencies=[Depends(check_csrf)])
     async def channel_new(request: Request, user: User = Depends(require_user)):

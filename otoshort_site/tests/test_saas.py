@@ -1651,3 +1651,56 @@ def test_waitlist_invites_reward_inviter_once_verified(client, tmp_path, monkeyp
     host.get(mail_link(tmp_path, "/dogrula"))
     assert balance("ev@b.com") == 130  # 100 erken erişim + 30 davet
     assert TestClient(client.app).get("/liste/YOKBOYLE").status_code == 404
+
+
+# --- şablonlar, takvim, metin düzenleme ---
+def test_templates_page_and_prefill_forms(client):
+    import html
+
+    page = TestClient(client.app).get("/sablonlar").text
+    assert "Komik Meyveler" in page and "/kayit?sablon=komik-meyveler" in page
+    assert "Office Cat" in TestClient(client.app).get("/en/sablonlar").text
+    assert "Ofis Kedisi" not in TestClient(client.app).get("/sablonlar?kategori=egitim").text
+    assert "<loc>http://testserver/sablonlar</loc>" in client.get("/sitemap.xml").text
+    c = TestClient(client.app)
+    c.get("/kayit?sablon=ofis-kedisi")
+    r = c.post("/kayit", data={"email": "s@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                               "csrf": csrf(c, "/kayit")}, follow_redirects=False)
+    assert r.headers["location"] == "/kanallar/yeni?sablon=ofis-kedisi"
+    form = html.unescape(c.get(r.headers["location"]).text)
+    assert 'value="Ofis Kedisi"' in form and "Gözlüklü, kendini müdür sanan" in form and 'value="09:45 18:30"' in form
+    assert 'action="/kanallar/yeni"' in form  # yeni kanal (düzenleme değil)
+    video = html.unescape(c.get("/video/yeni?sablon=dinozor-sehirde").text)
+    assert "şablonuyla dolduruldu" in video and "Dinozor metrobüse binmeye çalışıyor" in video
+    assert 'value="meme3d" data-label' in video and 'value="meme3d" data-label="Ucuz 3D oyun (meme)" checked' in video
+
+
+def test_content_calendar_shows_past_and_planned(client):
+    signup(client, "a@b.com")
+    give("a@b.com", 70)
+    assert "Henüz otomatik kanalın yok" in client.get("/takvim").text
+    client.post("/kanallar/yeni", data={"name": "Meyve", "quality": "fast", "times": "00:01 23:59",
+                                        "csrf": csrf(client, "/kanallar/yeni")})
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": csrf(client, "/video/yeni")})
+    run_queue(ai.FakeAI())
+    page = client.get("/takvim").text
+    assert "Bugün" in page and "Yarın" in page and "Planlı" in page and "Deneme videosu" in page
+    assert "itibarıyla yetmez" in page  # 35 kredi kaldı, kanal 65 kredilik
+
+
+def test_edit_share_text(client):
+    signup(client, "a@b.com")
+    give("a@b.com", 100)
+    t = csrf(client, "/video/yeni")
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid = s.scalar(select(Job.id))
+    client.post(f"/video/{jid}/metin", data={"title": "Yeni başlık", "caption": "Açıklama",
+                                             "hashtags": "#komik, #komik shorts <x> #yapay-zeka", "csrf": t})
+    with db.session() as s:
+        j = s.get(Job, jid)
+        assert (j.title, j.caption, j.hashtags) == ("Yeni başlık", "Açıklama", "komik shorts x yapayzeka")
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    assert other.post(f"/video/{jid}/metin", data={"title": "x", "csrf": csrf(other, "/panel")}).status_code == 404

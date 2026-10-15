@@ -83,6 +83,10 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   e-postaya, Google ile ele geçirme önlemi, şifre değişince diğer oturumlar düşer, atomik havale onayı, kayıt hız sınırı),
   yönetimde kullanıcı arama/detay/askıya alma, başarısız işlerin teknik hatası (Job.error_detail), havale bildiriminde
   yöneticiye e-posta.
+- Ziyaretçi/kullanıcı bağlama (Ekim 2026): vitrin modu + Canliya_Al.bat (Cloudflare hızlı tüneli), erken erişim listesi
+  (`saas/waitlist.py`, davet kodlu, /liste/KOD), fikir makinesi (`saas/fikirler.py`), hazır şablonlar (`saas/sablonlar.py`,
+  /sablonlar herkese açık), içerik takvimi (/takvim), paylaşım metni düzenleme, hız optimizasyonu (gzip, önbellek, WebP).
+  Kullanıcı kredi/bütçe ayarlarını şimdilik sormamamı istedi.
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

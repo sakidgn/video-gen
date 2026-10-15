@@ -711,6 +711,49 @@ EN = {
     "Bu sayfanın bağlantısını sakla; davetlerini buradan takip edersin.": "Save this page's link to keep track of your invites.",
     "Bu arada fikir makinesini dene": "Meanwhile, try the idea machine",
 
+    # --- hazır şablonlar ---
+    "Hazır şablonlar": "Ready-made templates",
+    'Kanal fikrin <span class="hl">hazır.</span>': 'Your channel idea, <span class="hl">ready.</span>',
+    "Karakterleri, konusu ve tarzı belirlenmiş şablonlardan birini seç; tek tıkla otomatik kanal kur ya da hemen bir video üret. Her şeyi sonra değiştirebilirsin.":
+        "Pick a template with characters, topic and style already set; set up an auto channel in one click or make a video right away. You can change everything later.",
+    "Kategori": "Category",
+    "Önerilen saatler:": "Suggested times:",
+    "Kanal kur": "Set up channel",
+    "Tek video": "Single video",
+    "Bir şablon seç, kanalın hazır.": "Pick a template, and your channel is ready.",
+    "Tüm şablonlar": "All templates",
+    "Şablondan başla": "Start from a template",
+    "Boş kanal kur": "Blank channel",
+    "“{name}” şablonuyla dolduruldu. İstediğini değiştir.": "Filled in from the “{name}” template. Change anything you like.",
+    "Komedi": "Comedy", "Eğitim": "Education", "Motivasyon": "Motivation", "Yemek": "Food", "Hayvanlar": "Animals",
+    "Macera": "Adventure", "Çocuk": "Kids", "Spor": "Sports", "Teknoloji": "Tech",
+
+    # --- içerik takvimi ---
+    "Takvim": "Calendar",
+    "Planlama": "Planning",
+    "İçerik takvimi": "Content calendar",
+    "Son günlerin videoları ve otomatik kanallarının önümüzdeki günlerde üreteceği videolar.":
+        "Your recent videos and the videos your auto channels will make in the coming days.",
+    "Önümüzdeki 7 gün": "Next 7 days",
+    "Kredi durumu": "Credit status",
+    "{date} itibarıyla yetmez": "Runs out by {date}",
+    "Planlananlara yetiyor": "Enough for what's planned",
+    "Bir kanal kurduğunda her gün hangi saatte video geleceğini burada görürsün.":
+        "Once you set up a channel, you'll see here when each day's videos will arrive.",
+    "Planlandı · {n} kredi": "Scheduled · {n} credits",
+    "Planlı": "Scheduled",
+    "Video yok": "No videos",
+    "Bugün": "Today", "Yarın": "Tomorrow", "Dün": "Yesterday",
+    "Pazartesi": "Monday", "Salı": "Tuesday", "Çarşamba": "Wednesday", "Perşembe": "Thursday", "Cuma": "Friday",
+    "Cumartesi": "Saturday", "Pazar": "Sunday",
+
+    "Metni düzenle": "Edit text",
+    "Başlık": "Title",
+    "Hashtag'ler": "Hashtags",
+    "(boşlukla ayır)": "(separate with spaces)",
+    "Otomatik paylaşımlar da bu metni kullanır.": "Auto-posts use this text too.",
+    "Paylaşım metni kaydedildi.": "Caption saved.",
+
     # --- vitrin (demo yayını) ---
     "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",
     "Demo sürümde ödeme alınmıyor": "No payments in the demo",

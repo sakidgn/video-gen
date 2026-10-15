@@ -3,7 +3,8 @@
 {% block content %}
 <div class="page-head">
   <div class="t"><span class="eyebrow">{{ _('Otomatik kanallar') }}</span><h1>{{ _('Kanalların') }}</h1><p class="muted">{{ _('Her kanal seçtiğin saatlerde kendiliğinden yeni video üretir. Kredin bitince durur.') }}</p></div>
-  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} {{ _('Yeni kanal') }}</a>
+  <div class="row"><a class="btn btn-ghost" href="/sablonlar">{{ icon('layers', 16) }} {{ _('Hazır şablonlar') }}</a>
+    <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} {{ _('Yeni kanal') }}</a></div>
 </div>
 <a class="card invite-cta reveal" href="/baglantilar" style="margin-bottom:18px"><span class="icon-box accent">{{ icon('share', 18) }}</span><div><b>{{ _('Otomatik paylaşım') }}</b><span class="small muted">{% if linked %}{{ _('Bağlı:') }} {{ linked.values()|join(', ') }}{% else %}{{ _('YouTube, TikTok ve Instagram hesabını bağla; videolar kendiliğinden yüklensin') }}{% endif %}</span></div>{{ icon('arrow-right', 16) }}</a>
 {% set avgrad = {'meme3d':'linear-gradient(140deg,#7aa7ff,#5fbf62)','cartoon':'linear-gradient(140deg,#ff8fb1,#ffcf6b)','realistic':'linear-gradient(140deg,#3b4a63,#a06a4a)','claymation':'linear-gradient(140deg,#e66a4e,#d8a978)','anime':'linear-gradient(140deg,#b58cff,#ffc1e3)'} %}
@@ -33,6 +34,7 @@
 {% else %}
 <div class="card empty"><span class="icon-box accent">{{ icon('repeat', 24) }}</span><h3 style="font-size:20px">{{ _('Henüz otomatik kanalın yok') }}</h3>
   <p>{{ _('Karakterlerini ve konunu bir kere ayarla, saatleri seç. Videolar her gün kendiliğinden gelsin.') }}</p>
-  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} {{ _('İlk kanalını kur') }}</a></div>
+  <div class="row" style="justify-content:center"><a class="btn btn-accent" href="/sablonlar">{{ icon('layers', 16) }} {{ _('Şablondan başla') }}</a>
+    <a class="btn btn-ghost" href="/kanallar/yeni">{{ icon('plus', 16) }} {{ _('Boş kanal kur') }}</a></div></div>
 {% endif %}
 {% endblock %}

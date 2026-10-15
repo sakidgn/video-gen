@@ -2,7 +2,7 @@
 {% block body %}
 {% set nav = [('/panel','grid',_('Panel')),('/video/yeni','sparkles',_('Video üret')),('/kanallar','repeat',_('Otomatik kanallar')),('/kredi','gem',_('Kredi'))] %}
 {% set tabs = [_('Panel'), _('Video'), _('Kanallar'), _('Kredi')] %}
-{% set side_nav = nav[:2] + [('/videolar','film',_('Videolarım'))] + nav[2:] %}
+{% set side_nav = nav[:2] + [('/videolar','film',_('Videolarım'))] + nav[2:3] + [('/takvim','calendar',_('Takvim'))] + nav[3:] %}
 <div class="app">
   <aside class="side">
     <a class="brand" href="/">{{ LOGO }}{{ site }}</a>

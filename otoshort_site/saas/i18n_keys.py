@@ -65,6 +65,9 @@ def constant_keys() -> set[str]:
         keys |= {p["label"], p["note"]}
     for q, a in FAQS:
         keys |= {q, a}
+    from .sablonlar import CATEGORIES
+
+    keys |= set(CATEGORIES.values())
     return keys
 
 
@@ -75,6 +78,7 @@ EXTRA = {
     "Oturum süresi doldu, sayfayı yenileyip tekrar dene.",
     "Video güvenlik filtresine takıldı. Fikri biraz değiştirip tekrar dene. Kredin iade edildi.",
     "Video üretilemedi, kredin iade edildi. Biraz sonra tekrar dene.",
+    "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar",
     "Hoş geldin hediyesi", "Erken erişim hediyesi", "Davet ödülü: arkadaşın ilk yüklemesini yaptı", "Davetle gelen hediye", "Yönetici düzeltmesi",
 }
 IGNORE = {"label", "onayla", "s"}

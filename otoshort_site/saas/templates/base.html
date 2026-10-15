@@ -71,7 +71,7 @@
 <footer class="footer"><div class="wrap">
   <div><a class="brand" href="{{ L('/') }}" style="margin-bottom:12px">{{ LOGO }}{{ site }}</a><p style="max-width:320px">{{ _('Yapay zekâ ile kısa video üret, otomatik kanallarla her gün yeni içerik paylaş.') }}</p>
     <div class="lang-pick">{% for code, name in langs.items() %}<a href="/dil/{{ code }}?next={{ path|urlencode }}" hreflang="{{ code }}" lang="{{ code }}" class="{{ 'on' if code == lang }}">{{ name }}</a>{% endfor %}</div></div>
-  <div><h4>{{ _('Ürün') }}</h4><a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/') }}#fiyat">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a></div>
+  <div><h4>{{ _('Ürün') }}</h4><a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/sablonlar') }}">{{ _('Hazır şablonlar') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/') }}#fiyat">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a></div>
   <div><h4>{{ _('Yasal') }}</h4><a href="{{ L('/yasal/kullanim') }}">{{ _('Kullanım şartları') }}</a><a href="{{ L('/yasal/kvkk') }}">{{ _('KVKK aydınlatma') }}</a><a href="{{ L('/yasal/mesafeli') }}">{{ _('Mesafeli satış') }}</a></div>
   <div class="legal"><span>© {{ site }}{% if legal.email %} · <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>{% endif %}</span><span>{{ _('Yapay zekâ ile üretilen videolar platformlarda “AI” etiketiyle paylaşılmalıdır.') }}</span></div>
 </div><div class="footer-mark" aria-hidden="true">{{ site }}</div></footer>

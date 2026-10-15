@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Hazır şablonlar') }} · {{ site }}{% endblock %}
+{% block content %}
+<section style="padding-top:clamp(48px,6vw,96px)"><div class="wrap">
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Hazır şablonlar') }}</span>
+    <h2>{{ _h('Kanal fikrin <span class="hl">hazır.</span>') }}</h2>
+    <p class="lead">{{ _('Karakterleri, konusu ve tarzı belirlenmiş şablonlardan birini seç; tek tıkla otomatik kanal kur ya da hemen bir video üret. Her şeyi sonra değiştirebilirsin.') }}</p></div>
+  <div class="toolbar reveal" style="justify-content:center">
+    <nav class="tabs tpl-tabs" aria-label="{{ _('Kategori') }}">
+      <a class="tab {{ 'on' if not kategori }}" href="{{ L('/sablonlar') }}">{{ _('Tümü') }}</a>
+      {% for k, label in cats.items() %}<a class="tab {{ 'on' if kategori == k }}" href="{{ L('/sablonlar') }}?kategori={{ k }}">{{ _(label) }}</a>{% endfor %}
+    </nav>
+  </div>
+  <div class="tpl-grid">
+    {% for t in items if not kategori or t.category == kategori %}
+    <article class="card tpl reveal" data-delay="{{ loop.index0 % 3 }}" id="{{ t.key }}">
+      <div class="tpl-top"><span class="tpl-emoji">{{ t.emoji }}</span>
+        <div class="tpl-tags"><span class="pill">{{ _(cats[t.category]) }}</span><span class="pill"><span class="swatch sw-{{ t.style }}"></span>{{ _(styles[t.style]) }}</span></div></div>
+      <h3>{{ t.name }}</h3>
+      <p class="small muted">{{ t.desc }}</p>
+      <ul class="tpl-ideas">{% for i in t.ideas %}<li>{{ icon('sparkles', 13) }} {{ i }}</li>{% endfor %}</ul>
+      <div class="tpl-meta tiny faint">{{ icon('clock', 13) }} {{ _('Önerilen saatler:') }} <span class="mono">{{ t.times }}</span></div>
+      <div class="row tpl-actions">
+        <a class="btn btn-primary btn-sm" href="{{ '/kanallar/yeni?sablon=' ~ t.key if user else L('/kayit') ~ '?sablon=' ~ t.key }}">{{ icon('repeat', 14) }} {{ _('Kanal kur') }}</a>
+        <a class="btn btn-ghost btn-sm" href="{{ '/video/yeni?sablon=' ~ t.key if user else L('/kayit') ~ '?fikir=' ~ (t.ideas[0]|urlencode) }}">{{ icon('sparkles', 14) }} {{ _('Tek video') }}</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</div></section>
+{% endblock %}

@@ -108,6 +108,13 @@
   </div>
 </div></section>
 
+<section style="padding-top:28px"><div class="wrap">
+  <div class="row between reveal" style="margin-bottom:16px;align-items:flex-end">
+    <div><span class="eyebrow">{{ _('Hazır şablonlar') }}</span><h3 class="tpl-h">{{ _('Bir şablon seç, kanalın hazır.') }}</h3></div>
+    <a class="btn btn-ghost btn-sm" href="{{ L('/sablonlar') }}">{{ _('Tüm şablonlar') }} {{ icon('arrow-right', 14) }}</a></div>
+  <div class="tpl-strip">{% for t in tpls %}<a class="tpl-mini reveal" data-delay="{{ loop.index0 % 3 }}" href="{{ L('/sablonlar') }}#{{ t.key }}"><span>{{ t.emoji }}</span><b>{{ t.name }}</b></a>{% endfor %}</div>
+</div></section>
+
 <section id="otomatik" style="padding-top:20px"><div class="wrap">
   <div class="auto">
     <div class="auto-copy reveal">
