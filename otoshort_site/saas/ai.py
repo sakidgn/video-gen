@@ -127,6 +127,25 @@ class RealAI:
                                                temperature=1.2))
         return [i.strip() for i in json.loads(resp.text).get("ideas", []) if i.strip()][:n]
 
+    def transcribe(self, *, video: Path, language: str) -> list[dict]:
+        """Videodaki konuşmaları zaman damgalı döker: [{"start": sn, "end": sn, "text": "..."}]"""
+        from google.genai import types
+
+        lang = config.LANGUAGES.get(language, language)
+        schema = {"type": "object", "properties": {"segments": {"type": "array", "items": {
+            "type": "object", "properties": {"start": {"type": "number"}, "end": {"type": "number"},
+                                             "text": {"type": "string"}}, "required": ["start", "end", "text"]}}},
+                  "required": ["segments"]}
+        resp = self.client.models.generate_content(
+            model=config.TEXT_MODEL,
+            contents=[types.Part.from_bytes(data=video.read_bytes(), mime_type="video/mp4"),
+                      f"Transcribe every spoken line in this video exactly as spoken (language: {lang}). Split into short "
+                      "subtitle segments of at most 6 words with precise start/end times in seconds. Ignore music and "
+                      "sound effects. If nobody speaks, return an empty list."],
+            config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
+                                               temperature=0))
+        return [seg for seg in json.loads(resp.text).get("segments", []) if str(seg.get("text", "")).strip()]
+
     def make_video(self, *, prompt: str, quality: str, out: Path, refs: list[Path] | None = None,
                    poll_s: int = 10, timeout_s: int = 900) -> Path:
         """Kalitenin ayarlı sağlayıcısıyla (Google Veo ya da fal.ai) videoyu üretip out'a kaydeder."""
@@ -266,6 +285,10 @@ class FakeAI:
         import random
 
         return random.sample(IDEA_POOL, n)
+
+    def transcribe(self, *, video: Path, language: str) -> list[dict]:
+        return [{"start": 0.3, "end": 2.6, "text": "Bu son indirim benim!"},
+                {"start": 2.8, "end": 5.4, "text": "Muz bile şahit"}, {"start": 5.6, "end": 7.8, "text": "Kasiyer nerede?!"}]
 
     def make_video(self, *, prompt: str, quality: str, out: Path, refs=None, **_) -> Path:
         self.last_refs = list(refs or [])

@@ -584,7 +584,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     async def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
                         characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
                         quality: str = Form("fast"), ref: UploadFile | None = File(None), ref_keep: str = Form(""),
-                        ref_remove: str = Form("")):
+                        ref_remove: str = Form(""), subtitles: str = Form("")):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
@@ -596,7 +596,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 job = worker.create_job(
                     s, user.id, idea=clean(idea), characters=clean(characters),
                     style=_valid_choice(style, config.STYLES, "cartoon"),
-                    language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image)
+                    language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image,
+                    subtitles=bool(subtitles))
                 job_id = job.id
         except credits.NotEnoughCredits:
             flash(request, f"Yeterli kredin yok. Bu kalite {config.QUALITIES[quality]['credits']} kredi.", "err")
@@ -648,7 +649,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             if old.user_id != user.id:
                 raise HTTPException(404)
             params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
-                          quality=old.quality, ref_image=old.ref_image)
+                          quality=old.quality, ref_image=old.ref_image, subtitles=old.subtitles)
         try:
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
@@ -694,13 +695,14 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return JSONResponse({"status": job.status, "label": STATUS_LABELS.get(job.status, job.status), "stage": stage})
 
     @app.get("/video/{job_id}/dosya")
-    def job_file(job_id: int, indir: int = 0, user: User = Depends(require_user)):
+    def job_file(job_id: int, indir: int = 0, ham: int = 0, user: User = Depends(require_user)):
         with db.session() as s:
             job = _own_job(s, user, job_id)
-        path = worker.video_dir() / job.video_file if job.video_file else None
+        name_ = job.raw_file if ham and job.raw_file else job.video_file
+        path = worker.video_dir() / name_ if name_ else None
         if job.status != "hazir" or not path or not path.exists():
             raise HTTPException(404)
-        name = f"video-{job.id}.mp4" if indir else None
+        name = (f"video-{job.id}-altyazisiz.mp4" if ham and job.raw_file else f"video-{job.id}.mp4") if indir else None
         return FileResponse(path, media_type="video/mp4", filename=name)
 
     @app.get("/video/{job_id}/kapak")
@@ -756,13 +758,13 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             for ch in s.scalars(select(Channel).where(Channel.user_id == u.id)):
                 s.delete(ch)
             for job in s.scalars(select(Job).where(Job.user_id == u.id)):
-                for ext in (".mp4", ".jpg"):
+                for ext in (".mp4", ".jpg", "-ham.mp4"):
                     f = worker.video_dir() / f"{job.id}{ext}"
                     if f.exists():
                         f.unlink()
                 job.channel_id = None
                 job.idea = job.characters = job.prompt = job.title = job.caption = job.hashtags = job.summary = ""
-                job.ref_image = ""
+                job.ref_image = job.raw_file = ""
                 job.video_file = ""
             # muhasebe kayıtları (ödeme/kredi hareketleri) yasal süre boyunca kalır; kişisel bilgiler silinir
             u.email = f"silindi-{u.id}@silindi.invalid"
@@ -782,6 +784,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             language=_valid_choice(form.get("language", ""), config.LANGUAGES, "tr"),
             quality=_valid_choice(form.get("quality", ""), config.QUALITIES, "fast"),
             times=" ".join(sorted(set(times), key=lambda t: (int(t.split(":")[0]), t)))[:200] or "12:00",
+            subtitles=bool(form.get("subtitles")),
         )
 
     @app.get("/kanallar", response_class=HTMLResponse)
@@ -860,7 +863,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         with db.session() as s:
             ch = _own_channel(s, user, cid)
             params = dict(idea=ch.topic, characters=ch.characters, style=ch.style, language=ch.language,
-                          quality=ch.quality, channel_id=ch.id, ref_image=ch.ref_image)
+                          quality=ch.quality, channel_id=ch.id, ref_image=ch.ref_image, subtitles=ch.subtitles)
         slot = "elle " + datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S.%f")
         try:
             with db.session() as s:

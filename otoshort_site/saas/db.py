@@ -38,6 +38,9 @@ def init(url: str | None = None) -> None:
 NEW_COLUMNS = [
     ("jobs", "ref_image", "VARCHAR(120) NOT NULL DEFAULT ''"),
     ("channels", "ref_image", "VARCHAR(120) NOT NULL DEFAULT ''"),
+    ("jobs", "subtitles", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("channels", "subtitles", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("jobs", "raw_file", "VARCHAR(300) NOT NULL DEFAULT ''"),
 ]
 
 

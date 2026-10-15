@@ -784,3 +784,60 @@ def test_fal_video_flow_and_content_block(tmp_path, monkeypatch):
     with pytest.raises(ai.ContentBlocked):
         ai.FalVideo(session=Blocked(), key="k").make(quality="lite", model="m", prompt="p", out=tmp_path / "x.mp4",
                                                      refs=[], poll_s=0)
+
+
+def test_subtitles_burned_and_raw_kept(client, tmp_path):
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    r = client.post("/video/yeni", data={"idea": "x", "quality": "lite", "subtitles": "1", "csrf": t},
+                    follow_redirects=False)
+    jid = int(r.headers["location"].rsplit("/", 1)[1])
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        job = s.get(Job, jid)
+        assert job.status == "hazir" and job.subtitles and job.raw_file == f"{jid}-ham.mp4"
+    assert (tmp_path / "videolar" / f"{jid}-ham.mp4").exists()
+    page = client.get(f"/video/{jid}").text
+    assert "Altyazısız indir" in page and "altyazılı" in page
+    r = client.get(f"/video/{jid}/dosya?indir=1&ham=1")
+    assert r.status_code == 200 and "altyazisiz" in r.headers["content-disposition"]
+
+
+def test_subtitle_failure_keeps_video(client):
+    class NoSubs(ai.FakeAI):
+        def transcribe(self, **_):
+            raise RuntimeError("döküm yapılamadı")
+
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "subtitles": "1", "csrf": csrf(client, "/video/yeni")})
+    run_queue(NoSubs())
+    with db.session() as s:
+        job = s.scalar(select(Job))
+        assert job.status == "hazir" and job.raw_file == "" and balance("a@b.com") == 500 - job.cost
+
+
+def test_build_ass_escapes_and_skips_empty():
+    from saas import media
+
+    ass = media.build_ass([{"start": 0, "end": 1.5, "text": "Merhaba {\\\\an8}dünya"},
+                           {"start": 2, "end": 2, "text": "boş süre"}, {"start": 3, "end": 4, "text": "  "}])
+    lines = [l for l in ass.splitlines() if l.startswith("Dialogue:")]
+    assert len(lines) == 1 and "0:00:01.50" in lines[0] and "{" not in lines[0].split(",,", 1)[1]
+    assert media.burn_subtitles(None, [{"start": 0, "end": 1, "text": " "}]) is None
+
+
+def test_real_ai_transcribe_parses_segments(tmp_path):
+    from types import SimpleNamespace
+
+    class Models:
+        def generate_content(self, **kw):
+            assert "Turkish" in kw["contents"][1] or "Türkçe" in kw["contents"][1]
+            return SimpleNamespace(text='{"segments": [{"start": 0.1, "end": 1.2, "text": "Selam"}, '
+                                        '{"start": 1.3, "end": 2, "text": " "}]}')
+
+    v = tmp_path / "v.mp4"
+    v.write_bytes(b"mp4")
+    segs = ai.RealAI(client=SimpleNamespace(models=Models())).transcribe(video=v, language="tr")
+    assert segs == [{"start": 0.1, "end": 1.2, "text": "Selam"}]

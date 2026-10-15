@@ -40,6 +40,7 @@
       </div>
       <div class="row" style="margin-top:20px">
         <a class="btn btn-primary" href="/video/{{ job.id }}/dosya?indir=1">{{ icon('download', 16) }} Videoyu indir</a>
+        {% if job.raw_file %}<a class="btn btn-ghost" href="/video/{{ job.id }}/dosya?indir=1&ham=1">Altyazısız indir</a>{% endif %}
         <button type="button" class="btn btn-ghost" hidden data-share-file="/video/{{ job.id }}/dosya" data-share-name="{{ (job.title or 'video')|truncate(40, True, '') }}.mp4" data-share-text="{{ job.caption }}">{{ icon('share', 16) }} Uygulamada paylaş</button>
       </div>
       {% if job.user_id == user.id %}
@@ -64,7 +65,7 @@
         {% if job.characters %}<dt>Karakterler</dt><dd>{{ job.characters }}</dd>{% endif %}
         {% if job.ref_image %}<dt>Referans</dt><dd><img class="ref-mini" src="/referans/{{ job.ref_image }}" alt="Referans karakter" data-hide-broken></dd>{% endif %}
         <dt>Tarz</dt><dd>{{ styles.get(job.style, job.style) }}</dd>
-        <dt>Dil</dt><dd>{{ languages.get(job.language, job.language) }}</dd>
+        <dt>Dil</dt><dd>{{ languages.get(job.language, job.language) }}{% if job.subtitles %} · altyazılı{% endif %}</dd>
         <dt>Kalite</dt><dd>{{ qualities[job.quality].label }} · <span class="mono">{{ job.cost }}</span> kredi</dd>
         {% if job.channel %}<dt>Kanal</dt><dd><a href="/kanallar/{{ job.channel_id }}" style="text-decoration:underline;text-underline-offset:3px">{{ job.channel.name }}</a></dd>{% endif %}
         <dt>Tarih</dt><dd class="mono small">{{ job.created_at|tarih }}</dd>

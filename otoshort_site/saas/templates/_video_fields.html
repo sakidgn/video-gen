@@ -39,3 +39,8 @@
       <span class="opt-title">{{ q.label }}</span><span class="opt-sub">{{ q.desc }}</span><span class="opt-price">{{ q.credits }} kredi · {{ q.resolution }}</span></span></label>
 {% endfor %}
 </div>
+<label class="toggle-row">
+  <input type="checkbox" name="subtitles" value="1" {% if ch and ch.subtitles %}checked{% endif %}>
+  <span class="tg"></span>
+  <span><b>Altyazı ekle</b><small>Konuşmalar kalın, okunaklı yazıyla videoya basılır; çoğu kişi sessiz izlediği için izlenmeyi artırır. Ücretsiz.</small></span>
+</label>

@@ -91,6 +91,7 @@ class Channel(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     notice: Mapped[str] = mapped_column(String(300), default="")
     ref_image: Mapped[str] = mapped_column(String(120), default="")  # referans karakter görseli ("uid/ad.png")
+    subtitles: Mapped[bool] = mapped_column(Boolean, default=False)  # videolara altyazı basılsın mı
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
     def time_list(self) -> list[str]:
@@ -118,6 +119,8 @@ class Job(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     video_file: Mapped[str] = mapped_column(String(300), default="")
     ref_image: Mapped[str] = mapped_column(String(120), default="")
+    subtitles: Mapped[bool] = mapped_column(Boolean, default=False)
+    raw_file: Mapped[str] = mapped_column(String(300), default="")  # altyazısız orijinal
     error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

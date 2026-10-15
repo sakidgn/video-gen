@@ -56,11 +56,12 @@ def notify(user_id: int, subject: str, title: str, intro: str, button: tuple[str
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
-               channel_id: int | None = None, slot: str | None = None, ref_image: str = "") -> Job:
+               channel_id: int | None = None, slot: str | None = None, ref_image: str = "",
+               subtitles: bool = False) -> Job:
     """İşi oluşturur ve krediyi düşer (yetmezse credits.NotEnoughCredits)."""
     cost = config.QUALITIES[quality]["credits"]
     job = Job(user_id=user_id, channel_id=channel_id, slot=slot, idea=idea, characters=characters, style=style,
-              language=language, quality=quality, cost=cost, ref_image=ref_image or "")
+              language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles))
     s.add(job)
     s.flush()
     credits.charge(s, user_id, cost, f"Video #{job.id} ({config.QUALITIES[quality]['label']})", job.id)
@@ -79,6 +80,7 @@ def run_job(job_id: int, generator) -> None:
         past = _past_summaries(s, job)
         params = dict(idea=job.idea, characters=job.characters, style=job.style, language=job.language)
         quality = job.quality
+        want_subs = job.subtitles
         from . import media
 
         ref = media.ref_path(job.ref_image) if job.ref_image and config.supports_refs(job.quality) else None
@@ -93,9 +95,11 @@ def run_job(job_id: int, generator) -> None:
                 hashtags=" ".join(script.hashtags), summary=script.summary))
         rel = f"{job_id}.mp4"
         generator.make_video(prompt=script.video_prompt, quality=quality, out=video_dir() / rel, refs=refs)
+        raw = add_subtitles(generator, video_dir() / rel, params["language"]) if want_subs else None
         make_poster(video_dir() / rel)
         with db.session() as s:
-            s.execute(update(Job).where(Job.id == job_id).values(status="hazir", video_file=rel, finished_at=now()))
+            s.execute(update(Job).where(Job.id == job_id).values(status="hazir", video_file=rel, finished_at=now(),
+                                                                 raw_file=raw.name if raw else ""))
             job = s.get(Job, job_id)
             ch_name = job.channel.name if job.channel else None
             uid = job.user_id
@@ -114,6 +118,18 @@ def run_job(job_id: int, generator) -> None:
         else:
             msg = "Video üretilemedi, kredin iade edildi. Biraz sonra tekrar dene."
         fail_job(job_id, msg, f"{type(e).__name__}: {e}")
+
+
+def add_subtitles(generator, video: Path, language: str) -> Path | None:
+    """Konuşmaları döküp videoya basar. Başarısız olursa video altyazısız kalır (iş yine de hazır sayılır)."""
+    from . import media
+
+    try:
+        segments = generator.transcribe(video=video, language=language)
+        return media.burn_subtitles(video, segments)
+    except Exception:
+        log.exception("Altyazı eklenemedi: %s", video.name)
+        return None
 
 
 def fail_job(job_id: int, user_msg: str, detail: str = "") -> None:
@@ -162,7 +178,7 @@ def schedule_channels(at: datetime | None = None) -> list[int]:
                 with db.session() as s:
                     job = create_job(s, ch.user_id, idea=ch.topic, characters=ch.characters, style=ch.style,
                                      language=ch.language, quality=ch.quality, channel_id=ch.id, slot=slot,
-                                     ref_image=ch.ref_image)
+                                     ref_image=ch.ref_image, subtitles=ch.subtitles)
                     s.execute(update(Channel).where(Channel.id == ch.id).values(notice=""))
                     created.append(job.id)
             except credits.NotEnoughCredits:
