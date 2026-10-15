@@ -14,9 +14,10 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
-from . import config, credits, db, growth, i18n, mailer, media, oauth, publisher, secretbox, social, tokens, worker
+from . import (config, credits, db, growth, i18n, karakter, mailer, media, oauth, publisher, secretbox, social, tokens,
+               worker)
 from .icons import LOGO, brand, icon
-from .models import Channel, CreditTx, Job, PromoCode, Publication, SocialAccount, TopUp, User, now
+from .models import Channel, Character, CreditTx, Job, PromoCode, Publication, SocialAccount, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
 
 log = logging.getLogger("saas")
@@ -201,7 +202,7 @@ def require_verified(request: Request, user: User):
 
 def _active(path: str) -> str:
     for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar", "/baglantilar",
-                   "/takvim"):
+                   "/takvim", "/karakterler"):
         if path.startswith(prefix):
             return prefix
     if path.startswith("/video/"):
@@ -855,7 +856,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)
     def new_video_page(request: Request, idea: str = "", src: int = Query(0, alias="from"), sablon: str = "",
-                       user: User = Depends(require_user)):
+                       karakter_id: int = Query(0, alias="karakter"), user: User = Depends(require_user)):
         from . import sablonlar
 
         pre, tpl_name = None, ""
@@ -866,7 +867,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         elif sablon and (t := sablonlar.get(sablon, i18n.current())):  # hazır şablonun karakter ve tarzıyla
             pre, tpl_name = sablonlar.as_channel(t, i18n.current()), t.name
         return render(request, "video_yeni.html", user, idea=clean(idea) or (pre.idea if pre else ""), pre=pre,
-                      tpl_name=tpl_name)
+                      tpl_name=tpl_name, **_cast_ctx(user.id, [karakter_id]))
 
     @app.get("/takvim", response_class=HTMLResponse)
     def content_calendar(request: Request, user: User = Depends(require_user)):
@@ -949,7 +950,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     async def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
                         characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
                         quality: str = Form("fast"), ref: UploadFile | None = File(None), ref_keep: str = Form(""),
-                        ref_remove: str = Form(""), subtitles: str = Form("")):
+                        ref_remove: str = Form(""), subtitles: str = Form(""), cast: list[str] = Form([])):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
@@ -958,8 +959,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return go("/video/yeni")
         try:
             with db.session() as s:
+                characters, ref_image = karakter.cast(s, user.id, cast, clean(characters), ref_image)
                 job = worker.create_job(
-                    s, user.id, idea=clean(idea), characters=clean(characters),
+                    s, user.id, idea=clean(idea), characters=characters,
                     style=_valid_choice(style, config.STYLES, "cartoon"),
                     language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image,
                     subtitles=bool(subtitles))
@@ -1195,8 +1197,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return go("/hesap")
         with db.session() as s:
             u = s.get(User, user.id)
-            for ch in s.scalars(select(Channel).where(Channel.user_id == u.id)):
-                s.delete(ch)
+            for row in [*s.scalars(select(Channel).where(Channel.user_id == u.id)), *karakter.for_user(s, u.id)]:
+                s.delete(row)
             for job in s.scalars(select(Job).where(Job.user_id == u.id)):
                 for ext in (".mp4", ".jpg", "-ham.mp4"):
                     f = worker.video_dir() / f"{job.id}{ext}"
@@ -1218,6 +1220,78 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         request.session.clear()
         flash(request, "Hesabın ve videoların silindi. Görüşmek üzere. 👋")
         return go("/")
+
+    # --- karakter kütüphanesi ---
+    def _cast_ctx(user_id: int, selected) -> dict:
+        with db.session() as s:
+            mine = karakter.for_user(s, user_id)
+        return {"my_chars": mine, "sel_chars": set(karakter.parse_ids(selected)), "cast_max": karakter.MAX_PER_VIDEO}
+
+    def _own_character(s, user: User, cid: int) -> Character:
+        c = s.get(Character, cid)
+        if not c or c.user_id != user.id:
+            raise HTTPException(404)
+        return c
+
+    def _character_from_form(form) -> dict:
+        return dict(name=clean(form.get("name", ""), 60), look=clean(form.get("look", ""), 600),
+                    voice=clean(form.get("voice", ""), 300))
+
+    @app.get("/karakterler", response_class=HTMLResponse)
+    def characters_page(request: Request, user: User = Depends(require_user), duzenle: int = 0):
+        with db.session() as s:
+            chars = karakter.for_user(s, user.id)
+            edit = _own_character(s, user, duzenle) if duzenle else None
+        counts: dict[int, int] = {}
+        with db.session() as s:
+            for ch in s.scalars(select(Channel).where(Channel.user_id == user.id)):
+                for cid in karakter.parse_ids(ch.cast_ids):
+                    counts[cid] = counts.get(cid, 0) + 1
+        return render(request, "karakterler.html", user, chars=chars, edit=edit, used=counts,
+                      limit=karakter.MAX_PER_USER)
+
+    @app.post("/karakterler", dependencies=[Depends(check_csrf)])
+    async def character_save(request: Request, user: User = Depends(require_user)):
+        """Yeni karakter kaydeder ya da (id varsa) mevcut karakteri günceller."""
+        form = await request.form()
+        data = _character_from_form(form)
+        cid = int(form.get("id") or 0) if str(form.get("id") or "0").isdigit() else 0
+        back = f"/karakterler?duzenle={cid}" if cid else "/karakterler"
+        if not data["name"]:
+            flash(request, "Karaktere bir ad ver.", "err")
+            return go(back)
+        if not data["look"] and not data["voice"]:
+            flash(request, "Karakterin görünüşünü ya da sesini anlat.", "err")
+            return go(back)
+        with db.session() as s:
+            current = _own_character(s, user, cid).ref_image if cid else ""
+            if not cid and s.scalar(select(func.count(Character.id)).where(Character.user_id == user.id)) \
+                    >= karakter.MAX_PER_USER:
+                flash(request, "En fazla {n} karakter kaydedebilirsin.", "err", n=karakter.MAX_PER_USER)
+                return go("/karakterler")
+        ref_image = "" if form.get("ref_remove") else await read_reference(request, form.get("ref"), user.id, current)
+        if ref_image is None:
+            return go(back)
+        with db.session() as s:
+            if cid:
+                c = _own_character(s, user, cid)
+                for k, v in data.items():
+                    setattr(c, k, v)
+                c.ref_image = ref_image
+            else:
+                s.add(Character(user_id=user.id, ref_image=ref_image, **data))
+        flash(request, "Karakter kaydedildi. Artık videolarında ve kanallarında seçebilirsin." if not cid else
+              "Karakter güncellendi. Kanallarının sonraki videoları yeni hâlini kullanır.")
+        return go("/karakterler")
+
+    @app.post("/karakterler/{cid}/sil", dependencies=[Depends(check_csrf)])
+    def character_delete(request: Request, cid: int, user: User = Depends(require_user)):
+        with db.session() as s:
+            s.delete(_own_character(s, user, cid))
+            for ch in s.scalars(select(Channel).where(Channel.user_id == user.id, Channel.cast_ids != "")):
+                ch.cast_ids = " ".join(str(i) for i in karakter.parse_ids(ch.cast_ids) if i != cid)
+        flash(request, "Karakter silindi.")
+        return go("/karakterler")
 
     # --- kanallar ---
     def _channel_from_form(form) -> dict:
@@ -1249,7 +1323,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
         t = sablonlar.get(sablon, i18n.current()) if sablon else None
         return render(request, "kanal_form.html", user, ch=None, linked=_linked(user.id), platforms=social.PLATFORMS,
-                      tpl=sablonlar.as_channel(t, i18n.current()) if t else None, tpl_name=t.name if t else "")
+                      tpl=sablonlar.as_channel(t, i18n.current()) if t else None, tpl_name=t.name if t else "",
+                      **_cast_ctx(user.id, []))
 
     @app.post("/kanallar/yeni", dependencies=[Depends(check_csrf)])
     async def channel_new(request: Request, user: User = Depends(require_user)):
@@ -1262,6 +1337,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return go("/kanallar/yeni")
         data["ref_image"] = ref_image
         with db.session() as s:
+            data["cast_ids"] = karakter.ids_text(karakter.owned(s, user.id, form.getlist("cast")))
             if s.scalar(select(func.count(Channel.id)).where(Channel.user_id == user.id)) >= 10:
                 flash(request, "En fazla 10 kanal açabilirsin.", "err")
                 return go("/kanallar")
@@ -1281,7 +1357,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             ch = _own_channel(s, user, cid)
             jobs = s.scalars(select(Job).where(Job.channel_id == cid).order_by(Job.id.desc()).limit(30)).all()
         return render(request, "kanal_form.html", user, ch=ch, jobs=jobs, linked=_linked(user.id),
-                      platforms=social.PLATFORMS)
+                      platforms=social.PLATFORMS, **_cast_ctx(user.id, ch.cast_ids))
 
     @app.post("/kanallar/{cid}", dependencies=[Depends(check_csrf)])
     async def channel_edit(request: Request, cid: int, user: User = Depends(require_user)):
@@ -1295,6 +1371,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         data["ref_image"] = ref_image
         with db.session() as s:
             ch = _own_channel(s, user, cid)
+            data["cast_ids"] = karakter.ids_text(karakter.owned(s, user.id, form.getlist("cast")))
             for k, v in data.items():
                 setattr(ch, k, v)
         flash(request, "Kanal kaydedildi.")
@@ -1410,9 +1487,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         with db.session() as s:
-            ch = _own_channel(s, user, cid)
-            params = dict(idea=ch.topic, characters=ch.characters, style=ch.style, language=ch.language,
-                          quality=ch.quality, channel_id=ch.id, ref_image=ch.ref_image, subtitles=ch.subtitles)
+            params = worker.channel_params(s, _own_channel(s, user, cid))
         slot = "elle " + datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S.%f")
         try:
             with db.session() as s:

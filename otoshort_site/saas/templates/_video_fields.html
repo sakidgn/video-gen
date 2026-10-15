@@ -1,5 +1,17 @@
 {# Video ve kanal formlarında ortak alanlar. n0: önceki adım sayısı, ch: düzenlenen kanal (yoksa None) #}
 <div class="step-title"><span class="n">{{ n0 + 1 }}</span><h3>{{ _('Karakterler') }}</h3><span class="faint">{{ _('İsteğe bağlı') }}</span></div>
+{% if my_chars %}
+<div class="cast-pick" data-cast data-max="{{ cast_max }}">
+  <div class="cast-chips">
+  {% for c in my_chars %}<label class="cast-chip"><input type="checkbox" name="cast" value="{{ c.id }}" {% if c.id in (sel_chars or []) %}checked{% endif %}>
+    <span>{% if c.ref_image %}<img src="/referans/{{ c.ref_image }}" alt="" loading="lazy">{% else %}<i>{{ c.name[:1]|upper }}</i>{% endif %}{{ c.name }}</span></label>{% endfor %}
+    <a class="cast-add" href="/karakterler">{{ icon('plus', 13) }} {{ _('Yeni karakter') }}</a>
+  </div>
+  <p class="hint">{{ _('Seçtiğin karakterler (en fazla {n}) kayıtlı görünüşü ve sesiyle oynar; görseli varsa referans olarak kullanılır. Aşağıya başka karakter de ekleyebilirsin.', n=cast_max) }}</p>
+</div>
+{% else %}
+<a class="cast-tip" href="/karakterler">{{ icon('users', 16) }}<span><b>{{ _('Karakterini kaydet') }}</b> · {{ _('Görünüşünü ve sesini bir kez anlat, tüm videolarında aynı karakter oynasın.') }}</span>{{ icon('arrow-right', 14) }}</a>
+{% endif %}
 <textarea class="textarea" name="characters" maxlength="600" placeholder="{{ _('Örn: Sinirli, kocaman kaşlı bir portakal ve her şeye gülen saf bir muz.') }}">{{ ch.characters if ch else '' }}</textarea>
 <p class="hint" style="margin-top:8px">{{ _('Görünüşlerini ve kişiliklerini anlat. Boş bırakırsan yapay zekâ karakter uydurur. Ünlüler ve başkasına ait karakterler kullanılamaz.') }}</p>
 <div class="ref-up">

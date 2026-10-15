@@ -1248,6 +1248,9 @@ def test_english_site_has_no_turkish_left(client, monkeypatch):
         u.email_verified = True
     give("en@b.com", 1000)
     t = csrf(c, "/video/yeni")
+    _assert_english(c.get("/karakterler").text, "/karakterler (boş)")
+    _assert_english(c.post("/karakterler", data={"name": "Mo", "look": "A grumpy orange", "voice": "deep",
+                                                 "csrf": t}).text, "karakter kaydet")
     c.post("/video/yeni", data={"idea": "x", "quality": "lite", "language": "en", "csrf": t})
     c.post("/kanallar/yeni", data={"name": "K", "quality": "lite", "times": "10:00", "csrf": t})
     c.get(c.get("/baglan/youtube", follow_redirects=False).headers["location"])
@@ -1259,7 +1262,7 @@ def test_english_site_has_no_turkish_left(client, monkeypatch):
     publisher.run(publisher.claim())
     for url in ["/panel", "/video/yeni", f"/video/yeni?from={jid}", "/videolar", "/videolar?durum=hata&q=zzz",
                 f"/video/{jid}", "/kanallar", "/kanallar/yeni", f"/kanallar/{cid}", "/kredi", "/hesap", "/davet",
-                "/baglantilar", "/video/99999"]:
+                "/baglantilar", "/karakterler", "/karakterler?duzenle=1", "/takvim", "/video/99999"]:
         r = c.get(url)
         assert r.status_code in (200, 404), url
         _assert_english(r.text, url)
@@ -1736,3 +1739,63 @@ def test_script_trial_logged_in_goes_to_studio(client):
     assert r.status_code == 200 and r.json()["start"].startswith("/video/yeni?idea=")
     page = client.get(r.json()["start"]).text
     assert "Portakal ve muz kavga ediyor" in page
+
+
+def test_character_library_used_in_videos_and_channels(client):
+    from saas.models import Character
+
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/karakterler")
+    r = client.post("/karakterler", data={"name": "", "look": "x", "csrf": t})
+    assert "Karaktere bir ad ver" in r.text
+    client.post("/karakterler", data={"name": "Portakal Paşa", "look": "Kocaman kaşlı sinirli portakal",
+                                      "voice": "Boğuk, Karadeniz şiveli", "csrf": t},
+                files={"ref": ("p.png", PNG_1PX, "image/png")})
+    client.post("/karakterler", data={"name": "Muz", "look": "Saf, hep gülen muz", "csrf": t})
+    with db.session() as s:
+        orange, banana = s.scalars(select(Character).order_by(Character.id)).all()
+    assert orange.ref_image and not banana.ref_image
+    page = client.get("/karakterler").text
+    assert "Portakal Paşa" in page and "Bu karakterle video üret" in page
+
+    # stüdyo: ?karakter= ile seçili gelir; seçilen karakterlerin tarifi ve görseli videoya gider
+    studio = client.get(f"/video/yeni?karakter={orange.id}").text
+    assert re.search(rf'name="cast" value="{orange.id}" checked', studio)
+    client.post("/video/yeni", data={"idea": "markette kavga", "quality": "lite", "characters": "bir kasiyer",
+                                     "cast": [str(orange.id), str(banana.id)], "csrf": t})
+    with db.session() as s:
+        job = s.scalar(select(Job).order_by(Job.id.desc()))
+    assert "Portakal Paşa" in job.characters and "Karadeniz" in job.characters and "Muz" in job.characters
+    assert job.characters.endswith("bir kasiyer") and job.ref_image == orange.ref_image
+
+    # kanal karakteri kimliğiyle tutar: karakter düzenlenince sonraki videolar yeni hâlini kullanır
+    client.post("/kanallar/yeni", data={"name": "Meyveler", "topic": "x", "times": "09:00", "cast": [str(banana.id)],
+                                        "csrf": t})
+    with db.session() as s:
+        ch = s.scalar(select(Channel))
+    assert ch.cast_ids == str(banana.id)
+    assert re.search(rf'name="cast" value="{banana.id}" checked', client.get(f"/kanallar/{ch.id}").text)
+    client.post("/karakterler", data={"id": str(banana.id), "name": "Muz Bey", "look": "Gözlüklü muz", "csrf": t})
+    worker.schedule_channels(datetime(2026, 1, 5, 9, 1, tzinfo=ZoneInfo(config.TIMEZONE)))
+    with db.session() as s:
+        cj = s.scalar(select(Job).where(Job.channel_id == ch.id))
+    assert "Muz Bey" in cj.characters and "Gözlüklü" in cj.characters
+
+    # başkası bu karakterleri ne görebilir ne kullanabilir
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    give("o@b.com", 100)
+    ot = csrf(other, "/karakterler")
+    assert other.get(f"/karakterler?duzenle={orange.id}").status_code == 404
+    assert other.post(f"/karakterler/{orange.id}/sil", data={"csrf": ot}).status_code == 404
+    assert other.post("/karakterler", data={"id": str(orange.id), "name": "x", "look": "y", "csrf": ot}).status_code == 404
+    other.post("/video/yeni", data={"idea": "x", "quality": "lite", "cast": [str(orange.id)], "csrf": ot})
+    with db.session() as s:
+        oj = s.scalar(select(Job).join(User).where(User.email == "o@b.com"))
+    assert "Portakal" not in oj.characters and oj.ref_image == ""
+
+    # silinen karakter kanaldan da çıkar
+    client.post(f"/karakterler/{banana.id}/sil", data={"csrf": t})
+    with db.session() as s:
+        assert s.get(Channel, ch.id).cast_ids == "" and s.get(Character, banana.id) is None

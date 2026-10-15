@@ -61,6 +61,15 @@ def notify(user_id: int, subject: str, title: str, intro: str, button: tuple[str
         log.exception("Bildirim gönderilemedi")
 
 
+def channel_params(s, ch: Channel) -> dict:
+    """Kanalın ayarlarından yeni video işinin parametreleri (kayıtlı karakterlerin güncel hâli dahil)."""
+    from . import karakter
+
+    characters, ref_image = karakter.cast(s, ch.user_id, ch.cast_ids, ch.characters, ch.ref_image)
+    return dict(idea=ch.topic, characters=characters, style=ch.style, language=ch.language, quality=ch.quality,
+                channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles)
+
+
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
                channel_id: int | None = None, slot: str | None = None, ref_image: str = "",
                subtitles: bool = False) -> Job:
@@ -183,9 +192,7 @@ def schedule_channels(at: datetime | None = None) -> list[int]:
                     continue
             try:
                 with db.session() as s:
-                    job = create_job(s, ch.user_id, idea=ch.topic, characters=ch.characters, style=ch.style,
-                                     language=ch.language, quality=ch.quality, channel_id=ch.id, slot=slot,
-                                     ref_image=ch.ref_image, subtitles=ch.subtitles)
+                    job = create_job(s, ch.user_id, slot=slot, **channel_params(s, ch))
                     s.execute(update(Channel).where(Channel.id == ch.id).values(notice=""))
                     created.append(job.id)
             except credits.NotEnoughCredits:

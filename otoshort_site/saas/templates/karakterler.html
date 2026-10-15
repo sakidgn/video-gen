@@ -1,0 +1,69 @@
+{% extends "app_base.html" %}
+{% block title %}{{ _('Karakterler') }} · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="t"><span class="eyebrow">{{ _('Karakter kütüphanesi') }}</span><h1>{{ _('Karakterlerin') }}</h1>
+    <p class="muted">{{ _('Karakterinin görünüşünü ve sesini bir kez kaydet; seçtiğin her videoda ve kanalda aynı karakter oynasın. İzleyici tanıdığı karakteri takip eder.') }}</p></div>
+  {% if chars and not edit %}<a class="btn btn-accent" href="#yeni-karakter">{{ icon('plus', 16) }} {{ _('Yeni karakter') }}</a>{% endif %}
+</div>
+
+{% if chars %}
+<div class="char-grid">
+{% for c in chars %}
+  <div class="card char-card reveal {{ 'on' if edit and edit.id == c.id }}" data-delay="{{ loop.index0 % 3 }}">
+    <div class="char-top">
+      <span class="char-av">{% if c.ref_image %}<img src="/referans/{{ c.ref_image }}" alt="{{ c.name }}" loading="lazy">{% else %}{{ c.name[:1]|upper }}{% endif %}</span>
+      <div style="min-width:0"><h3>{{ c.name }}</h3>
+        <span class="tiny faint">{% if used.get(c.id) %}{{ _('{n} kanalda oynuyor', n=used[c.id]) }}{% else %}{{ _('Henüz kanalda değil') }}{% endif %}</span></div>
+    </div>
+    {% if c.look %}<p class="small muted char-look">{{ c.look }}</p>{% endif %}
+    {% if c.voice %}<p class="small char-voice">{{ icon('mic', 14) }} <span>{{ c.voice }}</span></p>{% endif %}
+    <div class="row char-actions">
+      <a class="btn btn-primary btn-sm" href="/video/yeni?karakter={{ c.id }}">{{ icon('sparkles', 14) }} {{ _('Bu karakterle video üret') }}</a>
+      <a class="btn btn-ghost btn-sm" href="/karakterler?duzenle={{ c.id }}#yeni-karakter">{{ icon('edit', 14) }} {{ _('Düzenle') }}</a>
+      <form method="post" action="/karakterler/{{ c.id }}/sil" data-confirm="{{ _('“{name}” silinsin mi? Kanallarından da çıkarılır.', name=c.name) }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn btn-text btn-sm" type="submit" aria-label="{{ _('Sil') }}">{{ icon('trash', 14) }}</button></form>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card char-intro reveal">
+  <div class="char-demo" aria-hidden="true">
+    <span class="char-av big">🍊</span>
+    <div><b>{{ _('Portakal Paşa') }}</b><span class="small muted">{{ _('Kocaman kaşlı, hep sinirli bir portakal. Takım elbise giyer.') }}</span>
+      <span class="small">{{ icon('mic', 13) }} {{ _('Kalın, boğuk ses; Karadeniz şivesiyle hızlı konuşur.') }}</span></div>
+  </div>
+  <ul class="char-why">
+    <li>{{ icon('check', 15) }} {{ _('Büyüyen kanalların sırrı: izleyicinin tanıdığı sabit bir karakter.') }}</li>
+    <li>{{ icon('check', 15) }} {{ _('Bir kez yaz; stüdyoda ve otomatik kanallarda tek tıkla seç.') }}</li>
+    <li>{{ icon('check', 15) }} {{ _('Görsel yüklersen her videoda aynı görünüşü korur.') }}</li>
+  </ul>
+</div>
+{% endif %}
+
+<form class="card card-lg char-form reveal" id="yeni-karakter" method="post" action="/karakterler" enctype="multipart/form-data">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if edit %}<input type="hidden" name="id" value="{{ edit.id }}">{% endif %}
+  <div class="row between"><h2 style="margin:0;font-size:calc(24px * var(--fs))">{{ _('Karakteri düzenle') if edit else _('Karakterini kaydet') }}</h2>
+    {% if edit %}<a class="btn btn-text btn-sm" href="/karakterler">{{ _('Vazgeç') }}</a>{% else %}<span class="tiny faint">{{ _('{n} / {m}', n=chars|length, m=limit) }}</span>{% endif %}</div>
+  <label class="field"><span class="label">{{ _('Adı') }}</span>
+    <input class="input" name="name" maxlength="60" required value="{{ edit.name if edit else '' }}" placeholder="{{ _('Örn: Portakal Paşa') }}"></label>
+  <label class="field"><span class="label">{{ _('Görünüşü ve kişiliği') }}</span>
+    <textarea class="textarea" name="look" maxlength="600" placeholder="{{ _('Örn: Kocaman kaşlı, hep sinirli bir portakal. Minik takım elbise giyer, her şeye itiraz eder.') }}">{{ edit.look if edit else '' }}</textarea></label>
+  <label class="field"><span class="label">{{ _('Sesi ve konuşma tarzı') }}</span>
+    <input class="input" name="voice" maxlength="300" value="{{ edit.voice if edit else '' }}" placeholder="{{ _('Örn: Kalın, boğuk ses; Karadeniz şivesiyle hızlı konuşur.') }}"></label>
+  <div class="ref-up">
+    <label class="ref-drop">
+      <input type="file" name="ref" accept="image/png,image/jpeg,image/webp" data-ref-input>
+      <span class="ref-thumb" data-ref-thumb>{% if edit and edit.ref_image %}<img src="/referans/{{ edit.ref_image }}" alt="">{% else %}{{ icon('user', 22) }}{% endif %}</span>
+      <span class="ref-txt"><b>{{ _('Karakter görseli') }} <span class="opt">{{ _('(isteğe bağlı)') }}</span></b>
+        <small>{{ _('Yüklersen videolarda referans olarak kullanılır; karakter hep aynı görünür. PNG, JPG ya da WEBP · en fazla 6 MB. Kendine ait olmayan karakter ve kişi görselleri yükleme.') }}</small></span>
+      <span class="btn btn-ghost btn-sm">{{ icon('plus', 14) }} {{ _('Değiştir') if edit and edit.ref_image else _('Görsel seç') }}</span>
+    </label>
+    {% if edit and edit.ref_image %}<label class="check small" style="margin-top:10px"><input type="checkbox" name="ref_remove" value="1"><span>{{ _('Görseli kaldır') }}</span></label>{% endif %}
+  </div>
+  <p class="hint">{{ icon('info', 13) }} {{ _('Ünlüler ve başkasına ait karakterler (çizgi film, marka maskotu vb.) kullanılamaz.') }}</p>
+  <button class="btn btn-accent" type="submit">{{ icon('check', 16) }} {{ _('Kaydet') if edit else _('Karakteri kaydet') }}</button>
+</form>
+{% endblock %}

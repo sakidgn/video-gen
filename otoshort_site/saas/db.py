@@ -52,6 +52,7 @@ NEW_COLUMNS = [
     ("waitlist", "ref", "VARCHAR(12) NOT NULL DEFAULT ''"),
     ("waitlist", "pending", "INTEGER NOT NULL DEFAULT 0"),
     ("waitlist", "earned", "INTEGER NOT NULL DEFAULT 0"),
+    ("channels", "cast_ids", "VARCHAR(60) NOT NULL DEFAULT ''"),
 ]
 
 

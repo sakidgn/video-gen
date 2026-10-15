@@ -95,10 +95,23 @@ class Channel(Base):
     ref_image: Mapped[str] = mapped_column(String(120), default="")  # referans karakter görseli ("uid/ad.png")
     subtitles: Mapped[bool] = mapped_column(Boolean, default=False)  # videolara altyazı basılsın mı
     publish_to: Mapped[str] = mapped_column(String(60), default="")  # otomatik paylaşım: "youtube tiktok instagram"
+    cast_ids: Mapped[str] = mapped_column(String(60), default="")  # kayıtlı karakterler: "3 7"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
     def time_list(self) -> list[str]:
         return [t for t in self.times.replace(",", " ").split() if t]
+
+
+class Character(Base):
+    """Kayıtlı karakter / maskot: görünüş ve ses bir kez yazılır, seçilen her videoda aynı karakter oynar."""
+    __tablename__ = "characters"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    name: Mapped[str] = mapped_column(String(60))
+    look: Mapped[str] = mapped_column(Text, default="")  # görünüş ve kişilik
+    voice: Mapped[str] = mapped_column(String(300), default="")  # ses, şive, konuşma tarzı
+    ref_image: Mapped[str] = mapped_column(String(120), default="")  # "uid/ad.png"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
 class Job(Base):

@@ -183,6 +183,13 @@
       <div class="bx-viz refund" aria-hidden="true"><div class="rf"><span class="rf-ic">{{ icon('refund', 22) }}</span><b>+65</b><small>{{ _('kredi iade edildi') }}</small></div></div>
       <div class="bx-txt"><span class="icon-box">{{ icon('refund', 18) }}</span><div><h3>{{ _('Başarısızsa iade') }}</h3><p class="muted small">{{ _('Video üretilemezse kredin otomatik olarak geri yüklenir.') }}</p></div></div>
     </div>
+    <div class="bx bx-wide reveal" data-tilt="3">
+      <div class="bx-viz cast" aria-hidden="true">
+        <div class="cast-card"><span class="cc-av">🍊</span><div><b>{{ _('Portakal Paşa') }}</b><small>{{ icon('check', 12) }} {{ _('Görünüş') }} · {{ icon('mic', 12) }} {{ _('Karadeniz şivesi') }}</small></div></div>
+        <div class="cast-reel">{% for t in [_('Market'), _('Metrobüs'), _('Toplantı')] %}<span style="--d:{{ loop.index0 * 140 }}ms"><i>🍊</i><small>{{ t }}</small></span>{% endfor %}</div>
+      </div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('users', 18) }}</span><div><h3>{{ _('Karakterini kaydet') }}</h3><p class="muted small">{{ _('Kendi karakterinin görünümünü ve sesini bir kez kaydet, tüm videolarında aynı karakter oynasın.') }}</p></div></div>
+    </div>
   </div>
 </div></section>
 

@@ -303,6 +303,13 @@
   }
 
   // Referans görsel: seçilince küçük önizleme
+  // Kayıtlı karakter seçimi: en fazla N karakter
+  $$('[data-cast]').forEach(box => {
+    const max = +box.dataset.max || 3, inputs = $$('input[name=cast]', box);
+    const sync = () => { const n = inputs.filter(i => i.checked).length; inputs.forEach(i => { i.disabled = !i.checked && n >= max; }); };
+    inputs.forEach(i => i.addEventListener('change', sync)); sync();
+  });
+
   $$('[data-ref-input]').forEach(inp => inp.addEventListener('change', () => {
     const f = inp.files && inp.files[0], th = inp.closest('.ref-drop').querySelector('[data-ref-thumb]');
     if (!f || !th) return;
