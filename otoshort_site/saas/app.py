@@ -13,7 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
 from . import config, credits, db, growth, mailer, oauth, tokens, worker
-from .icons import LOGO, icon
+from .icons import LOGO, brand, icon
 from .models import Channel, CreditTx, Job, PromoCode, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
 
@@ -199,6 +199,7 @@ templates.env.filters["slot"] = lambda slot: (f"{slot[5:21]} · elle" if slot.st
 STATUS_LABELS = {"sirada": "Sırada", "uretiliyor": "Üretiliyor", "hazir": "Hazır", "hata": "Hata"}
 templates.env.globals["status_labels"] = STATUS_LABELS
 templates.env.globals["icon"] = icon
+templates.env.globals["brand"] = brand
 templates.env.globals["LOGO"] = LOGO
 STATUS_BADGE = {"sirada": "b-wait", "uretiliyor": "b-wait", "hazir": "b-ok", "hata": "b-err"}
 templates.env.globals["status_badge"] = STATUS_BADGE

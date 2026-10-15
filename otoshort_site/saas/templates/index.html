@@ -16,23 +16,26 @@
     data-src="/static/hero/hero.mp4" data-src-m="/static/hero/hero-m.mp4" data-poster-m="/static/hero/hero-m.jpg" aria-hidden="true"></video>
   <div class="hf-shade" aria-hidden="true"></div>
   <div class="wrap hf-copy">
-    <span class="eyebrow hf-in" style="--i:0">Yapay zekâ video stüdyosu</span>
-    <h1 class="hf-in" style="--i:1">Fikir senden,<br><span class="hl">video</span> bizden.</h1>
-    <p class="lead hf-in" style="--i:2">Yapay zekâ senaryoyu yazar, sesli ve dikey videoyu üretir; başlığı, açıklaması ve hashtag'leri hazır gelir. İstersen her gün kendiliğinden.</p>
+    <span class="eyebrow hf-in" style="--i:0">Yapay zekâ ile otomatik kısa video</span>
+    <h1 class="hf-in" style="--i:1">Reels, TikTok ve<br>Shorts için<br><span class="hl">otomatik video.</span></h1>
+    <p class="lead hf-in" style="--i:2">Fikrini yaz ya da boş bırak; yapay zekâ senaryoyu yazar, sesli ve dikey videoyu üretir, başlığı ve hashtag'leri hazırlar. Kanalını bir kez kur, seçtiğin saatlerde her gün yeni video gelsin.</p>
     <div class="row hf-in" style="--i:3">
       <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz başla' }} {{ icon('arrow-right', 17) }}</a>
       <a class="btn btn-ghost btn-lg" href="#nasil">Nasıl çalışır</a>
     </div>
-    <div class="trust hf-in" style="--i:4"><span>Abonelik yok</span><span>Türkçe + 4 dil</span><span>Başarısız videoda iade</span></div>
+    <div class="hf-meta hf-in" style="--i:4">
+      <span class="hf-plat" aria-label="TikTok, Instagram Reels ve YouTube Shorts için hazır">{{ brand('tiktok', 17) }}{{ brand('instagram', 17) }}{{ brand('youtube', 19) }}</span>
+      <span class="trust"><span>Kamera ve montaj gerekmez</span><span>Abonelik yok</span><span>Başarısız videoda iade</span></span>
+    </div>
   </div>
   <a class="hf-scroll" href="#vitrin" aria-label="Aşağı kaydır">{{ icon('chevron-down', 22) }}</a>
 </section>
 
 <div class="wrap"><div class="platforms reveal">
   <span class="eyebrow">Hazır format</span>
-  <span class="pf">{{ icon('phone', 17) }} TikTok</span>
-  <span class="pf">{{ icon('phone', 17) }} Instagram Reels</span>
-  <span class="pf">{{ icon('phone', 17) }} YouTube Shorts</span>
+  <span class="pf">{{ brand('tiktok', 18) }} TikTok</span>
+  <span class="pf">{{ brand('instagram', 18) }} Instagram Reels</span>
+  <span class="pf">{{ brand('youtube', 20) }} YouTube Shorts</span>
 </div></div>
 
 <section class="showcase-sec" id="vitrin"><div class="wrap">

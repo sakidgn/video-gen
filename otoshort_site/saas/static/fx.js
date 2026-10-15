@@ -158,13 +158,20 @@
     chips.forEach(c => { const d = +c.dataset.depth; c.style.translate = `${-x * d}px ${-y * d}px`; });
   }, { passive: true });
 
-  // Sayı animasyonu
-  $$('[data-count]').forEach(el => {
-    const end = parseInt(el.dataset.count, 10) || 0; if (reduce || end < 2) { el.textContent = end; return; }
-    const t0 = performance.now(), dur = 1100;
-    (function step(t) { const k = Math.min(1, (t - t0) / dur), v = 1 - Math.pow(1 - k, 4); el.textContent = Math.round(end * v).toLocaleString('tr-TR');
+  // Sayı animasyonu: oturumda ilk görüşte 0'dan sayar; sonraki sayfalarda sayı doğrudan görünür,
+  // değiştiyse (ör. kredi harcandı) eski değerden yenisine kısaca sayar
+  const seen = (() => { try { return JSON.parse(sessionStorage.getItem('counts') || '{}'); } catch (e) { return {}; } })();
+  const next = { ...seen };
+  $$('[data-count]').forEach((el, i) => {
+    const end = parseInt(el.dataset.count, 10) || 0, key = el.dataset.countKey || location.pathname + '#' + i;
+    const from = key in seen ? seen[key] : 0; next[key] = end;
+    const fmt = n => Math.round(n).toLocaleString('tr-TR');
+    if (reduce || from === end || Math.abs(end - from) < 2) { el.textContent = fmt(end); return; }
+    const t0 = performance.now(), dur = key in seen ? 650 : 1100;
+    (function step(t) { const k = Math.min(1, (t - t0) / dur), v = 1 - Math.pow(1 - k, 4); el.textContent = fmt(from + (end - from) * v);
       if (k < 1) requestAnimationFrame(step); })(t0);
   });
+  try { sessionStorage.setItem('counts', JSON.stringify(next)); } catch (e) {}
 
   // Yazma animasyonu (ana sayfa maketi)
   $$('[data-type]').forEach(el => {

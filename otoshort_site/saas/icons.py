@@ -62,6 +62,18 @@ PATHS = {
 }
 
 
+BRANDS = {  # tek renk dolgulu platform simgeleri (uyumluluğu göstermek için)
+    "tiktok": '<path d="M16.5 3c.4 2.3 1.9 3.8 4.2 4v3.2c-1.5 0-2.9-.4-4.2-1.2v6.4a6 6 0 1 1-6-6h.6v3.3a2.8 2.8 0 1 0 2.2 2.7V3h3.2z"/>',
+    "instagram": '<path fill-rule="evenodd" d="M7.5 3h9A4.5 4.5 0 0 1 21 7.5v9a4.5 4.5 0 0 1-4.5 4.5h-9A4.5 4.5 0 0 1 3 16.5v-9A4.5 4.5 0 0 1 7.5 3zm0 1.8A2.7 2.7 0 0 0 4.8 7.5v9a2.7 2.7 0 0 0 2.7 2.7h9a2.7 2.7 0 0 0 2.7-2.7v-9a2.7 2.7 0 0 0-2.7-2.7zM12 7.6a4.4 4.4 0 1 1 0 8.8 4.4 4.4 0 0 1 0-8.8zm0 1.8a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2zm4.8-3a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>',
+    "youtube": '<path d="M21.6 7.2a2.6 2.6 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.6 2.6 0 0 0 2.4 7.2C2 8.8 2 12 2 12s0 3.2.4 4.8a2.6 2.6 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.6 2.6 0 0 0 1.8-1.8c.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3L10 15z"/>',
+}
+
+
+def brand(name: str, size: int = 18) -> Markup:
+    return Markup(f'<svg class="ic" width="{size}" height="{size}" viewBox="0 0 24 24" fill="currentColor" '
+                  f'aria-hidden="true">{BRANDS[name]}</svg>')
+
+
 def icon(name: str, size: int = 18, cls: str = "") -> Markup:
     body = PATHS.get(name, PATHS["info"])
     return Markup(

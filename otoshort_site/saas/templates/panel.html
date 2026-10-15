@@ -23,11 +23,11 @@
 {% endif %}
 <div class="stats">
   <div class="card stat reveal" data-tilt="4"><div class="k"><span class="icon-box accent" style="width:30px;height:30px;border-radius:9px">{{ icon('gem', 15) }}</span>Bakiye</div>
-    <div class="v"><span data-count="{{ user.credits }}">{{ user.credits }}</span> <small>kredi</small></div><a class="more" href="/kredi">Kredi yükle {{ icon('arrow-right', 14) }}</a></div>
+    <div class="v"><span data-count="{{ user.credits }}" data-count-key="bal">{{ user.credits }}</span> <small>kredi</small></div><a class="more" href="/kredi">Kredi yükle {{ icon('arrow-right', 14) }}</a></div>
   <div class="card stat reveal" data-delay="1" data-tilt="4"><div class="k"><span class="icon-box" style="width:30px;height:30px;border-radius:9px">{{ icon('repeat', 15) }}</span>Aktif kanal</div>
-    <div class="v"><span data-count="{{ n_channels }}">{{ n_channels }}</span></div><a class="more" href="/kanallar">Kanalları yönet {{ icon('arrow-right', 14) }}</a></div>
+    <div class="v"><span data-count="{{ n_channels }}" data-count-key="ch">{{ n_channels }}</span></div><a class="more" href="/kanallar">Kanalları yönet {{ icon('arrow-right', 14) }}</a></div>
   <div class="card stat reveal" data-delay="2" data-tilt="4"><div class="k"><span class="icon-box" style="width:30px;height:30px;border-radius:9px">{{ icon('video', 15) }}</span>Üretilen video</div>
-    <div class="v"><span data-count="{{ n_videos }}">{{ n_videos }}</span></div><span class="more faint">{{ qualities.lite.credits }}–{{ qualities.standard.credits }} kredi / video</span></div>
+    <div class="v"><span data-count="{{ n_videos }}" data-count-key="vid">{{ n_videos }}</span></div><span class="more faint">{{ qualities.lite.credits }}–{{ qualities.standard.credits }} kredi / video</span></div>
 </div>
 
 <form class="card quick reveal" method="get" action="/video/yeni" style="margin-bottom:36px">
