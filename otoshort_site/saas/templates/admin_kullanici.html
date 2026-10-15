@@ -1,0 +1,55 @@
+{% extends "app_base.html" %}
+{% block title %}{{ target.email }} · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="t"><a class="faint small row" href="/admin/kullanicilar" style="gap:6px">{{ icon('arrow-left', 15) }} Kullanıcılar</a><h1 style="word-break:break-all">{{ target.email }}</h1>
+    <p class="muted">#{{ target.id }}{% if target.name %} · {{ target.name }}{% endif %} · {{ target.created_at|tarih }} tarihinde kaydoldu</p></div>
+  <div class="row">
+    {% if target.blocked %}<span class="badge b-err">askıda</span>{% elif not target.email_verified %}<span class="badge b-wait">doğrulanmadı</span>{% else %}<span class="badge b-ok">aktif</span>{% endif %}
+  </div>
+</div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);align-items:start" id="admin-user">
+  <div class="stack" style="gap:16px">
+    <div class="card reveal"><div class="card-head"><h3>{{ icon('user', 18) }} Hesap</h3></div>
+      <dl class="kv">
+        <dt>Bakiye</dt><dd><b class="mono">{{ target.credits }}</b> kredi</dd>
+        <dt>E-posta</dt><dd>{{ 'Doğrulandı' if target.email_verified else 'Doğrulanmadı' }}</dd>
+        <dt>Giriş</dt><dd>{{ 'Google' if target.google_sub else '' }}{{ ' + ' if target.google_sub and target.pw_hash }}{{ 'Şifre' if target.pw_hash }}</dd>
+        <dt>Dil</dt><dd>{{ langs.get(target.lang, target.lang) }}</dd>
+        <dt>Davet</dt><dd>{% if referrer %}<a href="/admin/kullanici/{{ referrer.id }}">{{ referrer.email }}</a> davet etti · {% endif %}{{ invited }} kişi davet etti</dd>
+        <dt>Bağlı hesap</dt><dd>{% for a in accs %}{{ a.platform }} ({{ a.name }}){{ ', ' if not loop.last }}{% else %}—{% endfor %}</dd>
+        <dt>Kanallar</dt><dd>{% for c in chans %}{{ c.name }} <span class="faint">({{ 'aktif' if c.active else 'durdu' }})</span>{{ ', ' if not loop.last }}{% else %}—{% endfor %}</dd>
+      </dl>
+    </div>
+    <form class="card reveal" method="post" action="/admin/kredi"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="card-head"><h3>{{ icon('gem', 18) }} Kredi ekle / düş</h3></div>
+      <input type="hidden" name="email" value="{{ target.email }}"><input type="hidden" name="back" value="/admin/kullanici/{{ target.id }}">
+      <div class="grid g2"><div class="field"><label class="label">Kredi <span class="opt">(düşmek için eksi)</span></label><input class="input mono" name="amount" type="number" required></div>
+        <div class="field"><label class="label">Açıklama</label><input class="input" name="reason" value="Yönetici düzeltmesi"></div></div>
+      <button class="btn btn-primary btn-block" type="submit" style="margin-top:16px">Uygula</button></form>
+    {% if target.id != user.id %}
+    <div class="card reveal"><div class="card-head"><h3>{{ icon('shield', 18) }} İşlemler</h3></div>
+      <div class="row">
+        {% if not target.email_verified %}<form method="post" action="/admin/kullanici/{{ target.id }}/dogrula" data-confirm="E-posta doğrulanmış sayılsın mı? Hediye kredi varsa yüklenir."><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm">{{ icon('check', 14) }} E-postayı doğrula</button></form>{% endif %}
+        <form method="post" action="/admin/kullanici/{{ target.id }}/askiya-al" data-confirm="{{ 'Hesap yeniden açılsın mı?' if target.blocked else 'Hesap askıya alınsın mı? Giriş yapamaz, kanalları durur.' }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="btn btn-sm {{ 'btn-ghost' if target.blocked else 'btn-danger' }}">{{ 'Hesabı yeniden aç' if target.blocked else 'Hesabı askıya al' }}</button></form>
+      </div></div>
+    {% endif %}
+  </div>
+  <div class="stack" style="gap:16px">
+    <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('video', 18) }} Videolar</h3><span class="tiny faint">son 30</span></div>
+      {% if jobs %}<div class="table-wrap"><table><tr><th>#</th><th>Durum</th><th>Kalite</th><th>Başlık / hata</th><th>Tarih</th></tr>
+      {% for j in jobs %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span></td><td>{{ qualities[j.quality].label }}</td>
+        <td class="small">{{ j.title or j.error }}{% if j.error_detail %}<div class="tiny faint mono" style="word-break:break-word">{{ j.error_detail }}</div>{% endif %}</td><td class="mono small faint">{{ j.created_at|tarih }}</td></tr>{% endfor %}
+      </table></div>{% else %}<p class="muted small">Video yok.</p>{% endif %}</div>
+    <div class="card reveal" data-delay="2"><div class="card-head"><h3>{{ icon('bank', 18) }} Havaleler</h3></div>
+      {% if topups %}<div class="table-wrap"><table><tr><th>Tarih</th><th>Tutar</th><th>Gönderen</th><th>Durum</th></tr>
+      {% for t in topups %}<tr><td class="mono small">{{ t.created_at|tarih }}</td><td>{{ t.amount_tl }} ₺ <span class="faint">→ {{ t.credits }}</span></td><td>{{ t.sender_name }}</td><td>{{ {'onaylandi':'Onaylandı','reddedildi':'Reddedildi'}.get(t.status, 'Bekliyor') }}</td></tr>{% endfor %}
+      </table></div>{% else %}<p class="muted small">Havale yok.</p>{% endif %}</div>
+    <div class="card reveal" data-delay="3"><div class="card-head"><h3>{{ icon('layers', 18) }} Kredi hareketleri</h3></div>
+      {% if txs %}<div class="table-wrap"><table><tr><th>Tarih</th><th>Açıklama</th><th style="text-align:right">Kredi</th></tr>
+      {% for t in txs %}<tr><td class="mono small faint">{{ t.created_at|tarih }}</td><td class="small">{{ t.reason }}</td><td class="amt {{ 'plus' if t.amount > 0 else 'minus' }}" style="text-align:right">{{ '%+d' % t.amount }}</td></tr>{% endfor %}
+      </table></div>{% else %}<p class="muted small">Hareket yok.</p>{% endif %}</div>
+  </div>
+</div>
+{% endblock %}

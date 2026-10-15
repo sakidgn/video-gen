@@ -46,6 +46,8 @@ NEW_COLUMNS = [
     ("jobs", "public_at", "DATETIME"),
     ("channels", "publish_to", "VARCHAR(60) NOT NULL DEFAULT ''"),
     ("users", "lang", "VARCHAR(5) NOT NULL DEFAULT 'tr'"),
+    ("users", "blocked", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("jobs", "error_detail", "TEXT NOT NULL DEFAULT ''"),
 ]
 
 

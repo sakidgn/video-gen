@@ -143,7 +143,7 @@ def fail_job(job_id: int, user_msg: str, detail: str = "") -> None:
     with db.session() as s:
         # Sadece henüz başarısız sayılmamış işi işaretle: iade bir kere yapılır
         res = s.execute(update(Job).where(Job.id == job_id, Job.status != "hata").values(
-            status="hata", error=user_msg, finished_at=now()))
+            status="hata", error=user_msg, error_detail=(detail or "")[:500], finished_at=now()))
         if res.rowcount == 1:
             job = s.get(Job, job_id)
             if job.cost:

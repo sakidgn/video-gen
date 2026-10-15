@@ -1436,3 +1436,43 @@ def test_language_switch_rejects_unsafe_next(client):
     for bad in ["//kotu.site", "/\\kotu.site", "https://kotu.site", "/%0d%0aSet-Cookie:x=1", "javascript:alert(1)"]:
         loc = client.get("/dil/en", params={"next": bad}, follow_redirects=False).headers["location"]
         assert loc == "/en/", bad
+
+
+def test_admin_user_search_detail_block_and_failed_jobs(client):
+    signup(client, "ali@b.com")
+    give("ali@b.com", 100)
+
+    class Broken(ai.FakeAI):
+        def make_video(self, **kw):
+            raise RuntimeError("404 NOT_FOUND models/veo-yok")
+
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": csrf(client, "/video/yeni")})
+    run_queue(Broken())
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    page = admin.get("/admin").text
+    assert "Başarısız işler" in page and "404 NOT_FOUND models/veo-yok" in page  # teknik hata yöneticide
+    assert "veo-yok" not in client.get("/videolar").text  # kullanıcı teknik hatayı görmez
+    with db.session() as s:
+        uid = s.scalar(select(User.id).where(User.email == "ali@b.com"))
+    lst = admin.get("/admin/kullanicilar?q=ali@").text  # (test kullanıcılarının hepsinin adı "Ali")
+    assert f"/admin/kullanici/{uid}" in lst and lst.count('href="/admin/kullanici/') == 1  # yalnızca eşleşen
+    detail = admin.get(f"/admin/kullanici/{uid}").text
+    assert "ali@b.com" in detail and "İade: video #1" in detail
+    t = csrf(admin, "/admin")
+    r = admin.post("/admin/kredi", data={"email": "ali@b.com", "amount": 7, "reason": "x", "back": f"/admin/kullanici/{uid}",
+                                         "csrf": t}, follow_redirects=False)
+    assert r.headers["location"] == f"/admin/kullanici/{uid}" and balance("ali@b.com") == 107
+    assert admin.post("/admin/kredi", data={"email": "ali@b.com", "amount": 1, "back": "https://kotu.site", "csrf": t},
+                      follow_redirects=False).headers["location"] == "/admin"
+    admin.post(f"/admin/kullanici/{uid}/askiya-al", data={"csrf": t})
+    assert client.get("/panel", follow_redirects=False).status_code == 303  # askıya alınan oturumdan düşer
+    again = TestClient(client.app)
+    assert "askıya alındı" in again.post("/giris", data={"email": "ali@b.com", "password": "sifre1234",
+                                                          "csrf": csrf(again, "/giris")}).text
+    admin.post(f"/admin/kullanici/{uid}/askiya-al", data={"csrf": t})
+    again.post("/giris", data={"email": "ali@b.com", "password": "sifre1234", "csrf": csrf(again, "/giris")})
+    assert again.get("/panel", follow_redirects=False).status_code == 200
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    assert other.get(f"/admin/kullanici/{uid}").status_code == 404

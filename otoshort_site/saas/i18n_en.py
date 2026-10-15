@@ -556,6 +556,7 @@ EN = {
     "Çok fazla deneme yaptın. Biraz sonra tekrar dene.": "Too many attempts. Try again a bit later.",
     "Bu hesap Google ile açılmış. “Google ile devam et” butonunu kullan.": "This account was created with Google. Use the “Continue with Google” button.",
     "E-posta ya da şifre yanlış.": "Wrong email or password.",
+    "Hesabın askıya alındı. Bir yanlışlık olduğunu düşünüyorsan bize yaz.": "Your account has been suspended. If you think this is a mistake, contact us.",
     "Google ile giriş henüz ayarlanmadı. Şimdilik e-posta ile devam et.": "Google sign-in isn't set up yet. Continue with email for now.",
     "Google ile giriş tamamlanmadı, tekrar dene.": "Google sign-in wasn't completed. Try again.",
     "Google ile giriş şu an yapılamadı, biraz sonra tekrar dene.": "Google sign-in isn't available right now. Try again a bit later.",

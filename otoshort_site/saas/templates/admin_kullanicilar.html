@@ -1,0 +1,27 @@
+{% extends "app_base.html" %}
+{% block title %}Kullanıcılar · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="t"><a class="faint small row" href="/admin" style="gap:6px">{{ icon('arrow-left', 15) }} Yönetim paneli</a><h1>Kullanıcılar</h1>
+    <p class="muted"><span class="mono">{{ total }}</span> kullanıcı{% if q %} · “{{ q }}” araması{% endif %}</p></div>
+</div>
+<div class="toolbar reveal">
+  <form class="search" method="get" action="/admin/kullanicilar">{{ icon('search', 16) }}<input class="input" name="q" value="{{ q }}" maxlength="100" placeholder="E-posta, ad ya da kullanıcı no" aria-label="Ara" autofocus></form>
+</div>
+<div class="card reveal">
+  {% if users %}<div class="table-wrap"><table><tr><th>#</th><th>E-posta</th><th>Durum</th><th>Kredi</th><th>Video</th><th>Ödeme</th><th>Kayıt</th></tr>
+  {% for u in users %}<tr>
+    <td class="mono faint">{{ u.id }}</td>
+    <td><a href="/admin/kullanici/{{ u.id }}"><b>{{ u.email }}</b></a>{% if u.name %}<div class="tiny faint">{{ u.name }}</div>{% endif %}</td>
+    <td>{% if u.blocked %}<span class="badge b-err">askıda</span>{% elif not u.email_verified %}<span class="badge b-wait">doğrulanmadı</span>{% elif u.is_admin %}<span class="badge b-off">yönetici</span>{% else %}<span class="badge b-ok">aktif</span>{% endif %}</td>
+    <td class="mono">{{ u.credits }}</td><td class="mono">{{ videos.get(u.id, 0) }}</td><td class="mono">{{ paid.get(u.id, 0) }} ₺</td>
+    <td class="mono small faint">{{ u.created_at|tarih }}</td></tr>{% endfor %}
+  </table></div>
+  {% else %}<p class="muted small">Sonuç yok.</p>{% endif %}
+</div>
+{% if pages > 1 %}<nav class="pager">
+  {% if sayfa > 1 %}<a class="btn btn-ghost btn-sm" href="/admin/kullanicilar?q={{ q|urlencode }}&sayfa={{ sayfa - 1 }}">{{ icon('arrow-left', 14) }} Önceki</a>{% endif %}
+  <span class="small faint mono">{{ sayfa }} / {{ pages }}</span>
+  {% if sayfa < pages %}<a class="btn btn-ghost btn-sm" href="/admin/kullanicilar?q={{ q|urlencode }}&sayfa={{ sayfa + 1 }}">Sonraki {{ icon('arrow-right', 14) }}</a>{% endif %}
+</nav>{% endif %}
+{% endblock %}

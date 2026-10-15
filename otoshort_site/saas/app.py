@@ -208,8 +208,8 @@ def current_user(request: Request) -> User | None:
         return None
     with db.session() as s:
         user = s.get(User, uid)
-    if not user or request.session.get("pv") != _pw_mark(user):
-        request.session.pop("uid", None)  # şifre değişmiş ya da hesap silinmiş
+    if not user or user.blocked or request.session.get("pv") != _pw_mark(user):
+        request.session.pop("uid", None)  # şifre değişmiş, hesap silinmiş ya da askıya alınmış
         return None
     return user
 
@@ -485,6 +485,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         if not user or not check_password(password, user.pw_hash):
             flash(request, "E-posta ya da şifre yanlış.", "err")
             return go("/giris")
+        if user.blocked:
+            flash(request, "Hesabın askıya alındı. Bir yanlışlık olduğunu düşünüyorsan bize yaz.", "err")
+            return go("/giris")
         with db.session() as s:  # ADMIN_EPOSTALAR'a sonradan eklenen doğrulanmış hesap
             u = s.get(User, user.id)
             if u.email_verified and u.email in config.ADMIN_EMAILS:
@@ -551,6 +554,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             else:
                 uid = None
         if uid:
+            with db.session() as s:
+                if s.get(User, uid).blocked:
+                    flash(request, "Hesabın askıya alındı. Bir yanlışlık olduğunu düşünüyorsan bize yaz.", "err")
+                    return go("/giris")
             return _login_as(request, uid)
         request.session["g_pending"] = prof  # yeni kullanıcı: önce sözleşme onayı
         return go("/kayit/google")
@@ -1261,6 +1268,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 _ = t.user.email
             users = s.scalars(select(User).order_by(User.id.desc()).limit(100)).all()
             jobs = s.scalars(select(Job).order_by(Job.id.desc()).limit(50)).all()
+            from datetime import timedelta
+
+            failed = s.scalars(select(Job).where(Job.status == "hata", Job.created_at >= now() - timedelta(days=7))
+                               .order_by(Job.id.desc()).limit(30)).all()
             promos = s.scalars(select(PromoCode).order_by(PromoCode.id.desc()).limit(30)).all()
             public_jobs = s.scalars(select(Job).where(Job.public.is_(True)).order_by(Job.public_at.desc()).limit(30)).all()
             stats = {
@@ -1274,7 +1285,65 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         from . import hazirlik
 
         return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats, promos=promos,
-                      daily=daily, usd_try=config.USD_TRY, public_jobs=public_jobs, ready=hazirlik.summary())
+                      daily=daily, usd_try=config.USD_TRY, public_jobs=public_jobs, ready=hazirlik.summary(),
+                      failed=failed)
+
+    @app.get("/admin/kullanicilar", response_class=HTMLResponse)
+    def admin_users(request: Request, user: User = Depends(require_admin), q: str = "", sayfa: int = 1):
+        per = 50
+        q = clean(q, 100)
+        with db.session() as s:
+            base = select(User).where(~User.email.like("silindi-%@silindi.invalid"))
+            if q:
+                base = base.where(or_(User.email.ilike(f"%{q}%"), User.name.ilike(f"%{q}%"),
+                                      User.id == (int(q) if q.isdigit() else -1)))
+            total = s.scalar(select(func.count()).select_from(base.subquery()))
+            pages = max(1, -(-total // per))
+            sayfa = min(max(1, sayfa), pages)
+            users = s.scalars(base.order_by(User.id.desc()).offset((sayfa - 1) * per).limit(per)).all()
+            ids = [u.id for u in users]
+            videos = dict(s.execute(select(Job.user_id, func.count(Job.id)).where(Job.user_id.in_(ids), Job.status == "hazir")
+                                    .group_by(Job.user_id)).all()) if ids else {}
+            paid = dict(s.execute(select(TopUp.user_id, func.coalesce(func.sum(TopUp.amount_tl), 0))
+                                  .where(TopUp.user_id.in_(ids), TopUp.status == "onaylandi").group_by(TopUp.user_id)).all()) if ids else {}
+        return render(request, "admin_kullanicilar.html", user, users=users, q=q, total=total, sayfa=sayfa, pages=pages,
+                      videos=videos, paid=paid)
+
+    @app.get("/admin/kullanici/{uid}", response_class=HTMLResponse)
+    def admin_user(request: Request, uid: int, user: User = Depends(require_admin)):
+        with db.session() as s:
+            target = s.get(User, uid)
+            if not target:
+                raise HTTPException(404)
+            txs = s.scalars(select(CreditTx).where(CreditTx.user_id == uid).order_by(CreditTx.id.desc()).limit(40)).all()
+            topups = s.scalars(select(TopUp).where(TopUp.user_id == uid).order_by(TopUp.id.desc()).limit(20)).all()
+            jobs = s.scalars(select(Job).where(Job.user_id == uid).order_by(Job.id.desc()).limit(30)).all()
+            chans = s.scalars(select(Channel).where(Channel.user_id == uid)).all()
+            accs = s.scalars(select(SocialAccount).where(SocialAccount.user_id == uid)).all()
+            referrer = s.get(User, target.referred_by) if target.referred_by else None
+            invited = s.scalar(select(func.count(User.id)).where(User.referred_by == uid))
+        return render(request, "admin_kullanici.html", user, target=target, txs=txs, topups=topups, jobs=jobs,
+                      chans=chans, accs=accs, referrer=referrer, invited=invited)
+
+    @app.post("/admin/kullanici/{uid}/{action}", dependencies=[Depends(check_csrf)])
+    def admin_user_action(request: Request, uid: int, action: str, user: User = Depends(require_admin)):
+        if action not in ("askiya-al", "dogrula"):
+            raise HTTPException(404)
+        with db.session() as s:
+            target = s.get(User, uid)
+            if not target or target.id == user.id:
+                raise HTTPException(404)
+            if action == "dogrula":
+                mark_verified(s, target)
+                msg = "E-posta doğrulandı olarak işaretlendi."
+            else:
+                target.blocked = not target.blocked
+                if target.blocked:  # askıdaki hesabın kanalları da durur
+                    for ch in s.scalars(select(Channel).where(Channel.user_id == uid)):
+                        ch.active = False
+                msg = "Hesap askıya alındı." if target.blocked else "Hesap yeniden açıldı."
+        flash(request, msg)
+        return go(f"/admin/kullanici/{uid}")
 
     @app.get("/admin/hazirlik", response_class=HTMLResponse)
     def admin_readiness(request: Request, user: User = Depends(require_admin)):
@@ -1356,18 +1425,19 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     @app.post("/admin/kredi", dependencies=[Depends(check_csrf)])
     def admin_credit(request: Request, user: User = Depends(require_admin), email: str = Form(...),
-                     amount: int = Form(...), reason: str = Form("Yönetici düzeltmesi")):
+                     amount: int = Form(...), reason: str = Form("Yönetici düzeltmesi"), back: str = Form("")):
+        back = back if re.fullmatch(r"/admin/kullanici/\d+", back) else "/admin"
         with db.session() as s:
             target = s.scalar(select(User).where(User.email == email.strip().lower()))
             if not target:
                 flash(request, "Bu e-postayla kullanıcı yok.", "err")
-                return go("/admin")
+                return go(back)
             if amount < 0 and target.credits + amount < 0:
                 flash(request, "Kullanıcının bakiyesi bu kadar düşürülemez.", "err")
-                return go("/admin")
+                return go(back)
             credits.add(s, target.id, amount, clean(reason, 200) or "Yönetici düzeltmesi")
         flash(request, f"{email} hesabına {amount:+} kredi işlendi.")
-        return go("/admin")
+        return go(back)
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):

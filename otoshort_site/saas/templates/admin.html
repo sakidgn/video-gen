@@ -43,9 +43,10 @@
     <div class="field"><label class="label">Kredi <span class="opt">(düşmek için eksi)</span></label><input class="input mono" name="amount" type="number" required></div>
     <div class="field"><label class="label">Açıklama</label><input class="input" name="reason" value="Deneme kredisi"></div>
     <button class="btn btn-primary btn-block" type="submit" style="margin-top:20px">Uygula</button></form>
-  <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('users', 18) }} Son kullanıcılar</h3></div>
+  <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('users', 18) }} Son kullanıcılar</h3><a class="tiny faint" href="/admin/kullanicilar">Tümü ve arama →</a></div>
+    <form class="search" method="get" action="/admin/kullanicilar" style="margin-bottom:12px">{{ icon('search', 16) }}<input class="input" name="q" placeholder="E-posta, ad ya da kullanıcı no" aria-label="Kullanıcı ara"></form>
     <div class="table-wrap"><table><tr><th>E-posta</th><th>Kredi</th><th>Kayıt</th></tr>
-    {% for u in users %}<tr><td>{{ u.email }}{% if u.is_admin %} <span class="badge b-off">yönetici</span>{% endif %}</td><td class="mono">{{ u.credits }}</td><td class="mono small faint">{{ u.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
+    {% for u in users[:15] %}<tr><td><a href="/admin/kullanici/{{ u.id }}">{{ u.email }}</a>{% if u.is_admin %} <span class="badge b-off">yönetici</span>{% endif %}{% if u.blocked %} <span class="badge b-err">askıda</span>{% endif %}</td><td class="mono">{{ u.credits }}</td><td class="mono small faint">{{ u.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
 </div>
 <div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);align-items:start;margin-bottom:24px" id="admin-promo">
   <form class="card reveal" method="post" action="/admin/kod"><input type="hidden" name="csrf" value="{{ csrf }}">
@@ -72,7 +73,12 @@
       <form method="post" action="/admin/kesfet/{{ j.id }}/one-cikar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm">{{ 'Öne çıkarma' if j.featured else 'Öne çıkar' }}</button></form>
       <form method="post" action="/admin/kesfet/{{ j.id }}/kaldir" data-confirm="Video Keşfet'ten kaldırılsın mı?"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">Kaldır</button></form></div></td></tr>{% endfor %}
   </table></div>{% else %}<p class="muted small">Henüz paylaşılan video yok.</p>{% endif %}</div>
+<div class="card reveal" style="margin-bottom:24px"><div class="card-head"><h3>{{ icon('alert', 18) }} Başarısız işler (son 7 gün)</h3><span class="tiny faint">Kredi otomatik iade edildi · teknik hata yalnızca burada görünür</span></div>
+  {% if failed %}<div class="table-wrap"><table><tr><th>#</th><th>Kullanıcı</th><th>Kalite</th><th>Teknik hata</th><th>Tarih</th></tr>
+  {% for j in failed %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td class="mono"><a href="/admin/kullanici/{{ j.user_id }}">{{ j.user_id }}</a></td><td>{{ qualities[j.quality].label }}</td>
+    <td class="small"><span class="mono" style="word-break:break-word">{{ j.error_detail or j.error }}</span></td><td class="mono small faint">{{ j.created_at|tarih }}</td></tr>{% endfor %}
+  </table></div>{% else %}<p class="muted small">Son 7 günde başarısız iş yok. 🎉</p>{% endif %}</div>
 <div class="card reveal"><div class="card-head"><h3>{{ icon('video', 18) }} Son işler</h3></div>
   <div class="table-wrap"><table><tr><th>#</th><th>Kullanıcı</th><th>Durum</th><th>Kalite</th><th>Başlık / hata</th><th>Tarih</th></tr>
-  {% for j in jobs %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td class="mono">{{ j.user_id }}</td><td><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span></td><td>{{ qualities[j.quality].label }}</td><td class="small">{{ j.title or j.error }}</td><td class="mono small faint">{{ j.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
+  {% for j in jobs %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td class="mono"><a href="/admin/kullanici/{{ j.user_id }}">{{ j.user_id }}</a></td><td><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span></td><td>{{ qualities[j.quality].label }}</td><td class="small">{{ j.title or j.error }}</td><td class="mono small faint">{{ j.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
 {% endblock %}

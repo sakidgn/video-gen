@@ -25,6 +25,7 @@ class User(Base):
     referred_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # davet eden kullanıcının id'si
     ref_rewarded: Mapped[bool] = mapped_column(Boolean, default=False)  # davet ödülü verildi mi
     lang: Mapped[str] = mapped_column(String(5), default="tr")  # site ve e-posta dili
+    blocked: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici askıya aldı: giriş yapamaz
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
@@ -127,6 +128,7 @@ class Job(Base):
     featured: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici öne çıkardı
     public_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     error: Mapped[str] = mapped_column(Text, default="")
+    error_detail: Mapped[str] = mapped_column(Text, default="")  # teknik hata (yalnızca yönetici görür)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     channel: Mapped[Channel | None] = relationship()
