@@ -608,3 +608,28 @@ def test_real_ai_ideas_parses_json():
 
     real = ai.RealAI(client=SimpleNamespace(models=Models()))
     assert real.ideas(topic="uzay", language="tr", past=["eski"]) == ["Bir", "İki", "Üç", "Dört"]
+
+
+def test_admin_daily_stats_and_profit(client):
+    from saas.models import TopUp, now
+
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    signup(client, "a@b.com")
+    with db.session() as s:
+        uid = s.scalar(select(User.id).where(User.email == "a@b.com"))
+        s.add(TopUp(user_id=uid, amount_tl=500, credits=550, sender_name="A", status="onaylandi", decided_at=now()))
+        for q in ("fast", "fast", "standard"):
+            s.add(Job(user_id=uid, quality=q, status="hazir", finished_at=now()))
+        s.add(Job(user_id=uid, quality="fast", status="hata"))
+    page = admin.get("/admin").text
+    cost = round((0.80 * 2 + 3.20) * config.USD_TRY)
+    assert "500 ₺" in page and f"{cost} ₺" in page and f"{500 - cost} ₺" in page
+    assert "%25" in page  # 4 videodan 1'i başarısız
+    assert page.count('class="bar"') == 3 * 14
+
+
+def test_index_calculator_and_faq(client):
+    html = client.get("/").text
+    assert "data-calc" in html and 'data-packages=\'[[250, 250]' in html
+    assert "Arkadaşımı davet edersem" in html

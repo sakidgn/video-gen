@@ -634,6 +634,29 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
 @keyframes ideain{from{opacity:0;transform:translateY(8px) scale(.96);filter:blur(4px)}}
 @media(max-width:640px){.toolbar{flex-direction:column;align-items:stretch}.search{max-width:none}}
 
+/* ============ Maliyet hesaplayıcı ============ */
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,.9fr);gap:clamp(24px,3vw,48px);align-items:center;margin-top:clamp(16px,1.3vw,24px);padding:clamp(28px,2.6vw,44px)}
+.calc-copy{display:grid;gap:10px}.calc-title{font-family:var(--display);font-weight:500;font-size:calc(34px * var(--fs));line-height:1.1}
+.calc-ctrl{display:grid;gap:16px}.calc-n{font-family:var(--display);font-size:calc(26px * var(--fs));font-weight:500;color:var(--accent);margin:0 2px}
+.calc-q .opt-body{gap:10px}
+.range{--v:22%;-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--accent) var(--v),rgba(255,246,230,.12) var(--v));outline:none;cursor:pointer}
+.range::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--text);border:0;box-shadow:0 0 0 6px rgba(216,185,138,.18),0 4px 12px rgba(0,0,0,.6);transition:transform .2s var(--spring,var(--ease))}
+.range::-webkit-slider-thumb:active{transform:scale(1.15)}
+.range::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--text);border:0;box-shadow:0 0 0 6px rgba(216,185,138,.18)}
+.calc-out{display:grid;gap:14px;padding-left:clamp(0px,2vw,32px);border-left:1px solid var(--border)}
+.calc-out>div{display:grid;gap:2px}.calc-out .k{font-size:calc(12.5px * var(--fs));color:var(--text-3);text-transform:uppercase;letter-spacing:.14em}
+.calc-out b{font-family:var(--display);font-weight:500;font-size:calc(44px * var(--fs));line-height:1}.calc-out small{font-family:var(--font);font-size:calc(15px * var(--fs));color:var(--text-3);font-weight:400}
+@media(max-width:960px){.calc{grid-template-columns:1fr}.calc-out{padding-left:0;border-left:0;padding-top:18px;border-top:1px solid var(--border)}}
+
+/* ============ Yönetim grafikleri ============ */
+.kpis-5{grid-template-columns:repeat(5,minmax(0,1fr));padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--border)}
+.charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.chart{display:grid;gap:10px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:120px;padding:8px 0;border-bottom:1px solid var(--border)}
+.bar{flex:1;height:100%;display:flex;align-items:flex-end}.bar i{display:block;width:100%;height:max(2px,var(--h));border-radius:4px 4px 1px 1px;background:linear-gradient(180deg,#e8d2ad,#b8875a);opacity:.85;transition:opacity .2s}
+.bar:hover i{opacity:1}
+@media(max-width:1080px){.kpis-5{grid-template-columns:repeat(2,minmax(0,1fr))}.charts{grid-template-columns:1fr}}
+
 /* ============ Ürün vitrini ============ */
 .showcase-sec{padding-bottom:40px}
 .showcase{--p:0;position:relative;perspective:1600px;max-width:1400px;margin:0 auto}

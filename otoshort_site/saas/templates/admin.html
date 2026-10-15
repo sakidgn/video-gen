@@ -3,8 +3,25 @@
 {% block content %}
 <div class="page-head"><div class="t"><span class="eyebrow">Yönetim</span><h1>Yönetim paneli</h1></div></div>
 <div class="grid g4" style="margin-bottom:24px">
-  {% for ic, k, v in [('users','Kullanıcı',stats.users),('video','Üretilen video',stats.videos),('clock','Sırada / üretiliyor',stats.queue),('bank','Onaylı yükleme (₺)',stats.tl)] %}
+  {% for ic, k, v in [('users','Kullanıcı',stats.users),('video','Üretilen video',stats.videos),('clock','Sırada / üretiliyor',stats.queue),('repeat','Aktif kanal',daily.channels)] %}
   <div class="card stat reveal" data-delay="{{ loop.index0 }}"><div class="k">{{ icon(ic, 16) }} {{ k }}</div><div class="v" data-count="{{ v }}">{{ v }}</div></div>{% endfor %}
+</div>
+<div class="card reveal" style="margin-bottom:24px">
+  <div class="card-head"><h3>{{ icon('layers', 18) }} Son {{ daily.days }} gün</h3><span class="tiny faint">Maliyet tahmini: Google fiyatı × {{ '%g' % usd_try }} ₺ kur</span></div>
+  <div class="kpis kpis-5">
+    <div><span class="v">{{ '{:,}'.format(daily.revenue).replace(',', '.') }} ₺</span><span class="k">Gelir (onaylı havale)</span></div>
+    <div><span class="v">{{ '{:,}'.format(daily.cost_tl).replace(',', '.') }} ₺</span><span class="k">Tahmini API maliyeti</span></div>
+    <div><span class="v" style="color:{{ 'var(--ok)' if daily.profit >= 0 else 'var(--err)' }}">{{ '{:,}'.format(daily.profit).replace(',', '.') }} ₺</span><span class="k">Brüt kâr</span></div>
+    <div><span class="v">%{{ daily.fail_rate }}</span><span class="k">Başarısız video oranı</span></div>
+    <div><span class="v">{{ '{:,}'.format(daily.liability).replace(',', '.') }}</span><span class="k">Kullanıcılardaki kredi</span></div>
+  </div>
+  <div class="charts">
+    {% for key, title in [('users', 'Yeni kullanıcı'), ('videos', 'Üretilen video'), ('tl', 'Gelir (₺)')] %}
+    <div class="chart"><div class="row between"><b class="small">{{ title }}</b><span class="tiny faint mono">{{ daily.rows|sum(attribute=key) }}</span></div>
+      <div class="bars">{% for r in daily.rows %}<span class="bar" style="--h:{{ (r[key] / daily.peak[key] * 100)|round(1) }}%" title="{{ r.label }}: {{ r[key] }}"><i></i></span>{% endfor %}</div>
+      <div class="row between tiny faint mono"><span>{{ daily.rows[0].label }}</span><span>{{ daily.rows[-1].label }}</span></div></div>
+    {% endfor %}
+  </div>
 </div>
 <div class="card reveal" style="margin-bottom:24px">
   <div class="card-head"><h3>{{ icon('bank', 18) }} Onay bekleyen havaleler</h3><span class="tiny faint">Onaylamadan önce paranın hesaba geldiğini kontrol et</span></div>

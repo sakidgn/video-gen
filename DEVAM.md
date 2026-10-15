@@ -62,6 +62,11 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   render edilip ffmpeg ile kodlanır), ürün vitrini (`static/shots/studio.jpg`), kayan fikir şeritleri, bento özellikler.
   Kaydırınca geride kalan bloklar hafifçe bulanıklaşır (kullanıcı "fazla" dedi → üst üçte birde, en fazla 6px), Lenis ile
   yumuşak kaydırma (`static/vendor/lenis.min.js`), başlıklar kelime kelime belirir, footer'da büyük silik marka yazısı.
+- Özellikler (Ekim 2026): davet programı (/davet, /d/KOD; ödül ilk onaylı havalede, DAVET_ODULU/DAVET_HEDIYE),
+  promosyon kodları (yönetimden), düşük bakiye uyarısı, /videolar (filtre+arama+sayfa), benzerini/düzenleyip üret,
+  kanalda "şimdi üret", stüdyoda yapay zekâ fikir önerisi (/api/fikirler), telefonda dosyalı paylaşım (Web Share),
+  yönetimde 14 günlük grafikler + kâr tahmini (VIDEO_COST_USD × DOLAR_KURU), ana sayfada maliyet hesaplayıcı.
+  Güvenlik: sıkı CSP (satır içi script YOK — yeni JS fx.js'e), /saglik, robots/sitemap, PWA manifest, günlük DB yedeği.
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

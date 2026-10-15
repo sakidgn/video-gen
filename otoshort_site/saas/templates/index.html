@@ -160,6 +160,20 @@
     <div class="card pack reveal" data-delay="{{ loop.index0 }}"><div><b>{{ tl }} ₺</b><div class="tiny faint">{{ cr }} kredi</div></div>{% if cr > tl %}<span class="bonus">+%{{ ((cr - tl) * 100 / tl)|round|int }} hediye</span>{% else %}<span class="tiny faint">Başlangıç</span>{% endif %}</div>
     {% endfor %}
   </div>
+  <div class="card calc reveal" data-calc data-packages='{{ packages|tojson }}'>
+    <div class="calc-copy"><span class="eyebrow">Hesapla</span><h3 class="calc-title">Otomatik kanal ayda <span class="hl">ne tutar?</span></h3>
+      <p class="muted small">Günde kaç video istediğini ve kaliteyi seç; maliyeti hemen gör.</p></div>
+    <div class="calc-ctrl">
+      <label class="label" for="calc-n">Günde <b class="calc-n" data-calc-n>3</b> video</label>
+      <input id="calc-n" class="range" type="range" min="1" max="10" value="3" data-calc-range>
+      <div class="seg calc-q">{% for k, q in qualities.items() %}<label class="opt"><input type="radio" name="calc-q" value="{{ q.credits }}" {% if k == 'fast' %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ q.label }}</span><span class="code">{{ q.credits }}</span></span></label>{% endfor %}</div>
+    </div>
+    <div class="calc-out">
+      <div><span class="k">Günlük</span><b><span data-calc-day>195</span> <small>kredi</small></b></div>
+      <div><span class="k">Aylık (30 gün)</span><b><span data-calc-month>5.850</span> <small>₺</small></b></div>
+      <p class="tiny faint" data-calc-hint></p>
+    </div>
+  </div>
 </div></section>
 
 <section id="sss" style="padding-top:40px"><div class="wrap narrow">

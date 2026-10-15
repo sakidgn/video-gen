@@ -181,6 +181,21 @@
     try { await navigator.clipboard.writeText(url); const old = b.innerHTML; b.textContent = 'Bağlantı kopyalandı'; setTimeout(() => { b.innerHTML = old; }, 1600); } catch (e) {}
   }));
 
+  // Ana sayfa: otomatik kanal maliyet hesaplayıcı
+  const calc = $('[data-calc]');
+  if (calc) {
+    const packs = JSON.parse(calc.dataset.packages || '[]'), big = packs[packs.length - 1];
+    const fmt = n => n.toLocaleString('tr-TR');
+    const upd = () => {
+      const n = +$('[data-calc-range]', calc).value, q = +$('input[name=calc-q]:checked', calc).value, day = n * q;
+      $('[data-calc-n]', calc).textContent = n; $('[data-calc-day]', calc).textContent = fmt(day);
+      $('[data-calc-month]', calc).textContent = fmt(day * 30);
+      const r = $('[data-calc-range]', calc); r.style.setProperty('--v', ((n - r.min) / (r.max - r.min) * 100) + '%');
+      if (big) $('[data-calc-hint]', calc).textContent = `${fmt(big[0])} ₺ paketi (${fmt(big[1])} kredi) bu hızla yaklaşık ${Math.max(1, Math.floor(big[1] / day))} gün yeter.`;
+    };
+    calc.addEventListener('input', upd); calc.addEventListener('change', upd); upd();
+  }
+
   // Stüdyo: canlı önizleme ve özet
   const studio = $('[data-studio]');
   if (studio) {

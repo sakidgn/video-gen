@@ -41,6 +41,8 @@ FAQS = [
      "Hayır. Telif ve kişilik hakları nedeniyle gerçek kişiler ve başkalarına ait karakterler üretilmez; yazarsan yapay zekâ onu özgün bir karaktere çevirir. Kendi karakterini dilediğin gibi tarif edebilirsin."),
     ("Video beğenmezsem ya da üretilemezse?",
      "Teknik bir hata ya da güvenlik filtresi yüzünden video üretilemezse kredin otomatik iade edilir. Üretilen videolar için iade yapılmaz; önce Ekonomik kaliteyle deneyip beğenince üst kaliteye geçebilirsin."),
+    ("Arkadaşımı davet edersem ne kazanırım?",
+     "Panelindeki “Davet et” sayfasından bağlantını paylaş. Davet ettiğin kişi ilk kredisini yüklediğinde ikinize de hediye kredi tanımlanır."),
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
@@ -883,6 +885,45 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return go("/kredi")
 
     # --- admin ---
+    def _daily_stats(s, days: int = 14) -> dict:
+        """Son N günün günlük kayıt, video ve gelir sayıları (yerel saate göre) ve özet rakamlar."""
+        from datetime import timedelta, timezone
+
+        tz = ZoneInfo(config.TIMEZONE)
+        today = datetime.now(tz).date()
+        keys = [today - timedelta(days=i) for i in range(days - 1, -1, -1)]
+        since = datetime.combine(keys[0], datetime.min.time(), tz).astimezone(timezone.utc)
+
+        def day(dt):
+            return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).astimezone(tz).date()
+
+        series = {k: {"users": 0, "videos": 0, "tl": 0} for k in keys}
+        for (dt,) in s.execute(select(User.created_at).where(User.created_at >= since)):
+            if day(dt) in series:
+                series[day(dt)]["users"] += 1
+        cost_usd = 0.0
+        for dt, q in s.execute(select(Job.finished_at, Job.quality).where(Job.status == "hazir", Job.finished_at >= since)):
+            if day(dt) in series:
+                series[day(dt)]["videos"] += 1
+                cost_usd += config.VIDEO_COST_USD.get(q, 0)
+        for dt, tl in s.execute(select(TopUp.decided_at, TopUp.amount_tl).where(TopUp.status == "onaylandi",
+                                                                               TopUp.decided_at >= since)):
+            if day(dt) in series:
+                series[day(dt)]["tl"] += tl
+        failed = s.scalar(select(func.count(Job.id)).where(Job.status == "hata", Job.created_at >= since)) or 0
+        done = sum(v["videos"] for v in series.values())
+        revenue = sum(v["tl"] for v in series.values())
+        cost_tl = round(cost_usd * config.USD_TRY)
+        rows = [{"label": k.strftime("%d.%m"), **v} for k, v in series.items()]
+        peak = {m: max(1, *(r[m] for r in rows)) for m in ("users", "videos", "tl")}
+        return {
+            "rows": rows, "peak": peak, "revenue": revenue, "cost_tl": cost_tl, "profit": revenue - cost_tl,
+            "fail_rate": round(100 * failed / (failed + done)) if failed + done else 0,
+            "liability": s.scalar(select(func.coalesce(func.sum(User.credits), 0))),
+            "channels": s.scalar(select(func.count(Channel.id)).where(Channel.active.is_(True))),
+            "days": days,
+        }
+
     @app.get("/admin", response_class=HTMLResponse)
     def admin(request: Request, user: User = Depends(require_admin)):
         with db.session() as s:
@@ -899,7 +940,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 "tl": s.scalar(select(func.coalesce(func.sum(TopUp.amount_tl), 0))
                                .where(TopUp.status == "onaylandi")),
             }
-        return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats, promos=promos)
+            daily = _daily_stats(s)
+        return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats, promos=promos,
+                      daily=daily, usd_try=config.USD_TRY)
 
     @app.post("/admin/kod", dependencies=[Depends(check_csrf)])
     def admin_promo_create(request: Request, user: User = Depends(require_admin), code: str = Form(""),

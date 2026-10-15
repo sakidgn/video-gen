@@ -42,6 +42,9 @@ QUALITIES = {
                  "resolution": "1080p", "credits": 250, "desc": "En yüksek kalite"},
 }
 DURATION_SECONDS = 8
+# Yönetim panelindeki kâr tahmini için: 8 sn videonun Google fiyatı (USD) ve dolar kuru
+VIDEO_COST_USD = {"lite": 0.40, "fast": 0.80, "standard": 3.20}
+USD_TRY = float(_env("DOLAR_KURU", "42") or 42)
 
 # Kredi paketleri: (TL, verilen kredi)
 PACKAGES = [(250, 250), (500, 550), (1000, 1200)]
