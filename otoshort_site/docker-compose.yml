@@ -1,0 +1,35 @@
+# Sunucuda tek komutla kurulum: docker compose up -d --build
+# Gerekenler: .env dosyası (ALAN_ADI ve SITE_ADRESI dahil) ve alan adının bu sunucuya yönlenmiş olması.
+# Caddy, Let's Encrypt ile https sertifikasını kendiliğinden alır ve yeniler.
+services:
+  site:
+    build: .
+    env_file: .env
+    environment:
+      VERI_KLASORU: /veri
+    volumes:
+      - ./saas_veri:/veri
+    restart: unless-stopped
+    expose:
+      - "8000"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  caddy:
+    image: caddy:2
+    depends_on: [site]
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

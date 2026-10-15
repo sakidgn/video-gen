@@ -1,0 +1,7 @@
+.env
+.venv
+saas_veri*
+araclar
+tests
+**/__pycache__
+*.bat

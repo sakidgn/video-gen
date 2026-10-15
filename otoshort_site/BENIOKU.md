@@ -21,18 +21,30 @@ Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yöne
    değerlerini güncelle. Yönetim → **Yayına hazırlık** sayfası kâr payını gösterir.
 
 ## Gerçek kurulum (sunucu)
-1. **Google API anahtarı:** https://aistudio.google.com → API key oluştur → projede **faturalandırmayı aç** (kart).
+Hazır paket: `docker-compose.yml` (site + Caddy), `Caddyfile` (otomatik https sertifikası), `sunucu_kur.sh`
+(soru sorarak `.env` oluşturur ve başlatır). Bu kurulum Docker içinde baştan sona denendi.
+
+1. **Google API anahtarı:** https://aistudio.google.com → API key → projede **faturalandırmayı aç** (kart).
    Google Cloud'da **bütçe uyarısı** kur (ör. aylık 50$). Veo'nun ücretsiz kotası yok, her video ücretli.
-2. **Sunucu:** Docker çalıştıran küçük bir VPS (ör. 2 GB RAM). Bir alan adı al ve sunucuya yönlendir.
-3. `.env.ornek` dosyasını `.env` olarak kopyala, doldur (`GIZLI_ANAHTAR` uzun ve rastgele olmalı).
-4. Çalıştır:
+2. **Sunucu:** Ubuntu 24.04, en az 2 GB RAM'li bir VPS (ör. Hetzner CX22 ~5 €/ay, DigitalOcean, Turhost).
+   KVKK metninde yazacağın sunucu firması ve ülkesi budur (`SUNUCU_SAGLAYICI`).
+3. **Alan adı:** DNS ayarlarında `A` kaydı → sunucunun IP adresi (www için de aynı). Yayılması birkaç dakika–saat.
+4. Sunucuya bağlan (`ssh root@IP`) ve kodu indir:
    ```
-   docker build -t cutless .          # bu klasörün içinden
-   docker run -d --restart always --env-file .env -v /srv/cutless:/veri -p 8000:8000 cutless
+   git clone https://github.com/KULLANICI/DEPO.git cutless   # gizli depoysa GitHub token ile
+   cd cutless/otoshort_site
+   bash sunucu_kur.sh
    ```
-5. Önüne HTTPS için Caddy koy (en kolayı): `caddy reverse-proxy --from alanadin.com --to localhost:8000`
-6. Yasal sayfalardaki `[ŞİRKET UNVANI]`, `[ADRES]`, `[E-POSTA]`, `[TARİH]` yerlerini doldur
-   (`saas/templates/yasal_*.html`). Satışa başlamadan önce bir muhasebeciye/avukata göster.
+   Betik Docker'ı kurar, alan adını/yönetici e-postasını sorar, `GIZLI_ANAHTAR`'ı kendisi üretir ve siteyi başlatır.
+5. Kalan ayarları doldur: `nano .env` → SMTP, IBAN, `SIRKET_*` (yasal bilgiler), sonra `docker compose up -d`.
+6. Siteye yönetici e-postanla kaydol → **Yönetim → Yayına hazırlık**: kırmızı kalan bir şey olmamalı.
+7. **Güncelleme:** `git pull && docker compose up -d --build` (veriler `saas_veri/` klasöründe kalır).
+8. **Yedek:** site her gün `saas_veri/yedekler/`e veritabanı yedeği alır; ara sıra bilgisayarına indir:
+   `scp -r root@IP:cutless/otoshort_site/saas_veri/yedekler .`
+9. Satışa başlamadan önce yasal metinleri bir muhasebeciye/avukata göster.
+
+Faydalı komutlar: `docker compose ps` (durum), `docker compose logs -f site` (günlük),
+`docker compose exec site python -m saas.hazirlik` (eksik ayarlar), `docker compose restart site`.
 
 ## Google ile giriş (ücretsiz, kart gerekmez)
 1. https://console.cloud.google.com → üstten **yeni proje** oluştur (ör. "Cutless").

@@ -1,0 +1,12 @@
+# Alan adı .env'deki ALAN_ADI'ndan gelir (ör. cutless.app). www. adresi ana adrese yönlenir.
+{$ALAN_ADI} {
+	encode zstd gzip
+	request_body {
+		max_size 20MB
+	}
+	reverse_proxy site:8000
+}
+
+www.{$ALAN_ADI} {
+	redir https://{$ALAN_ADI}{uri} permanent
+}
