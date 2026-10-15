@@ -41,6 +41,9 @@ NEW_COLUMNS = [
     ("jobs", "subtitles", "BOOLEAN NOT NULL DEFAULT 0"),
     ("channels", "subtitles", "BOOLEAN NOT NULL DEFAULT 0"),
     ("jobs", "raw_file", "VARCHAR(300) NOT NULL DEFAULT ''"),
+    ("jobs", "public", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("jobs", "featured", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("jobs", "public_at", "DATETIME"),
 ]
 
 

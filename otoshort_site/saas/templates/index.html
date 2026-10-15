@@ -145,6 +145,14 @@
   </div>
 </div></section>
 
+{% if showcase %}
+<section style="padding-top:40px"><div class="wrap">
+  <div class="sec-head reveal"><span class="eyebrow">Keşfet</span><h2>Kullanıcılarımız <span class="hl">ne üretti?</span></h2></div>
+  <div class="ggrid">{% for j in showcase %}{% include "_gcard.html" %}{% endfor %}</div>
+  <div class="center reveal" style="margin-top:28px"><a class="btn btn-ghost" href="/kesfet">Tüm videoları gör {{ icon('arrow-right', 16) }}</a></div>
+</div></section>
+{% endif %}
+
 <section id="fiyat" style="padding-top:40px"><div class="wrap">
   <div class="sec-head reveal"><span class="eyebrow">Fiyatlar</span><h2>Kullandığın <span class="hl">kadar</span> öde.</h2><p class="lead">Abonelik yok, gizli ücret yok. 1 kredi = 1 ₺. Video üretilemezse kredin iade.</p></div>
   <div class="plans">

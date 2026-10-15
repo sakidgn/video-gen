@@ -46,7 +46,7 @@ FAQS = [
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
-PUBLIC_PAGES = ["/", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
+PUBLIC_PAGES = ["/", "/kesfet", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
 
 
 def create_app(*, start_worker: bool | None = None, generator=None, database_url: str | None = None) -> FastAPI:
@@ -244,7 +244,50 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def index(request: Request, ref: str = ""):
         remember_ref(request, ref)
         faqs_ld = [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQS]
-        return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld)
+        with db.session() as s:
+            showcase = s.scalars(_public_q().order_by(Job.featured.desc(), Job.public_at.desc()).limit(8)).all()
+        return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase)
+
+    def _public_q():
+        return select(Job).where(Job.public.is_(True), Job.status == "hazir", Job.video_file != "")
+
+    @app.get("/kesfet", response_class=HTMLResponse)
+    def explore(request: Request, sira: str = "one-cikan", sayfa: int = 1):
+        per = 24
+        sira = sira if sira in ("one-cikan", "yeni") else "one-cikan"
+        with db.session() as s:
+            q = _public_q()
+            total = s.scalar(select(func.count()).select_from(q.subquery()))
+            order = (Job.featured.desc(), Job.public_at.desc()) if sira == "one-cikan" else (Job.public_at.desc(),)
+            pages = max(1, -(-total // per))
+            sayfa = min(max(1, sayfa), pages)
+            jobs = s.scalars(q.order_by(*order).offset((sayfa - 1) * per).limit(per)).all()
+        return render(request, "kesfet.html", current_user(request), jobs=jobs, sira=sira, sayfa=sayfa, pages=pages,
+                      total=total)
+
+    def _public_job(s, job_id: int) -> Job:
+        job = s.get(Job, job_id)
+        if not job or not job.public or job.status != "hazir" or not job.video_file:
+            raise HTTPException(404)
+        return job
+
+    @app.get("/kesfet/{job_id}/video")
+    def explore_video(job_id: int):
+        with db.session() as s:
+            job = _public_job(s, job_id)
+        path = worker.video_dir() / job.video_file
+        if not path.exists():
+            raise HTTPException(404)
+        return FileResponse(path, media_type="video/mp4", headers={"Cache-Control": "public, max-age=3600"})
+
+    @app.get("/kesfet/{job_id}/kapak")
+    def explore_poster(job_id: int):
+        with db.session() as s:
+            job = _public_job(s, job_id)
+        poster = (worker.video_dir() / job.video_file).with_suffix(".jpg")
+        if not poster.exists():
+            raise HTTPException(404)
+        return FileResponse(poster, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
 
     @app.get("/saglik")
     def health():
@@ -639,6 +682,20 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             _ = job.channel  # şablonda kanal adı gösterilecek
         return render(request, "video.html", user, job=job)
 
+    @app.post("/video/{job_id}/kesfet", dependencies=[Depends(check_csrf)])
+    def job_public_toggle(request: Request, job_id: int, user: User = Depends(require_user)):
+        with db.session() as s:
+            job = _own_job(s, user, job_id)
+            if job.user_id != user.id or job.status != "hazir":
+                raise HTTPException(404)
+            job.public = not job.public
+            job.public_at = now() if job.public else None
+            if not job.public:
+                job.featured = False
+            public = job.public
+        flash(request, "Videon Keşfet'te yayında. 🌟" if public else "Video Keşfet'ten kaldırıldı.")
+        return go(f"/video/{job_id}")
+
     @app.post("/video/{job_id}/tekrar", dependencies=[Depends(check_csrf)])
     def job_again(request: Request, job_id: int, user: User = Depends(require_user)):
         """Aynı ayarlarla yeni bir video (yapay zekâ önceki fikirleri tekrar etmez)."""
@@ -765,6 +822,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 job.channel_id = None
                 job.idea = job.characters = job.prompt = job.title = job.caption = job.hashtags = job.summary = ""
                 job.ref_image = job.raw_file = ""
+                job.public = job.featured = False
                 job.video_file = ""
             # muhasebe kayıtları (ödeme/kredi hareketleri) yasal süre boyunca kalır; kişisel bilgiler silinir
             u.email = f"silindi-{u.id}@silindi.invalid"
@@ -990,6 +1048,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             users = s.scalars(select(User).order_by(User.id.desc()).limit(100)).all()
             jobs = s.scalars(select(Job).order_by(Job.id.desc()).limit(50)).all()
             promos = s.scalars(select(PromoCode).order_by(PromoCode.id.desc()).limit(30)).all()
+            public_jobs = s.scalars(select(Job).where(Job.public.is_(True)).order_by(Job.public_at.desc()).limit(30)).all()
             stats = {
                 "users": s.scalar(select(func.count(User.id))),
                 "videos": s.scalar(select(func.count(Job.id)).where(Job.status == "hazir")),
@@ -999,7 +1058,22 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             }
             daily = _daily_stats(s)
         return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats, promos=promos,
-                      daily=daily, usd_try=config.USD_TRY)
+                      daily=daily, usd_try=config.USD_TRY, public_jobs=public_jobs)
+
+    @app.post("/admin/kesfet/{job_id}/{action}", dependencies=[Depends(check_csrf)])
+    def admin_explore(request: Request, job_id: int, action: str, user: User = Depends(require_admin)):
+        if action not in ("one-cikar", "kaldir"):
+            raise HTTPException(404)
+        with db.session() as s:
+            job = s.get(Job, job_id)
+            if not job:
+                raise HTTPException(404)
+            if action == "kaldir":  # moderasyon: herkese açık listeden çıkar
+                job.public = job.featured = False
+            else:
+                job.featured = not job.featured
+        flash(request, "Keşfet güncellendi.")
+        return go("/admin")
 
     @app.post("/admin/kod", dependencies=[Depends(check_csrf)])
     def admin_promo_create(request: Request, user: User = Depends(require_admin), code: str = Form(""),

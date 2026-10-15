@@ -256,6 +256,16 @@
     th.innerHTML = ''; const img = document.createElement('img'); img.alt = ''; img.src = URL.createObjectURL(f); th.appendChild(img);
   }));
 
+  // Keşfet: karta tıklayınca video yerinde oynar (aynı anda tek video)
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-play]'); if (!b) return;
+    $$('.gthumb video').forEach(v => { if (!b.contains(v)) v.pause(); });
+    if (b.querySelector('video')) return;
+    const v = document.createElement('video');
+    Object.assign(v, { src: b.dataset.play, autoplay: true, loop: true, playsInline: true, controls: true });
+    b.appendChild(v); b.classList.add('playing');
+  });
+
   // Stüdyo: canlı önizleme ve özet
   const studio = $('[data-studio]');
   if (studio) {

@@ -60,6 +60,13 @@
       <td><form method="post" action="/admin/kod/{{ p.id }}/durum"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-sm {{ 'btn-ghost' if p.active else 'btn-danger' }}">{{ 'Açık' if p.active else 'Kapalı' }}</button></form></td></tr>{% endfor %}
     </table></div>{% else %}<p class="muted small">Henüz kod yok. Kampanyalarda dağıtmak için bir kod oluştur.</p>{% endif %}</div>
 </div>
+<div class="card reveal" style="margin-bottom:24px"><div class="card-head"><h3>{{ icon('globe', 18) }} Keşfet'teki videolar</h3><a class="tiny faint" href="/kesfet">Galeriyi aç</a></div>
+  {% if public_jobs %}<div class="table-wrap"><table><tr><th>#</th><th>Başlık</th><th>Kullanıcı</th><th>Tarih</th><th></th></tr>
+  {% for j in public_jobs %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td>{{ j.title }}{% if j.featured %} <span class="badge b-ok">öne çıkan</span>{% endif %}</td><td class="mono">{{ j.user_id }}</td><td class="mono small faint">{{ j.public_at|tarih }}</td>
+    <td><div class="row" style="justify-content:flex-end;flex-wrap:nowrap">
+      <form method="post" action="/admin/kesfet/{{ j.id }}/one-cikar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm">{{ 'Öne çıkarma' if j.featured else 'Öne çıkar' }}</button></form>
+      <form method="post" action="/admin/kesfet/{{ j.id }}/kaldir" data-confirm="Video Keşfet'ten kaldırılsın mı?"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">Kaldır</button></form></div></td></tr>{% endfor %}
+  </table></div>{% else %}<p class="muted small">Henüz paylaşılan video yok.</p>{% endif %}</div>
 <div class="card reveal"><div class="card-head"><h3>{{ icon('video', 18) }} Son işler</h3></div>
   <div class="table-wrap"><table><tr><th>#</th><th>Kullanıcı</th><th>Durum</th><th>Kalite</th><th>Başlık / hata</th><th>Tarih</th></tr>
   {% for j in jobs %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td class="mono">{{ j.user_id }}</td><td><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span></td><td>{{ qualities[j.quality].label }}</td><td class="small">{{ j.title or j.error }}</td><td class="mono small faint">{{ j.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>

@@ -121,6 +121,9 @@ class Job(Base):
     ref_image: Mapped[str] = mapped_column(String(120), default="")
     subtitles: Mapped[bool] = mapped_column(Boolean, default=False)
     raw_file: Mapped[str] = mapped_column(String(300), default="")  # altyazısız orijinal
+    public: Mapped[bool] = mapped_column(Boolean, default=False)  # sahibi Keşfet'te paylaşmayı seçti
+    featured: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici öne çıkardı
+    public_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

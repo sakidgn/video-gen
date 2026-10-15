@@ -51,6 +51,12 @@
       </div>
       {% endif %}
       <p class="hint" style="margin-top:14px">{{ icon('info', 14) }} Paylaşırken platformdaki “yapay zekâ ile oluşturuldu” etiketini açmayı unutma.</p>
+      {% if job.user_id == user.id %}
+      <form class="explore-opt" method="post" action="/video/{{ job.id }}/kesfet"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <div><b>{{ icon('globe', 15) }} Keşfet'te {{ 'paylaşılıyor' if job.public else 'paylaş' }}</b>
+          <small>{{ 'Videon herkese açık galeride görünüyor. İstediğin an kaldırabilirsin.' if job.public else 'Videon herkese açık galeride başlığı ve tarzıyla görünür; adın ve e-postan gösterilmez. İstediğin an kaldırabilirsin.' }}</small></div>
+        <button class="btn btn-sm {{ 'btn-ghost' if job.public else 'btn-primary' }}" type="submit">{{ 'Kaldır' if job.public else 'Paylaş' }}</button></form>
+      {% endif %}
     </div>
     {% elif job.status == 'hata' %}
     <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('refund', 18) }} Kredin iade edildi</h3></div>

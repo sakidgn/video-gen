@@ -841,3 +841,34 @@ def test_real_ai_transcribe_parses_segments(tmp_path):
     v.write_bytes(b"mp4")
     segs = ai.RealAI(client=SimpleNamespace(models=Models())).transcribe(video=v, language="tr")
     assert segs == [{"start": 0.1, "end": 1.2, "text": "Selam"}]
+
+
+def test_explore_gallery_opt_in_and_moderation(client):
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid = s.scalar(select(Job.id))
+    anon = TestClient(client.app)
+    assert anon.get(f"/kesfet/{jid}/video").status_code == 404  # paylaşılmadan herkese açık değil
+    assert "Galeri yakında dolacak" in anon.get("/kesfet").text
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    assert other.post(f"/video/{jid}/kesfet", data={"csrf": csrf(other, "/panel")}).status_code == 404
+    import html
+
+    assert "Keşfet'te yayında" in html.unescape(client.post(f"/video/{jid}/kesfet", data={"csrf": t}).text)
+    page = anon.get("/kesfet").text
+    assert f'data-play="/kesfet/{jid}/video"' in page and "a@b.com" not in page
+    assert anon.get(f"/kesfet/{jid}/video").status_code == 200 and anon.get(f"/kesfet/{jid}/kapak").status_code == 200
+    assert f"/kesfet/{jid}/video" in anon.get("/").text  # ana sayfada da görünür
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    ta = csrf(admin, "/admin")
+    admin.post(f"/admin/kesfet/{jid}/one-cikar", data={"csrf": ta})
+    assert "Öne çıkan" in anon.get("/kesfet").text
+    admin.post(f"/admin/kesfet/{jid}/kaldir", data={"csrf": ta})
+    assert anon.get(f"/kesfet/{jid}/video").status_code == 404 and f"/kesfet/{jid}/video" not in anon.get("/").text
+    assert "<loc>http://testserver/kesfet</loc>" in anon.get("/sitemap.xml").text
