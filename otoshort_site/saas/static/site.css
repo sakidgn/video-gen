@@ -664,7 +664,7 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
 
 /* ============ Ürün vitrini ============ */
 .showcase-sec{padding-bottom:40px}
-.showcase{--p:0;position:relative;perspective:1600px;max-width:1400px;margin:0 auto}
+.showcase{--p:0;position:relative;perspective:1600px;max-width:min(1200px,calc((100svh - 170px) * 1.6));margin:0 auto}
 .sc-glow{position:absolute;inset:8% 6% -4%;border-radius:40px;background:conic-gradient(from 200deg,#d8b98a,#b8875a,#9fc59f,#8c7b66,#4a3d32,#d8b98a);filter:blur(70px);opacity:calc(.22 + var(--p) * .3);z-index:-1}
 .sc-frame{position:relative;border-radius:18px;overflow:hidden;background:#100e0c;border:1px solid var(--border-2);
   box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 50px 120px -40px rgba(0,0,0,.95),0 0 80px -30px rgba(216,185,138,0.36);
