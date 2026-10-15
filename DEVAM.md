@@ -74,6 +74,9 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   `saas/secretbox.py` ile şifreli (cryptography paketi bu ortamda bozuk → stdlib). Kanal `publish_to`, `Publication` kuyruğu
   işçide (`saas/publisher.py`, 3 deneme, 3 dk arayla). Instagram videoyu `/yayin/dosya/<imzalı jeton>`'dan indirir.
   Gerçek kullanım için platform onayları gerekiyor (BENIOKU'da adımlar).
+- İngilizce site: `saas/i18n.py` (LangMiddleware: /en önekini atar, "dil" çerezi; contextvar ile `i18n.t`), şablonlarda
+  `_()`/`_h()`/`_db()` (veritabanındaki Türkçe kalıplar), çeviriler `saas/i18n_en.py`, eksik kontrolü `saas/i18n_keys.py`.
+  User.lang e-posta dili. Herkese açık sayfalar `L('/yol')` ile /en adresi alır. Film/og/stüdyo görselinin -en sürümleri var.
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

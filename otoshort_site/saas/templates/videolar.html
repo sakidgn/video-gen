@@ -1,32 +1,32 @@
 {% extends "app_base.html" %}
-{% block title %}Videolarım · {{ site }}{% endblock %}
+{% block title %}{{ _('Videolarım') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><span class="eyebrow">Arşiv</span><h1>Videolarım</h1><p class="muted"><span class="mono">{{ counts[''] }}</span> video · <span class="mono">{{ counts.hazir }}</span> hazır</p></div>
-  <a class="btn btn-accent" href="/video/yeni">{{ icon('plus', 16) }} Yeni video</a>
+  <div class="t"><span class="eyebrow">{{ _('Arşiv') }}</span><h1>{{ _('Videolarım') }}</h1><p class="muted"><span class="mono">{{ counts[''] }}</span> {{ _('video') }} · <span class="mono">{{ counts.hazir }}</span> {{ _('hazır') }}</p></div>
+  <a class="btn btn-accent" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a>
 </div>
 <div class="toolbar reveal">
-  <nav class="tabs" aria-label="Durum">
-    {% for k, label in [('', 'Tümü'), ('hazir', 'Hazır'), ('uretiliyor', 'Üretiliyor'), ('hata', 'Üretilemedi')] %}
+  <nav class="tabs" aria-label="{{ _('Durum') }}">
+    {% for k, label in [('', _('Tümü')), ('hazir', _('Hazır')), ('uretiliyor', _('Üretiliyor')), ('hata', _('Üretilemedi'))] %}
     <a class="tab {{ 'on' if durum == k }}" href="/videolar?durum={{ k }}{% if q %}&q={{ q|urlencode }}{% endif %}">{{ label }} <span class="mono">{{ counts[k] }}</span></a>{% endfor %}
   </nav>
   <form class="search" method="get" action="/videolar">{% if durum %}<input type="hidden" name="durum" value="{{ durum }}">{% endif %}
-    {{ icon('search', 16) }}<input class="input" name="q" value="{{ q }}" maxlength="80" placeholder="Başlık ya da fikirde ara" aria-label="Ara"></form>
+    {{ icon('search', 16) }}<input class="input" name="q" value="{{ q }}" maxlength="80" placeholder="{{ _('Başlık ya da fikirde ara') }}" aria-label="{{ _('Ara') }}"></form>
 </div>
 {% if jobs %}
 <div class="vgrid">{% for j in jobs %}{% include "_vcard.html" %}{% endfor %}</div>
 {% if pages > 1 %}
-<nav class="pager" aria-label="Sayfalar">
+<nav class="pager" aria-label="{{ _('Sayfalar') }}">
   {% set base = '/videolar?durum=' ~ durum ~ ('&q=' ~ q|urlencode if q else '') ~ '&sayfa=' %}
-  {% if sayfa > 1 %}<a class="btn btn-ghost btn-sm" href="{{ base }}{{ sayfa - 1 }}">{{ icon('arrow-left', 14) }} Önceki</a>{% endif %}
+  {% if sayfa > 1 %}<a class="btn btn-ghost btn-sm" href="{{ base }}{{ sayfa - 1 }}">{{ icon('arrow-left', 14) }} {{ _('Önceki') }}</a>{% endif %}
   <span class="small faint mono">{{ sayfa }} / {{ pages }}</span>
-  {% if sayfa < pages %}<a class="btn btn-ghost btn-sm" href="{{ base }}{{ sayfa + 1 }}">Sonraki {{ icon('arrow-right', 14) }}</a>{% endif %}
+  {% if sayfa < pages %}<a class="btn btn-ghost btn-sm" href="{{ base }}{{ sayfa + 1 }}">{{ _('Sonraki') }} {{ icon('arrow-right', 14) }}</a>{% endif %}
 </nav>
 {% endif %}
 {% else %}
 <div class="card empty"><span class="icon-box accent">{{ icon('film', 24) }}</span>
-  <h3 style="font-size:20px">{{ 'Sonuç bulunamadı' if q or durum else 'Henüz videon yok' }}</h3>
-  <p>{{ 'Aramayı ya da filtreyi değiştirip tekrar dene.' if q or durum else 'İlk videonu birkaç dakikada üret.' }}</p>
-  <a class="btn btn-accent" href="{{ '/videolar' if q or durum else '/video/yeni' }}">{{ 'Filtreyi temizle' if q or durum else 'İlk videonu üret' }}</a></div>
+  <h3 style="font-size:20px">{{ _('Sonuç bulunamadı') if q or durum else _('Henüz videon yok') }}</h3>
+  <p>{{ _('Aramayı ya da filtreyi değiştirip tekrar dene.') if q or durum else _('İlk videonu birkaç dakikada üret.') }}</p>
+  <a class="btn btn-accent" href="{{ '/videolar' if q or durum else '/video/yeni' }}">{{ _('Filtreyi temizle') if q or durum else _('İlk videonu üret') }}</a></div>
 {% endif %}
 {% endblock %}

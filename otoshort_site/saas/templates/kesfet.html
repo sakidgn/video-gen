@@ -1,26 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Keşfet · {{ site }} ile üretilen videolar{% endblock %}
+{% block title %}{{ _('Keşfet · {site} ile üretilen videolar', site=site) }}{% endblock %}
 {% block content %}
 <section style="padding-top:clamp(48px,6vw,96px)"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">Keşfet</span><h2>{{ site }} ile <span class="hl">üretildi.</span></h2>
-    <p class="lead">Kullanıcılarımızın paylaşmayı seçtiği videolar. Hepsi yapay zekâ ile, birkaç dakikada üretildi.</p></div>
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Keşfet') }}</span><h2>{{ _h('{site} ile <span class="hl">üretildi.</span>', site=site) }}</h2>
+    <p class="lead">{{ _('Kullanıcılarımızın paylaşmayı seçtiği videolar. Hepsi yapay zekâ ile, birkaç dakikada üretildi.') }}</p></div>
   {% if total %}
   <div class="toolbar reveal" style="justify-content:center">
-    <nav class="tabs" aria-label="Sıralama">
-      <a class="tab {{ 'on' if sira == 'one-cikan' }}" href="/kesfet?sira=one-cikan">Öne çıkanlar</a>
-      <a class="tab {{ 'on' if sira == 'yeni' }}" href="/kesfet?sira=yeni">En yeniler</a>
+    <nav class="tabs" aria-label="{{ _('Sıralama') }}">
+      <a class="tab {{ 'on' if sira == 'one-cikan' }}" href="{{ L('/kesfet') }}?sira=one-cikan">{{ _('Öne çıkanlar') }}</a>
+      <a class="tab {{ 'on' if sira == 'yeni' }}" href="{{ L('/kesfet') }}?sira=yeni">{{ _('En yeniler') }}</a>
     </nav>
   </div>
   <div class="ggrid">{% for j in jobs %}{% include "_gcard.html" %}{% endfor %}</div>
-  {% if pages > 1 %}<nav class="pager" aria-label="Sayfalar">
-    {% if sayfa > 1 %}<a class="btn btn-ghost btn-sm" href="/kesfet?sira={{ sira }}&sayfa={{ sayfa - 1 }}">{{ icon('arrow-left', 14) }} Önceki</a>{% endif %}
+  {% if pages > 1 %}<nav class="pager" aria-label="{{ _('Sayfalar') }}">
+    {% if sayfa > 1 %}<a class="btn btn-ghost btn-sm" href="{{ L('/kesfet') }}?sira={{ sira }}&sayfa={{ sayfa - 1 }}">{{ icon('arrow-left', 14) }} {{ _('Önceki') }}</a>{% endif %}
     <span class="small faint mono">{{ sayfa }} / {{ pages }}</span>
-    {% if sayfa < pages %}<a class="btn btn-ghost btn-sm" href="/kesfet?sira={{ sira }}&sayfa={{ sayfa + 1 }}">Sonraki {{ icon('arrow-right', 14) }}</a>{% endif %}
+    {% if sayfa < pages %}<a class="btn btn-ghost btn-sm" href="{{ L('/kesfet') }}?sira={{ sira }}&sayfa={{ sayfa + 1 }}">{{ _('Sonraki') }} {{ icon('arrow-right', 14) }}</a>{% endif %}
   </nav>{% endif %}
   {% else %}
-  <div class="card empty reveal"><span class="icon-box accent">{{ icon('film', 24) }}</span><h3 style="font-size:20px">Galeri yakında dolacak</h3>
-    <p>İlk paylaşılan videolar burada görünecek. Sen de videonu üretip Keşfet'te paylaşabilirsin.</p>
-    <a class="btn btn-primary" href="{{ '/video/yeni' if user else '/kayit' }}">{{ 'Video üret' if user else 'Ücretsiz başla' }} {{ icon('arrow-right', 16) }}</a></div>
+  <div class="card empty reveal"><span class="icon-box accent">{{ icon('film', 24) }}</span><h3 style="font-size:20px">{{ _('Galeri yakında dolacak') }}</h3>
+    <p>{{ _("İlk paylaşılan videolar burada görünecek. Sen de videonu üretip Keşfet'te paylaşabilirsin.") }}</p>
+    <a class="btn btn-primary" href="{{ '/video/yeni' if user else L('/kayit') }}">{{ _('Video üret') if user else _('Ücretsiz başla') }} {{ icon('arrow-right', 16) }}</a></div>
   {% endif %}
 </div></section>
 {% endblock %}

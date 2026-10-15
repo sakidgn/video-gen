@@ -1,98 +1,100 @@
 {% extends "app_base.html" %}
-{% block title %}{{ job.title or 'Video' }} · {{ site }}{% endblock %}
+{% block title %}{{ job.title or _('Video') }} · {{ site }}{% endblock %}
+{% set pub_labels = {'bekliyor': _('Sırada'), 'yukleniyor': _('Yükleniyor'), 'yayinda': _('Yayında'), 'hata': _('Hata')} %}
+{% set pub_badge = {'bekliyor': 'b-wait', 'yukleniyor': 'b-wait', 'yayinda': 'b-ok', 'hata': 'b-err'} %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><a class="faint small row" href="{{ '/kanallar/%d' % job.channel_id if job.channel_id else '/panel' }}" style="gap:6px">{{ icon('arrow-left', 15) }} {{ job.channel.name if job.channel else 'Panel' }}</a>
-    <h1 style="view-transition-name:jobtitle">{{ job.title or ('Videon hazırlanıyor' if job.status in ('sirada','uretiliyor') else 'Video') }}</h1></div>
-  <span class="badge {{ status_badge[job.status] }}" id="st"{% if job.status in ('sirada','uretiliyor') %} data-poll="/video/{{ job.id }}/durum" data-stage="{{ job.status }}:{{ job.prompt != '' }}"{% endif %}>{{ status_labels[job.status] }}</span>
+  <div class="t"><a class="faint small row" href="{{ '/kanallar/%d' % job.channel_id if job.channel_id else '/panel' }}" style="gap:6px">{{ icon('arrow-left', 15) }} {{ job.channel.name if job.channel else _('Panel') }}</a>
+    <h1 style="view-transition-name:jobtitle">{{ job.title or (_('Videon hazırlanıyor') if job.status in ('sirada','uretiliyor') else _('Video')) }}</h1></div>
+  <span class="badge {{ status_badge[job.status] }}" id="st"{% if job.status in ('sirada','uretiliyor') %} data-poll="/video/{{ job.id }}/durum" data-stage="{{ job.status }}:{{ job.prompt != '' }}"{% endif %}>{{ _(status_labels[job.status]) }}</span>
 </div>
 <div class="watch">
   <div class="device reveal"><div class="scr">
     {% if job.status == 'hazir' %}
       <video src="/video/{{ job.id }}/dosya" poster="/video/{{ job.id }}/kapak" controls playsinline autoplay muted loop></video>
     {% elif job.status == 'hata' %}
-      <div class="empty"><span class="icon-box" style="color:var(--err)">{{ icon('alert', 24) }}</span><h3>Üretilemedi</h3><p class="small">{{ job.error }}</p></div>
+      <div class="empty"><span class="icon-box" style="color:var(--err)">{{ icon('alert', 24) }}</span><h3>{{ _('Üretilemedi') }}</h3><p class="small">{{ _db(job.error) }}</p></div>
     {% else %}
       <div class="gen">
         <div class="orb"><div class="cube"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-        <h3>Videon üretiliyor</h3>
+        <h3>{{ _('Videon üretiliyor') }}</h3>
         <ul class="progress">
-          <li class="{{ 'done' if job.status == 'uretiliyor' else 'now' }}"><span class="st"></span>Sıraya alındı</li>
-          <li class="{{ 'done' if job.prompt else ('now' if job.status == 'uretiliyor' else '') }}"><span class="st"></span>Senaryo yazılıyor</li>
-          <li class="{{ 'now' if job.prompt else '' }}"><span class="st"></span>Video çekiliyor</li>
-          <li><span class="st"></span>Hazır</li>
+          <li class="{{ 'done' if job.status == 'uretiliyor' else 'now' }}"><span class="st"></span>{{ _('Sıraya alındı') }}</li>
+          <li class="{{ 'done' if job.prompt else ('now' if job.status == 'uretiliyor' else '') }}"><span class="st"></span>{{ _('Senaryo yazılıyor') }}</li>
+          <li class="{{ 'now' if job.prompt else '' }}"><span class="st"></span>{{ _('Video çekiliyor') }}</li>
+          <li><span class="st"></span>{{ _('Hazır') }}</li>
         </ul>
-        <p class="tiny faint" style="max-width:240px">Genelde 2–5 dakika sürer. Sayfayı kapatabilirsin; video panelinde görünecek.</p>
+        <p class="tiny faint" style="max-width:240px">{{ _('Genelde 2–5 dakika sürer. Sayfayı kapatabilirsin; video panelinde görünecek.') }}</p>
       </div>
     {% endif %}
   </div></div>
   <div class="stack" style="gap:16px">
     {% if job.status == 'hazir' %}
     <div class="card reveal" data-delay="1">
-      <div class="card-head"><h3>{{ icon('hash', 18) }} Paylaşım metni</h3><span class="tiny faint">TikTok · Reels · Shorts</span></div>
+      <div class="card-head"><h3>{{ icon('hash', 18) }} {{ _('Paylaşım metni') }}</h3><span class="tiny faint">TikTok · Reels · Shorts</span></div>
       <div class="copy-card">
-        <span class="tiny faint mono">BAŞLIK</span>
-        <div class="copy-box"><span id="c1">{{ job.title }}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="c1" data-label="Kopyalandı">{{ icon('copy', 14) }} Kopyala</button></div>
-        <span class="tiny faint mono" style="margin-top:8px">AÇIKLAMA + HASHTAG</span>
+        <span class="tiny faint mono">{{ _('BAŞLIK') }}</span>
+        <div class="copy-box"><span id="c1">{{ job.title }}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="c1" data-label="{{ _('Kopyalandı') }}">{{ icon('copy', 14) }} {{ _('Kopyala') }}</button></div>
+        <span class="tiny faint mono" style="margin-top:8px">{{ _('AÇIKLAMA + HASHTAG') }}</span>
         <div class="copy-box"><span id="c2">{{ job.caption }}
 
-{% for h in job.hashtags.split() %}#{{ h }} {% endfor %}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="c2" data-label="Kopyalandı">{{ icon('copy', 14) }} Kopyala</button></div>
+{% for h in job.hashtags.split() %}#{{ h }} {% endfor %}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="c2" data-label="{{ _('Kopyalandı') }}">{{ icon('copy', 14) }} {{ _('Kopyala') }}</button></div>
       </div>
       <div class="row" style="margin-top:20px">
-        <a class="btn btn-primary" href="/video/{{ job.id }}/dosya?indir=1">{{ icon('download', 16) }} Videoyu indir</a>
-        {% if job.raw_file %}<a class="btn btn-ghost" href="/video/{{ job.id }}/dosya?indir=1&ham=1">Altyazısız indir</a>{% endif %}
-        <button type="button" class="btn btn-ghost" hidden data-share-file="/video/{{ job.id }}/dosya" data-share-name="{{ (job.title or 'video')|truncate(40, True, '') }}.mp4" data-share-text="{{ job.caption }}">{{ icon('share', 16) }} Uygulamada paylaş</button>
+        <a class="btn btn-primary" href="/video/{{ job.id }}/dosya?indir=1">{{ icon('download', 16) }} {{ _('Videoyu indir') }}</a>
+        {% if job.raw_file %}<a class="btn btn-ghost" href="/video/{{ job.id }}/dosya?indir=1&ham=1">{{ _('Altyazısız indir') }}</a>{% endif %}
+        <button type="button" class="btn btn-ghost" hidden data-share-file="/video/{{ job.id }}/dosya" data-share-name="{{ (job.title or 'video')|truncate(40, True, '') }}.mp4" data-share-text="{{ job.caption }}">{{ icon('share', 16) }} {{ _('Uygulamada paylaş') }}</button>
       </div>
       {% if job.user_id == user.id %}
       <div class="again">
         <form method="post" action="/video/{{ job.id }}/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}">
-          <button class="btn btn-ghost btn-sm" type="submit">{{ icon('repeat', 14) }} Benzerini üret · <span class="mono">{{ qualities[job.quality].credits }}</span> kredi</button></form>
-        <a class="btn btn-text btn-sm" href="/video/yeni?from={{ job.id }}">{{ icon('edit', 14) }} Düzenleyip üret</a>
+          <button class="btn btn-ghost btn-sm" type="submit">{{ icon('repeat', 14) }} {{ _('Benzerini üret') }} · <span class="mono">{{ qualities[job.quality].credits }}</span> {{ _('kredi') }}</button></form>
+        <a class="btn btn-text btn-sm" href="/video/yeni?from={{ job.id }}">{{ icon('edit', 14) }} {{ _('Düzenleyip üret') }}</a>
       </div>
       {% endif %}
-      <p class="hint" style="margin-top:14px">{{ icon('info', 14) }} Paylaşırken platformdaki “yapay zekâ ile oluşturuldu” etiketini açmayı unutma.</p>
+      <p class="hint" style="margin-top:14px">{{ icon('info', 14) }} {{ _('Paylaşırken platformdaki “yapay zekâ ile oluşturuldu” etiketini açmayı unutma.') }}</p>
       {% if job.user_id == user.id %}
       <div class="pub-box">
-        <span class="tiny faint mono">PLATFORMLARA GÖNDER</span>
+        <span class="tiny faint mono">{{ _('PLATFORMLARA GÖNDER') }}</span>
         {% for p, meta in platforms.items() %}{% set pb = pubs.get(p) %}
         <div class="pub-row">
           <span class="plat-logo sm plat-{{ p }}">{{ brand(meta.icon, 15) }}</span>
-          <span class="pub-t">{{ meta.label }}{% if pb and pb.error %}<span class="tiny err-text">{{ pb.error }}</span>{% elif p in linked and not pb %}<span class="tiny faint">{{ linked[p] }}</span>{% endif %}</span>
+          <span class="pub-t">{{ _(meta.label) }}{% if pb and pb.error %}<span class="tiny err-text">{{ _db(pb.error) }}</span>{% elif p in linked and not pb %}<span class="tiny faint">{{ linked[p] }}</span>{% endif %}</span>
           {% if pb %}
-            {% if pb.url %}<a class="btn btn-text btn-sm" href="{{ pb.url }}" target="_blank" rel="noopener">Aç {{ icon('arrow-right', 13) }}</a>{% endif %}
-            {% if pb.status == 'hata' %}<form method="post" action="/yayin/{{ pb.id }}/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('repeat', 13) }} Tekrar</button></form>{% endif %}
-            <span class="badge {{ {'bekliyor':'b-wait','yukleniyor':'b-wait','yayinda':'b-ok','hata':'b-err'}[pb.status] }}">{{ {'bekliyor':'Sırada','yukleniyor':'Yükleniyor','yayinda':'Yayında','hata':'Hata'}[pb.status] }}</span>
+            {% if pb.url %}<a class="btn btn-text btn-sm" href="{{ pb.url }}" target="_blank" rel="noopener">{{ _('Aç') }} {{ icon('arrow-right', 13) }}</a>{% endif %}
+            {% if pb.status == 'hata' %}<form method="post" action="/yayin/{{ pb.id }}/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('repeat', 13) }} {{ _('Tekrar') }}</button></form>{% endif %}
+            <span class="badge {{ pub_badge[pb.status] }}">{{ pub_labels[pb.status] }}</span>
           {% elif p in linked %}
-            <form method="post" action="/video/{{ job.id }}/yayinla/{{ p }}" data-confirm="Video {{ meta.label }} hesabına ({{ linked[p] }}) yüklensin mi?"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-primary btn-sm" type="submit">{{ icon('share', 13) }} Gönder</button></form>
+            <form method="post" action="/video/{{ job.id }}/yayinla/{{ p }}" data-confirm="{{ _('Video {platform} hesabına ({name}) yüklensin mi?', platform=_(meta.label), name=linked[p]) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-primary btn-sm" type="submit">{{ icon('share', 13) }} {{ _('Gönder') }}</button></form>
           {% else %}
-            <a class="btn btn-text btn-sm" href="/baglantilar">Bağla</a>
+            <a class="btn btn-text btn-sm" href="/baglantilar">{{ _('Bağla') }}</a>
           {% endif %}
         </div>
         {% endfor %}
       </div>
       <form class="explore-opt" method="post" action="/video/{{ job.id }}/kesfet"><input type="hidden" name="csrf" value="{{ csrf }}">
-        <div><b>{{ icon('globe', 15) }} Keşfet'te {{ 'paylaşılıyor' if job.public else 'paylaş' }}</b>
-          <small>{{ 'Videon herkese açık galeride görünüyor. İstediğin an kaldırabilirsin.' if job.public else 'Videon herkese açık galeride başlığı ve tarzıyla görünür; adın ve e-postan gösterilmez. İstediğin an kaldırabilirsin.' }}</small></div>
-        <button class="btn btn-sm {{ 'btn-ghost' if job.public else 'btn-primary' }}" type="submit">{{ 'Kaldır' if job.public else 'Paylaş' }}</button></form>
+        <div><b>{{ icon('globe', 15) }} {{ _("Keşfet'te paylaşılıyor") if job.public else _("Keşfet'te paylaş") }}</b>
+          <small>{{ _('Videon herkese açık galeride görünüyor. İstediğin an kaldırabilirsin.') if job.public else _('Videon herkese açık galeride başlığı ve tarzıyla görünür; adın ve e-postan gösterilmez. İstediğin an kaldırabilirsin.') }}</small></div>
+        <button class="btn btn-sm {{ 'btn-ghost' if job.public else 'btn-primary' }}" type="submit">{{ _('Kaldır') if job.public else _('Paylaş') }}</button></form>
       {% endif %}
     </div>
     {% elif job.status == 'hata' %}
-    <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('refund', 18) }} Kredin iade edildi</h3></div>
-      <p class="muted">{{ job.error }}</p><div class="row" style="margin-top:18px">
-        {% if job.user_id == user.id %}<form method="post" action="/video/{{ job.id }}/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-primary" type="submit">{{ icon('refund', 16) }} Aynı ayarlarla tekrar dene</button></form>{% endif %}
-        <a class="btn btn-ghost" href="/video/yeni?from={{ job.id }}">{{ icon('edit', 16) }} Düzenleyip dene</a></div></div>
+    <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('refund', 18) }} {{ _('Kredin iade edildi') }}</h3></div>
+      <p class="muted">{{ _db(job.error) }}</p><div class="row" style="margin-top:18px">
+        {% if job.user_id == user.id %}<form method="post" action="/video/{{ job.id }}/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-primary" type="submit">{{ icon('refund', 16) }} {{ _('Aynı ayarlarla tekrar dene') }}</button></form>{% endif %}
+        <a class="btn btn-ghost" href="/video/yeni?from={{ job.id }}">{{ icon('edit', 16) }} {{ _('Düzenleyip dene') }}</a></div></div>
     {% endif %}
     <div class="card reveal" data-delay="2">
-      <div class="card-head"><h3>{{ icon('info', 18) }} Ayrıntılar</h3></div>
+      <div class="card-head"><h3>{{ icon('info', 18) }} {{ _('Ayrıntılar') }}</h3></div>
       <dl class="kv">
-        <dt>Fikir</dt><dd>{{ job.idea or 'Yapay zekâ buldu' }}</dd>
-        {% if job.characters %}<dt>Karakterler</dt><dd>{{ job.characters }}</dd>{% endif %}
-        {% if job.ref_image %}<dt>Referans</dt><dd><img class="ref-mini" src="/referans/{{ job.ref_image }}" alt="Referans karakter" data-hide-broken></dd>{% endif %}
-        <dt>Tarz</dt><dd>{{ styles.get(job.style, job.style) }}</dd>
-        <dt>Dil</dt><dd>{{ languages.get(job.language, job.language) }}{% if job.subtitles %} · altyazılı{% endif %}</dd>
-        <dt>Kalite</dt><dd>{{ qualities[job.quality].label }} · <span class="mono">{{ job.cost }}</span> kredi</dd>
-        {% if job.channel %}<dt>Kanal</dt><dd><a href="/kanallar/{{ job.channel_id }}" style="text-decoration:underline;text-underline-offset:3px">{{ job.channel.name }}</a></dd>{% endif %}
-        <dt>Tarih</dt><dd class="mono small">{{ job.created_at|tarih }}</dd>
+        <dt>{{ _('Fikir') }}</dt><dd>{{ job.idea or _('Yapay zekâ buldu') }}</dd>
+        {% if job.characters %}<dt>{{ _('Karakterler') }}</dt><dd>{{ job.characters }}</dd>{% endif %}
+        {% if job.ref_image %}<dt>{{ _('Referans') }}</dt><dd><img class="ref-mini" src="/referans/{{ job.ref_image }}" alt="{{ _('Referans karakter') }}" data-hide-broken></dd>{% endif %}
+        <dt>{{ _('Tarz') }}</dt><dd>{{ _(styles.get(job.style, job.style)) }}</dd>
+        <dt>{{ _('Dil') }}</dt><dd>{{ languages.get(job.language, job.language) }}{% if job.subtitles %} · {{ _('altyazılı') }}{% endif %}</dd>
+        <dt>{{ _('Kalite') }}</dt><dd>{{ _(qualities[job.quality].label) }} · <span class="mono">{{ job.cost }}</span> {{ _('kredi') }}</dd>
+        {% if job.channel %}<dt>{{ _('Kanal') }}</dt><dd><a href="/kanallar/{{ job.channel_id }}" style="text-decoration:underline;text-underline-offset:3px">{{ job.channel.name }}</a></dd>{% endif %}
+        <dt>{{ _('Tarih') }}</dt><dd class="mono small">{{ job.created_at|tarih }}</dd>
       </dl>
     </div>
   </div>

@@ -275,7 +275,7 @@ class DemoClient:
         return f"{redirect}?{urllib.parse.urlencode({'code': 'demo', 'state': state})}"
 
     def exchange(self, code: str, redirect: str) -> Account:
-        return Account(name=f"Demo {PLATFORMS[self.platform]['label']} hesabı", remote_id="demo", access="demo",
+        return Account(name=f"Demo · {PLATFORMS[self.platform]['short']}", remote_id="demo", access="demo",
                        refresh="demo", expires_in=10 ** 7)
 
     def refresh(self, refresh_token: str, access: str = "") -> tuple[str, int, str]:

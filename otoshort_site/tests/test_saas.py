@@ -940,7 +940,7 @@ def test_demo_connect_and_channel_autopublish(client, monkeypatch):
     give("a@b.com", 500)
     page = client.get("/baglantilar").text
     assert "YouTube hesabını bağla" in page and "Demo modu" in page
-    assert "Demo YouTube Shorts hesabı" in _demo_connect(client, "youtube").text
+    assert "Demo · YouTube" in _demo_connect(client, "youtube").text
     with db.session() as s:
         acc = s.scalar(select(SocialAccount))
         assert acc.platform == "youtube" and "demo" not in acc.access_enc  # jeton şifreli saklanır
@@ -1198,3 +1198,114 @@ def test_account_delete_removes_social_links(client, monkeypatch):
         assert s.scalar(select(SocialAccount)) is None and s.scalar(select(Publication)) is None
         assert s.get(Job, jid).video_file == ""
     assert publisher.claim() is None
+
+
+# --- İngilizce site ---
+TR_CHARS = re.compile(r"[ğĞşŞıİçÇöÖüÜ]")
+ALLOWED_TR = ["Türkçe", "Türkçe devam et"]  # dil seçicide dilin kendi adı
+
+
+def _assert_english(html_text, url, extra=()):
+    text = html_text
+    for w in [*ALLOWED_TR, *extra]:
+        text = text.replace(w, "")
+    bad = TR_CHARS.search(text)
+    assert not bad, f"{url}: Türkçe metin kaldı → …{text[max(0, bad.start() - 80):bad.end() + 40]}…"
+    assert '<html lang="en">' in html_text, url
+
+
+def test_every_translatable_string_has_english():
+    from saas import i18n_keys
+
+    assert i18n_keys.missing() == []
+    from saas.i18n_en import EN
+
+    for k, v in EN.items():  # yer tutucular ve etiketler korunmalı
+        assert sorted(re.findall(r"\{\w+\}", k)) == sorted(re.findall(r"\{\w+\}", v)), k
+        assert len(re.findall(r"<[a-z]", k)) == len(re.findall(r"<[a-z]", v)), k
+
+
+def test_english_site_has_no_turkish_left(client, monkeypatch):
+    from saas import publisher
+
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    anon = TestClient(client.app)
+    for url in ["/en/", "/en/kesfet", "/en/giris", "/en/kayit", "/en/sifremi-unuttum", "/en/yok"]:
+        r = anon.get(url)
+        assert r.status_code in (200, 404), url
+        _assert_english(r.text, url)
+    # İngilizce kayıt olan kullanıcı uygulamanın tamamını İngilizce görür
+    c = TestClient(client.app)
+    c.get("/en/")
+    r = c.post("/kayit", data={"email": "en@b.com", "password": "sifre1234", "name": "Ann", "accept": "1", "consent": "1",
+                               "csrf": csrf(c, "/kayit")})
+    _assert_english(r.text, "/panel (yeni hesap)")
+    with db.session() as s:
+        u = s.scalar(select(User).where(User.email == "en@b.com"))
+        assert u.lang == "en" and not u.email_verified
+        u.email_verified = True
+    give("en@b.com", 1000)
+    t = csrf(c, "/video/yeni")
+    c.post("/video/yeni", data={"idea": "x", "quality": "lite", "language": "en", "csrf": t})
+    c.post("/kanallar/yeni", data={"name": "K", "quality": "lite", "times": "10:00", "csrf": t})
+    c.get(c.get("/baglan/youtube", follow_redirects=False).headers["location"])
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid, cid = s.scalar(select(Job.id)), s.scalar(select(Channel.id))
+        s.get(Channel, cid).notice = "2026-10-13 09:45 videosu kredi yetersiz olduğu için üretilmedi."
+        publisher.queue(s, s.get(Job, jid), ["youtube"])
+    publisher.run(publisher.claim())
+    for url in ["/panel", "/video/yeni", f"/video/yeni?from={jid}", "/videolar", "/videolar?durum=hata&q=zzz",
+                f"/video/{jid}", "/kanallar", "/kanallar/yeni", f"/kanallar/{cid}", "/kredi", "/hesap", "/davet",
+                "/baglantilar", "/video/99999"]:
+        r = c.get(url)
+        assert r.status_code in (200, 404), url
+        _assert_english(r.text, url)
+    import html
+
+    assert "wasn't made because you ran out of credits" in html.unescape(c.get("/kanallar").text)
+    assert "Video #1 (Economy)" in c.get("/kredi").text
+    # düzenle-kaydet akışındaki mesajlar da İngilizce
+    _assert_english(c.post(f"/kanallar/{cid}", data={"name": "K2", "times": "11:00", "csrf": t}).text, "kanal kaydet")
+    _assert_english(c.post("/kredi/kod", data={"code": "YOK", "csrf": t}).text, "promosyon hatası")
+
+
+def test_language_switch_cookie_and_seo(client):
+    r = client.get("/dil/en?next=/kesfet", follow_redirects=False)
+    assert r.headers["location"] == "/en/kesfet" and "dil=en" in r.headers["set-cookie"]
+    assert client.get("/dil/en?next=//kotu.site", follow_redirects=False).headers["location"] == "/en/"
+    assert client.get("/dil/tr?next=/en/kesfet", follow_redirects=False).headers["location"] == "/kesfet"
+    assert client.get("/dil/en?next=/panel", follow_redirects=False).headers["location"] == "/panel"
+    home = TestClient(client.app).get("/en/").text
+    assert '<link rel="canonical" href="http://testserver/en/">' in home
+    assert 'hreflang="tr" href="http://testserver/"' in home and 'hreflang="en" href="http://testserver/en/"' in home
+    assert '"inLanguage": "en"' in home and "Do I need a credit card?" in home
+    assert "/static/shots/studio-en.jpg" in home  # İngilizce görsel varsa o, yoksa Türkçesi
+    assert "/static/shots/studio.jpg" in TestClient(client.app).get("/").text
+    tr = TestClient(client.app).get("/", headers={"accept-language": "tr-TR,tr;q=0.9"}).text
+    assert '<html lang="tr">' in tr and "View in English" not in tr
+    assert "View in English" in TestClient(client.app).get("/", headers={"accept-language": "en-US,en;q=0.9"}).text
+    assert "<loc>http://testserver/en/kesfet</loc>" in client.get("/sitemap.xml").text
+    assert "Disallow: /en/panel" in client.get("/robots.txt").text
+
+
+def test_emails_follow_account_language(client, tmp_path):
+    c = TestClient(client.app)
+    c.get("/en/")
+    c.post("/kayit", data={"email": "en@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                           "csrf": csrf(c, "/kayit")})
+    assert "Verify your email" in last_mail(tmp_path) and '<html lang="en">' in last_mail(tmp_path)
+    with db.session() as s:
+        uid = s.scalar(select(User.id).where(User.email == "en@b.com"))
+        s.get(User, uid).email_verified = True
+    worker.notify(uid, "{channel}: yeni videon hazır 🎬", "Yeni videon hazır!",
+                  "<b>{channel}</b> kanalın için yeni video üretildi: “{title}”. "
+                  "Başlığı, açıklaması ve hashtag'leriyle birlikte paylaşmaya hazır.",
+                  ("Videoyu gör", "http://x/video/1"), channel="<Kedi>", title="Selam")
+    mail = last_mail(tmp_path)
+    assert "Your new video is ready!" in mail and "&lt;Kedi&gt;" in mail and "View video" in mail
+    # Türkçe sayfadan giriş yapınca seçilmiş dil hesaba yazılır; seçim yoksa hesabın dili gelir
+    c2 = TestClient(client.app)
+    r = c2.post("/giris", data={"email": "en@b.com", "password": "sifre1234", "csrf": csrf(c2, "/giris")},
+                follow_redirects=False)
+    assert "dil=en" in r.headers.get("set-cookie", "")

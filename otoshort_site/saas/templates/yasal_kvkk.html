@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% block title %}KVKK aydınlatma metni · {{ site }}{% endblock %}
+{% block title %}{{ _('KVKK aydınlatma metni') }} · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap"><div class="prose">
+<div class="wrap"><div class="prose" lang="tr">
+{% if lang == 'en' %}<div class="lang-note" lang="en">{{ icon('globe', 16) }}<p>{{ _('Bu metin, sözleşmenin geçerli dili olan Türkçe ile yayımlanır. Resmi olmayan bir çeviri için tarayıcının çeviri özelliğini kullanabilirsin.') }}</p></div>{% endif %}
 <h1>KVKK Aydınlatma Metni</h1>
 <p class="muted">Son güncelleme: [TARİH]</p>
 <p>6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, veri sorumlusu sıfatıyla [ŞİRKET UNVANI / AD SOYAD] ("{{ site }}") olarak kişisel verilerini aşağıda açıklanan şekilde işliyoruz.</p>

@@ -1,53 +1,54 @@
 {% extends "app_base.html" %}
-{% block title %}Kredi · {{ site }}{% endblock %}
+{% block title %}{{ _('Kredi') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><span class="eyebrow">Kredi</span><h1>Kredi yükle</h1><p class="muted">1 kredi = 1 ₺ · Video üretilemezse kredin otomatik iade edilir.</p></div>
-  <span class="pill" style="height:36px;padding:0 14px">{{ icon('gem', 15) }} <span class="mono">{{ user.credits }}</span> kredi</span>
+  <div class="t"><span class="eyebrow">{{ _('Kredi') }}</span><h1>{{ _('Kredi yükle') }}</h1><p class="muted">{{ _('1 kredi = 1 ₺ · Video üretilemezse kredin otomatik iade edilir.') }}</p></div>
+  <span class="pill" style="height:36px;padding:0 14px">{{ icon('gem', 15) }} <span class="mono">{{ user.credits }}</span> {{ _('kredi') }}</span>
 </div>
 <div class="grid" style="grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start" id="kredi-grid">
   <form class="card card-lg reveal" method="post" action="/kredi/bildirim">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <div class="step-title"><span class="n">1</span><h3>Paketini seç</h3></div>
+    <div class="step-title"><span class="n">1</span><h3>{{ _('Paketini seç') }}</h3></div>
     <div class="opts opts-3">
     {% for tl, cr in packages %}
       <label class="opt"><input type="radio" name="package" value="{{ loop.index0 }}" {% if loop.index0 == 1 %}checked{% endif %}>
-        <span class="opt-body"><span class="opt-tick"></span><span style="font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em">{{ tl }} ₺</span>
-          <span class="opt-sub"><span class="mono">{{ cr }}</span> kredi</span>{% if cr > tl %}<span class="bonus" style="justify-self:start;align-self:flex-start;margin-top:4px">+{{ cr - tl }} hediye</span>{% endif %}</span></label>
+        <span class="opt-body"><span class="opt-tick"></span><span style="font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em">{{ _('{tl} ₺', tl=tl) }}</span>
+          <span class="opt-sub">{{ _h('{n} kredi', n=_h('<span class="mono">{x}</span>', x=cr)) }}</span>{% if cr > tl %}<span class="bonus" style="justify-self:start;align-self:flex-start;margin-top:4px">{{ _('+{n} hediye', n=cr - tl) }}</span>{% endif %}</span></label>
     {% endfor %}
     </div>
-    <div class="step-title"><span class="n">2</span><h3>Havale / EFT yap</h3></div>
+    <div class="step-title"><span class="n">2</span><h3>{{ _('Havale / EFT yap') }}</h3></div>
+    {% if lang == 'en' %}<p class="hint" style="margin:-4px 0 14px">{{ icon('info', 13) }} {{ _('Ödemeler şimdilik Türkiye’deki bir banka hesabına Türk lirası ile havale olarak alınıyor.') }}</p>{% endif %}
     <div class="bank">
-      <div class="bl"><div><small>Alıcı</small><b id="b-name">{{ iban_name }}</b></div><button type="button" class="icon-btn" data-copy="b-name" aria-label="Kopyala">{{ icon('copy', 15) }}</button></div>
-      <div class="bl"><div><small>IBAN</small><b class="iban" id="b-iban">{{ iban }}</b></div><button type="button" class="icon-btn" data-copy="b-iban" aria-label="Kopyala">{{ icon('copy', 15) }}</button></div>
-      <div class="bl"><div><small>Açıklama (önemli)</small><b id="b-desc">{{ user.email }}</b></div><button type="button" class="icon-btn" data-copy="b-desc" aria-label="Kopyala">{{ icon('copy', 15) }}</button></div>
+      <div class="bl"><div><small>{{ _('Alıcı') }}</small><b id="b-name">{{ iban_name }}</b></div><button type="button" class="icon-btn" data-copy="b-name" aria-label="{{ _('Kopyala') }}">{{ icon('copy', 15) }}</button></div>
+      <div class="bl"><div><small>IBAN</small><b class="iban" id="b-iban">{{ iban }}</b></div><button type="button" class="icon-btn" data-copy="b-iban" aria-label="{{ _('Kopyala') }}">{{ icon('copy', 15) }}</button></div>
+      <div class="bl"><div><small>{{ _('Açıklama (önemli)') }}</small><b id="b-desc">{{ user.email }}</b></div><button type="button" class="icon-btn" data-copy="b-desc" aria-label="{{ _('Kopyala') }}">{{ icon('copy', 15) }}</button></div>
     </div>
-    <div class="step-title"><span class="n">3</span><h3>Havaleyi bildir</h3></div>
-    <div class="field"><label class="label" for="sn">Gönderen adı soyadı</label><input class="input" id="sn" name="sender_name" maxlength="120" required placeholder="Hesap sahibinin adı"></div>
-    <div class="field"><label class="label" for="nt">Not <span class="opt">(isteğe bağlı)</span></label><input class="input" id="nt" name="note" maxlength="300"></div>
-    <label class="check" style="margin:20px 0 22px"><input type="checkbox" name="accept" value="1" required><span><a href="/yasal/mesafeli" target="_blank">Mesafeli satış sözleşmesini</a> okudum, kabul ediyorum.</span></label>
-    <button class="btn btn-primary btn-lg btn-block" type="submit">{{ icon('check', 17) }} Havaleyi yaptım, bildir</button>
-    <p class="hint center" style="margin-top:12px">Havale kontrol edilince kredin yüklenir (genelde birkaç saat). Kartla ödeme yakında.</p>
+    <div class="step-title"><span class="n">3</span><h3>{{ _('Havaleyi bildir') }}</h3></div>
+    <div class="field"><label class="label" for="sn">{{ _('Gönderen adı soyadı') }}</label><input class="input" id="sn" name="sender_name" maxlength="120" required placeholder="{{ _('Hesap sahibinin adı') }}"></div>
+    <div class="field"><label class="label" for="nt">{{ _('Not') }} <span class="opt">{{ _('(isteğe bağlı)') }}</span></label><input class="input" id="nt" name="note" maxlength="300"></div>
+    <label class="check" style="margin:20px 0 22px"><input type="checkbox" name="accept" value="1" required><span>{{ _h('<a href="{url}" target="_blank">Mesafeli satış sözleşmesini</a> okudum, kabul ediyorum.', url=L('/yasal/mesafeli')) }}</span></label>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">{{ icon('check', 17) }} {{ _('Havaleyi yaptım, bildir') }}</button>
+    <p class="hint center" style="margin-top:12px">{{ _('Havale kontrol edilince kredin yüklenir (genelde birkaç saat). Kartla ödeme yakında.') }}</p>
   </form>
   <div class="stack" style="gap:16px">
     <form class="card reveal" method="post" action="/kredi/kod">
       <input type="hidden" name="csrf" value="{{ csrf }}">
-      <div class="card-head"><h3>{{ icon('tag', 18) }} Promosyon kodu</h3></div>
-      <div class="row" style="flex-wrap:nowrap"><input class="input mono" name="code" maxlength="32" required placeholder="KODU YAZ" autocomplete="off" style="text-transform:uppercase;letter-spacing:.08em" aria-label="Promosyon kodu">
-        <button class="btn btn-ghost" type="submit">Kullan</button></div>
+      <div class="card-head"><h3>{{ icon('tag', 18) }} {{ _('Promosyon kodu') }}</h3></div>
+      <div class="row" style="flex-wrap:nowrap"><input class="input mono" name="code" maxlength="32" required placeholder="{{ _('KODU YAZ') }}" autocomplete="off" style="text-transform:uppercase;letter-spacing:.08em" aria-label="{{ _('Promosyon kodu') }}">
+        <button class="btn btn-ghost" type="submit">{{ _('Kullan') }}</button></div>
     </form>
-    <a class="card invite-cta reveal" href="/davet"><span class="icon-box accent">{{ icon('gift', 18) }}</span><div><b>Arkadaşını davet et, kredi kazan</b><span class="small muted">Her davet için hediye kredi</span></div>{{ icon('arrow-right', 16) }}</a>
+    <a class="card invite-cta reveal" href="/davet"><span class="icon-box accent">{{ icon('gift', 18) }}</span><div><b>{{ _('Arkadaşını davet et, kredi kazan') }}</b><span class="small muted">{{ _('Her davet için hediye kredi') }}</span></div>{{ icon('arrow-right', 16) }}</a>
     {% if topups %}
-    <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('bank', 18) }} Bildirimlerin</h3></div>
-      <div class="table-wrap"><table><tr><th>Tarih</th><th>Tutar</th><th>Durum</th></tr>
-      {% for t in topups %}<tr><td class="mono small">{{ t.created_at|tarih }}</td><td>{{ t.amount_tl }} ₺ <span class="faint">→ {{ t.credits }}</span></td>
-        <td>{% if t.status == 'onaylandi' %}<span class="badge b-ok">Onaylandı</span>{% elif t.status == 'reddedildi' %}<span class="badge b-err">Reddedildi</span>{% else %}<span class="badge b-wait">Bekliyor</span>{% endif %}</td></tr>{% endfor %}
+    <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('bank', 18) }} {{ _('Bildirimlerin') }}</h3></div>
+      <div class="table-wrap"><table><tr><th>{{ _('Tarih') }}</th><th>{{ _('Tutar') }}</th><th>{{ _('Durum') }}</th></tr>
+      {% for t in topups %}<tr><td class="mono small">{{ t.created_at|tarih }}</td><td>{{ _('{tl} ₺', tl=t.amount_tl) }} <span class="faint">→ {{ t.credits }}</span></td>
+        <td>{% if t.status == 'onaylandi' %}<span class="badge b-ok">{{ _('Onaylandı') }}</span>{% elif t.status == 'reddedildi' %}<span class="badge b-err">{{ _('Reddedildi') }}</span>{% else %}<span class="badge b-wait">{{ _('Bekliyor') }}</span>{% endif %}</td></tr>{% endfor %}
       </table></div></div>
     {% endif %}
-    <div class="card reveal" data-delay="2"><div class="card-head"><h3>{{ icon('layers', 18) }} Hareketler</h3></div>
-      {% if txs %}<div class="table-wrap"><table><tr><th>Tarih</th><th>Açıklama</th><th style="text-align:right">Kredi</th></tr>
-      {% for t in txs %}<tr><td class="mono small faint">{{ t.created_at|tarih }}</td><td class="small">{{ t.reason }}</td><td class="amt {{ 'plus' if t.amount > 0 else 'minus' }}" style="text-align:right">{{ '%+d' % t.amount }}</td></tr>{% endfor %}
-      </table></div>{% else %}<p class="muted small">Henüz hareket yok.</p>{% endif %}</div>
+    <div class="card reveal" data-delay="2"><div class="card-head"><h3>{{ icon('layers', 18) }} {{ _('Hareketler') }}</h3></div>
+      {% if txs %}<div class="table-wrap"><table><tr><th>{{ _('Tarih') }}</th><th>{{ _('Açıklama') }}</th><th style="text-align:right">{{ _('Kredi') }}</th></tr>
+      {% for t in txs %}<tr><td class="mono small faint">{{ t.created_at|tarih }}</td><td class="small">{{ _db(t.reason) }}</td><td class="amt {{ 'plus' if t.amount > 0 else 'minus' }}" style="text-align:right">{{ '%+d' % t.amount }}</td></tr>{% endfor %}
+      </table></div>{% else %}<p class="muted small">{{ _('Henüz hareket yok.') }}</p>{% endif %}</div>
   </div>
 </div>
 {% endblock %}

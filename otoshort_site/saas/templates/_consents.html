@@ -1,0 +1,5 @@
+{# Kayıt onayları (e-posta ve Google ile kayıtta aynı) #}
+<div class="stack" style="margin:22px 0 24px;gap:12px">
+  <label class="check"><input type="checkbox" name="accept" value="1" required><span>{{ _h('<a href="{terms}" target="_blank">Kullanım şartlarını</a> ve <a href="{privacy}" target="_blank">KVKK aydınlatma metnini</a> okudum, kabul ediyorum.', terms=L('/yasal/kullanim'), privacy=L('/yasal/kvkk')) }}</span></label>
+  <label class="check"><input type="checkbox" name="consent" value="1" required><span>{{ _('Video üretimi için girdiğim metinlerin yurt dışındaki yapay zekâ hizmet sağlayıcısına aktarılmasına açık rıza veriyorum.') }}</span></label>
+</div>

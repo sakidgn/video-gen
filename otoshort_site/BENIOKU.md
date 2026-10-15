@@ -59,6 +59,17 @@ veritabanında şifreli durur (`GIZLI_ANAHTAR`'ı değiştirirsen herkes yeniden
   hesabı **İşletme ya da İçerik üreticisi** olmalı. Meta **App Review**'dan geçene kadar sadece uygulamaya eklenen
   test hesapları bağlanabilir. Instagram videoyu siteden kendisi indirir (`/yayin/dosya/…`, 3 saat geçerli imzalı adres).
 
+## İngilizce site
+Site Türkçe ve İngilizce. İngilizce sayfalar `/en/...` adresinde (arama motorları için ayrı adres, hreflang ve
+sitemap hazır); menüdeki **EN/TR** düğmesi ve alt bilgideki dil seçici çerezle dili hatırlar. Tarayıcısı Türkçe
+olmayan ziyaretçiye üstte "View in English" önerisi çıkar (otomatik yönlendirme yapılmaz). Hesabın dili e-postalara
+da uygulanır (Hesabım → Dil). Yasal metinler bağlayıcı dil olarak Türkçe kalır; İngilizce sayfada bunu söyleyen bir
+not görünür. Yönetim paneli Türkçe.
+
+Yeni metin eklerken şablonda `{{ _('Türkçe metin') }}` (HTML içeriyorsa `_h`), kodda `i18n.t("…")` kullan ve
+İngilizcesini `saas/i18n_en.py`'ye yaz. Eksik çeviri: `python -m saas.i18n_keys` (testler de yakalar).
+Tanıtım filminin İngilizce sürümü: `araclar/film/yap.sh <chromium> "" "" en` → `hero-en.mp4`, `hero-m-en.mp4`, `og-en.png`.
+
 ## E-posta (doğrulama, şifre sıfırlama, bildirimler)
 Kayıt olan herkes e-postasını doğrular (hediye kredi doğrulamada yüklenir); şifremi unuttum ve bildirim e-postaları
 da buradan gider. Ücretsiz bir SMTP servisi yeterli (ör. Brevo günde 300 e-posta ücretsiz): hesap aç, alan adını

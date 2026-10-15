@@ -16,7 +16,15 @@ p{margin:0;font-size:22px;color:#bdb5a8;max-width:520px;line-height:1.45}
 <div class="bg"></div><div class="shade"></div>
 <div class="copy">
   <div class="brand"><span class="mark"></span>Cutless</div>
-  <h1>Reels, TikTok ve<br>Shorts için<br><em>otomatik video.</em></h1>
-  <p>Fikrini yaz, yapay zekâ sesli ve dikey videoyu üretsin.</p>
+  <h1 data-en="Reels, TikTok and<br>Shorts videos,<br><em>on autopilot.</em>">Reels, TikTok ve<br>Shorts için<br><em>otomatik video.</em></h1>
+  <p data-en="Write your idea and let AI make a vertical video with sound.">Fikrini yaz, yapay zekâ sesli ve dikey videoyu üretsin.</p>
 </div>
+<script>
+// ?lang=en: İngilizce paylaşım görseli (og-en.png); arka plan İngilizce filmin karesinden
+if (new URLSearchParams(location.search).get('lang') === 'en') {
+  document.documentElement.lang = 'en';
+  document.querySelectorAll('[data-en]').forEach(e => { e.innerHTML = e.dataset.en; });
+  document.querySelector('.bg').style.backgroundImage = 'url(kareler-en/0/0335.jpg)';
+}
+</script>
 </body></html>

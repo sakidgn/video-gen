@@ -35,7 +35,7 @@
     const mq = matchMedia('(max-width: 700px), (max-aspect-ratio: 4/5)');  // telefon ya da dikey tablet
     const go = () => { const p = hv.play(); if (p) p.catch(() => {}); };
     const pick = () => {
-      const mob = mq.matches; hv.poster = mob ? hv.dataset.posterM : '/static/hero/hero.jpg';
+      const mob = mq.matches; hv.poster = mob ? hv.dataset.posterM : hv.dataset.poster;
       if (reduce) return;
       const src = mob ? hv.dataset.srcM : hv.dataset.src;
       if (hv.getAttribute('src') !== src) { hv.muted = true; hv.playsInline = true; hv.src = src; go(); }
@@ -165,7 +165,7 @@
   $$('[data-count]').forEach((el, i) => {
     const end = parseInt(el.dataset.count, 10) || 0, key = el.dataset.countKey || location.pathname + '#' + i;
     const from = key in seen ? seen[key] : 0; next[key] = end;
-    const fmt = n => Math.round(n).toLocaleString('tr-TR');
+    const fmt = n => Math.round(n).toLocaleString(document.documentElement.lang === 'en' ? 'en-US' : 'tr-TR');
     if (reduce || from === end || Math.abs(end - from) < 2) { el.textContent = fmt(end); return; }
     const t0 = performance.now(), dur = key in seen ? 650 : 1100;
     (function step(t) { const k = Math.min(1, (t - t0) / dur), v = 1 - Math.pow(1 - k, 4); el.textContent = fmt(from + (end - from) * v);
@@ -231,20 +231,25 @@
   $$('[data-share-url]').forEach(b => b.addEventListener('click', async () => {
     const url = b.dataset.shareUrl, text = b.dataset.shareText || '';
     if (navigator.share) { try { await navigator.share({ title: document.title, text, url }); } catch (e) {} return; }
-    try { await navigator.clipboard.writeText(url); const old = b.innerHTML; b.textContent = 'Bağlantı kopyalandı'; setTimeout(() => { b.innerHTML = old; }, 1600); } catch (e) {}
+    try { await navigator.clipboard.writeText(url); const old = b.innerHTML; b.textContent = b.dataset.copied || '✓'; setTimeout(() => { b.innerHTML = old; }, 1600); } catch (e) {}
   }));
+
+  // Metin kalıpları şablondan (sayfanın dilinde) gelir: "{n} video" → fill(kalıp, {n: 3})
+  const fill = (tpl, vals) => (tpl || '').replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m));
+  const locale = document.documentElement.lang === 'en' ? 'en-US' : 'tr-TR';
 
   // Ana sayfa: otomatik kanal maliyet hesaplayıcı
   const calc = $('[data-calc]');
   if (calc) {
     const packs = JSON.parse(calc.dataset.packages || '[]'), big = packs[packs.length - 1];
-    const fmt = n => n.toLocaleString('tr-TR');
+    const fmt = n => n.toLocaleString(locale);
     const upd = () => {
       const n = +$('[data-calc-range]', calc).value, q = +$('input[name=calc-q]:checked', calc).value, day = n * q;
       $('[data-calc-n]', calc).textContent = n; $('[data-calc-day]', calc).textContent = fmt(day);
       $('[data-calc-month]', calc).textContent = fmt(day * 30);
       const r = $('[data-calc-range]', calc); r.style.setProperty('--v', ((n - r.min) / (r.max - r.min) * 100) + '%');
-      if (big) $('[data-calc-hint]', calc).textContent = `${fmt(big[0])} ₺ paketi (${fmt(big[1])} kredi) bu hızla yaklaşık ${Math.max(1, Math.floor(big[1] / day))} gün yeter.`;
+      const hint = $('[data-calc-hint]', calc);
+      if (big) hint.textContent = fill(hint.dataset.tpl, { tl: fmt(big[0]), cr: fmt(big[1]), days: Math.max(1, Math.floor(big[1] / day)) });
     };
     calc.addEventListener('input', upd); calc.addEventListener('change', upd); upd();
   }
@@ -281,7 +286,7 @@
         const go = $('#pv-go'); if (go) go.disabled = false; }
       const per = $('#pv-per'), times = $('input[name=times]', studio);
       if (per && times && q) { const n = times.value.split(/[\s,]+/).filter(x => /^\d{1,2}:\d{2}$/.test(x)).length;
-        per.textContent = `${n} video × ${q.dataset.credits} = ${n * q.dataset.credits} kredi / gün`; }
+        per.textContent = fill(per.dataset.tpl, { n, c: q.dataset.credits, total: n * q.dataset.credits }); }
     };
     studio.addEventListener('change', upd); studio.addEventListener('input', upd); upd();
     // Fikir önerileri (yapay zekânın getirdikleri de dahil: olay yakalama kapsayıcıda)
@@ -296,7 +301,7 @@
       fd.append('topic', ta ? ta.value : ''); fd.append('language', lg ? lg.value : 'tr');
       try {
         const r = await fetch('/api/fikirler', { method: 'POST', body: fd }), d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Fikir üretilemedi');
+        if (!r.ok) throw new Error(d.error || aiBtn.dataset.errText || 'Error');
         $$('[data-idea]', box).forEach(x => x.remove());
         d.ideas.forEach((idea, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.idea = idea;
           b.className = 'idea-new'; b.style.animationDelay = (i * 70) + 'ms'; b.textContent = idea; box.appendChild(b); });

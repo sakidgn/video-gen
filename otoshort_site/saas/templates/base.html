@@ -1,16 +1,17 @@
 <!doctype html>
-<html lang="tr">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>{% block title %}{{ site }} — Yapay zekâ ile otomatik Reels, TikTok ve Shorts videoları{% endblock %}</title>
-<meta name="description" content="Yapay zekâ ile sesli, dikey Reels, TikTok ve Shorts videoları üret. Otomatik kanal kur, seçtiğin saatlerde her gün yeni video gelsin.">
+<title>{% block title %}{{ site }} — {{ _('Yapay zekâ ile otomatik Reels, TikTok ve Shorts videoları') }}{% endblock %}</title>
+<meta name="description" content="{{ _('Yapay zekâ ile sesli, dikey Reels, TikTok ve Shorts videoları üret. Otomatik kanal kur, seçtiğin saatlerde her gün yeni video gelsin.') }}">
 <meta name="theme-color" content="#0c0b0a">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{{ site }}">
-<meta property="og:title" content="{{ site }} — Reels, TikTok ve Shorts için otomatik video">
-<meta property="og:description" content="Fikrini yaz, yapay zekâ sesli ve dikey videoyu üretsin. Otomatik kanallarla her gün yeni video.">
-<meta property="og:image" content="{{ base_url }}/static/og.png">
+<meta property="og:locale" content="{{ 'en_US' if lang == 'en' else 'tr_TR' }}">
+<meta property="og:title" content="{{ site }} — {{ _('Reels, TikTok ve Shorts için otomatik video') }}">
+<meta property="og:description" content="{{ _('Fikrini yaz, yapay zekâ sesli ve dikey videoyu üretsin. Otomatik kanallarla her gün yeni video.') }}">
+<meta property="og:image" content="{{ base_url }}{{ S('/static/og.png') }}">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/static/fonts/cormorant-garamond-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -22,30 +23,43 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="{{ site }}">
-<link rel="canonical" href="{{ base_url }}{{ request.url.path }}">
+<link rel="canonical" href="{{ canonical }}">
+{% if public_page %}
+<link rel="alternate" hreflang="tr" href="{{ base_url }}{{ path }}">
+<link rel="alternate" hreflang="en" href="{{ base_url }}/en{{ path }}">
+<link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ path }}">
+{% endif %}
 {% block head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <div class="bg-fx" aria-hidden="true"></div><div class="noise" aria-hidden="true"></div>
+{% set other = 'tr' if lang == 'en' else 'en' %}
+{% set switch_url = '/dil/' ~ other ~ '?next=' ~ (path|urlencode) %}
 {% block body %}
+{% if suggest_en %}
+<div class="lang-bar"><div class="wrap">{{ icon('globe', 15) }}<span>This page is also available in English.</span>
+  <a class="btn btn-primary btn-sm" href="/dil/en?next={{ path|urlencode }}" hreflang="en" lang="en">View in English</a>
+  <a class="btn btn-text btn-sm" href="/dil/tr?next={{ path|urlencode }}">Türkçe devam et</a></div></div>
+{% endif %}
 <header class="nav" id="nav"><div class="wrap">
-  <a class="brand" href="/">{{ LOGO }}{{ site }}</a>
+  <a class="brand" href="{{ L('/') }}">{{ LOGO }}{{ site }}</a>
   <nav class="nav-links">
-    <a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/kesfet">Keşfet</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a>
+    <a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/') }}#fiyat">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a>
   </nav>
   <div class="nav-right">
-  <button class="icon-btn nav-burger" type="button" aria-label="Menü" aria-expanded="false" data-burger><span></span><span></span><span></span></button>
+  <a class="lang-sw" href="{{ switch_url }}" hreflang="{{ other }}" lang="{{ other }}" title="{{ langs[other] }}">{{ icon('globe', 14) }}{{ other|upper }}</a>
+  <button class="icon-btn nav-burger" type="button" aria-label="{{ _('Menü') }}" aria-expanded="false" data-burger><span></span><span></span><span></span></button>
   {% if user %}
-    <a class="btn btn-primary btn-sm" href="/panel">Panele git {{ icon('arrow-right', 15) }}</a>
+    <a class="btn btn-primary btn-sm" href="/panel">{{ _('Panele git') }} {{ icon('arrow-right', 15) }}</a>
   {% else %}
-    <a class="btn btn-text btn-sm" href="/giris">Giriş yap</a>
-    <a class="btn btn-primary btn-sm" href="/kayit">Ücretsiz başla</a>
+    <a class="btn btn-text btn-sm" href="{{ L('/giris') }}">{{ _('Giriş yap') }}</a>
+    <a class="btn btn-primary btn-sm" href="{{ L('/kayit') }}">{{ _('Ücretsiz başla') }}</a>
   {% endif %}
   </div>
 </div>
   <div class="mobile-menu" data-mobile-menu aria-hidden="true">
-    <a href="/#nasil">Nasıl çalışır</a><a href="/#otomatik">Otomatik kanal</a><a href="/kesfet">Keşfet</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a>
-    {% if user %}<a class="btn btn-primary btn-block" href="/panel">Panele git</a>{% else %}<a class="btn btn-ghost btn-block" href="/giris">Giriş yap</a><a class="btn btn-primary btn-block" href="/kayit">Ücretsiz başla</a>{% endif %}
+    <a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/') }}#fiyat">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a>
+    {% if user %}<a class="btn btn-primary btn-block" href="/panel">{{ _('Panele git') }}</a>{% else %}<a class="btn btn-ghost btn-block" href="{{ L('/giris') }}">{{ _('Giriş yap') }}</a><a class="btn btn-primary btn-block" href="{{ L('/kayit') }}">{{ _('Ücretsiz başla') }}</a>{% endif %}
   </div>
 </header>
 <div class="menu-scrim" data-menu-scrim></div>
@@ -54,10 +68,11 @@
   {% block content %}{% endblock %}
 </main>
 <footer class="footer"><div class="wrap">
-  <div><a class="brand" href="/" style="margin-bottom:12px">{{ LOGO }}{{ site }}</a><p style="max-width:320px">Yapay zekâ ile kısa video üret, otomatik kanallarla her gün yeni içerik paylaş.</p></div>
-  <div><h4>Ürün</h4><a href="/#nasil">Nasıl çalışır</a><a href="/kesfet">Keşfet</a><a href="/#otomatik">Otomatik kanal</a><a href="/kesfet">Keşfet</a><a href="/#fiyat">Fiyatlar</a><a href="/#sss">SSS</a></div>
-  <div><h4>Yasal</h4><a href="/yasal/kullanim">Kullanım şartları</a><a href="/yasal/kvkk">KVKK aydınlatma</a><a href="/yasal/mesafeli">Mesafeli satış</a></div>
-  <div class="legal"><span>© {{ site }}</span><span>Yapay zekâ ile üretilen videolar platformlarda “AI” etiketiyle paylaşılmalıdır.</span></div>
+  <div><a class="brand" href="{{ L('/') }}" style="margin-bottom:12px">{{ LOGO }}{{ site }}</a><p style="max-width:320px">{{ _('Yapay zekâ ile kısa video üret, otomatik kanallarla her gün yeni içerik paylaş.') }}</p>
+    <div class="lang-pick">{% for code, name in langs.items() %}<a href="/dil/{{ code }}?next={{ path|urlencode }}" hreflang="{{ code }}" lang="{{ code }}" class="{{ 'on' if code == lang }}">{{ name }}</a>{% endfor %}</div></div>
+  <div><h4>{{ _('Ürün') }}</h4><a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/') }}#fiyat">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a></div>
+  <div><h4>{{ _('Yasal') }}</h4><a href="{{ L('/yasal/kullanim') }}">{{ _('Kullanım şartları') }}</a><a href="{{ L('/yasal/kvkk') }}">{{ _('KVKK aydınlatma') }}</a><a href="{{ L('/yasal/mesafeli') }}">{{ _('Mesafeli satış') }}</a></div>
+  <div class="legal"><span>© {{ site }}</span><span>{{ _('Yapay zekâ ile üretilen videolar platformlarda “AI” etiketiyle paylaşılmalıdır.') }}</span></div>
 </div><div class="footer-mark" aria-hidden="true">{{ site }}</div></footer>
 {% endblock %}
 <script src="/static/fx.js?v={{ v }}" defer></script>

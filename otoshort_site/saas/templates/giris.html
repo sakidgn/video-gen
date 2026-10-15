@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Giriş yap · {{ site }}{% endblock %}
+{% block title %}{{ _('Giriş yap') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="auth"><div class="auth-card reveal">
-  <h1>Tekrar hoş geldin</h1>
-  <p class="sub">Hesabına giriş yap ve üretmeye devam et.</p>
+  <h1>{{ _('Tekrar hoş geldin') }}</h1>
+  <p class="sub">{{ _('Hesabına giriş yap ve üretmeye devam et.') }}</p>
   <form class="card card-lg stack" method="post" action="/giris" style="gap:0">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     {% include "_google.html" %}
-    <div class="field"><label class="label" for="email">E-posta</label><input class="input" id="email" name="email" type="email" required autocomplete="email" placeholder="sen@ornek.com"></div>
-    <div class="field"><label class="label row between" for="pw" style="display:flex">Şifre <a href="/sifremi-unuttum" class="small" style="font-weight:600;color:var(--text-2)">Şifremi unuttum</a></label><input class="input" id="pw" name="password" type="password" required autocomplete="current-password" placeholder="••••••••"></div>
-    <button class="btn btn-primary btn-lg btn-block" type="submit" style="margin-top:26px">Giriş yap {{ icon('arrow-right', 17) }}</button>
+    <div class="field"><label class="label" for="email">{{ _('E-posta') }}</label><input class="input" id="email" name="email" type="email" required autocomplete="email" placeholder="{{ _('sen@ornek.com') }}"></div>
+    <div class="field"><label class="label row between" for="pw" style="display:flex">{{ _('Şifre') }} <a href="{{ L('/sifremi-unuttum') }}" class="small" style="font-weight:600;color:var(--text-2)">{{ _('Şifremi unuttum') }}</a></label><input class="input" id="pw" name="password" type="password" required autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn btn-primary btn-lg btn-block" type="submit" style="margin-top:26px">{{ _('Giriş yap') }} {{ icon('arrow-right', 17) }}</button>
   </form>
-  <p class="center muted small">Hesabın yok mu? <a href="/kayit" style="color:var(--text)">Ücretsiz kayıt ol</a></p>
+  <p class="center muted small">{{ _('Hesabın yok mu?') }} <a href="{{ L('/kayit') }}" style="color:var(--text)">{{ _('Ücretsiz kayıt ol') }}</a></p>
 </div></div>
 {% endblock %}

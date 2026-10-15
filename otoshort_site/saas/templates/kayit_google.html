@@ -1,22 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Kaydı tamamla · {{ site }}{% endblock %}
+{% block title %}{{ _('Kaydı tamamla') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="auth"><div class="auth-card reveal">
-  <h1>Son bir adım</h1>
-  <p class="sub">Google hesabınla kaydını tamamla.</p>
-  {% if invited %}<div class="invite-note">{{ icon('gift', 16) }} Davetle geldin: ilk kredini yüklediğinde hesabına hediye kredi eklenecek.</div>{% endif %}
+  <h1>{{ _('Son bir adım') }}</h1>
+  <p class="sub">{{ _('Google hesabınla kaydını tamamla.') }}</p>
+  {% if invited %}<div class="invite-note">{{ icon('gift', 16) }} {{ _('Davetle geldin: ilk kredini yüklediğinde hesabına hediye kredi eklenecek.') }}</div>{% endif %}
   <form class="card card-lg stack" method="post" action="/kayit/google" style="gap:0">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="row" style="gap:12px;padding:12px 14px;border:1px solid var(--border-2);border-radius:12px;background:rgba(0,0,0,.25)">
       <span class="avatar">{{ (prof.name or prof.email)[:1]|upper }}</span>
-      <div style="min-width:0"><div style="font-weight:500">{{ prof.name or 'Google hesabı' }}</div><div class="small faint">{{ prof.email }}</div></div>
+      <div style="min-width:0"><div style="font-weight:500">{{ prof.name or _('Google hesabı') }}</div><div class="small faint">{{ prof.email }}</div></div>
     </div>
-    <div class="stack" style="margin:22px 0 24px;gap:12px">
-      <label class="check"><input type="checkbox" name="accept" value="1" required><span><a href="/yasal/kullanim" target="_blank">Kullanım şartlarını</a> ve <a href="/yasal/kvkk" target="_blank">KVKK aydınlatma metnini</a> okudum, kabul ediyorum.</span></label>
-      <label class="check"><input type="checkbox" name="consent" value="1" required><span>Video üretimi için girdiğim metinlerin yurt dışındaki yapay zekâ hizmet sağlayıcısına aktarılmasına açık rıza veriyorum.</span></label>
-    </div>
-    <button class="btn btn-primary btn-lg btn-block" type="submit">Hesabımı oluştur {{ icon('arrow-right', 17) }}</button>
+    {% include "_consents.html" %}
+    <button class="btn btn-primary btn-lg btn-block" type="submit">{{ _('Hesabımı oluştur') }} {{ icon('arrow-right', 17) }}</button>
   </form>
-  <p class="center muted small"><a href="/kayit" style="color:var(--text)">Başka bir yolla kayıt ol</a></p>
+  <p class="center muted small"><a href="{{ L('/kayit') }}" style="color:var(--text)">{{ _('Başka bir yolla kayıt ol') }}</a></p>
 </div></div>
 {% endblock %}

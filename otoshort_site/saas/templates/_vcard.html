@@ -2,8 +2,8 @@
 <a class="vcard reveal" href="/video/{{ j.id }}">
     <div class="thumb">
       {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" data-hide-broken><span class="play">{{ icon('play', 18) }}</span>
-      {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}Üretilemedi</div>
-      {% else %}<div class="state"><span class="ring"></span>Üretiliyor…</div>{% endif %}
+      {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}{{ _('Üretilemedi') }}</div>
+      {% else %}<div class="state"><span class="ring"></span>{{ _('Üretiliyor…') }}</div>{% endif %}
     </div>
-    <div class="vmeta"><b>{{ j.title or j.idea or 'Yeni video' }}</b><div class="row"><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span><span class="tiny faint mono">{{ j.created_at|tarih }}</span></div></div>
+    <div class="vmeta"><b>{{ j.title or j.idea or _('Yeni video') }}</b><div class="row"><span class="badge {{ status_badge[j.status] }}">{{ _(status_labels[j.status]) }}</span><span class="tiny faint mono">{{ j.created_at|tarih }}</span></div></div>
   </a>

@@ -1,29 +1,31 @@
 {% extends "base.html" %}
 {% block body %}
-{% set nav = [('/panel','grid','Panel'),('/video/yeni','sparkles','Video üret'),('/kanallar','repeat','Otomatik kanallar'),('/kredi','gem','Kredi')] %}
-{% set side_nav = nav[:2] + [('/videolar','film','Videolarım')] + nav[2:] %}
+{% set nav = [('/panel','grid',_('Panel')),('/video/yeni','sparkles',_('Video üret')),('/kanallar','repeat',_('Otomatik kanallar')),('/kredi','gem',_('Kredi'))] %}
+{% set tabs = [_('Panel'), _('Video'), _('Kanallar'), _('Kredi')] %}
+{% set side_nav = nav[:2] + [('/videolar','film',_('Videolarım'))] + nav[2:] %}
 <div class="app">
   <aside class="side">
     <a class="brand" href="/">{{ LOGO }}{{ site }}</a>
-    <a class="btn btn-accent btn-block side-new" href="/video/yeni">{{ icon('plus', 16) }} Yeni video</a>
-    <div class="side-label">Menü</div>
+    <a class="btn btn-accent btn-block side-new" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a>
+    <div class="side-label">{{ _('Menü') }}</div>
     {% for href, ic, label in side_nav %}
       <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
     {% endfor %}
-    <a class="side-link {{ 'on' if active == '/baglantilar' }}" href="/baglantilar">{% if active == '/baglantilar' %}<span class="side-pill"></span>{% endif %}{{ icon('share', 18) }} Bağlantılar</a>
-    <a class="side-link {{ 'on' if active == '/davet' }}" href="/davet">{% if active == '/davet' %}<span class="side-pill"></span>{% endif %}{{ icon('gift', 18) }} Davet et</a>
-    <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{% if active == '/hesap' %}<span class="side-pill"></span>{% endif %}{{ icon('user', 18) }} Hesabım</a>
-    {% if user.is_admin %}<div class="side-label">Yönetim</div><a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{% if active == '/admin' %}<span class="side-pill"></span>{% endif %}{{ icon('shield', 18) }} Yönetim paneli</a>{% endif %}
+    <a class="side-link {{ 'on' if active == '/baglantilar' }}" href="/baglantilar">{% if active == '/baglantilar' %}<span class="side-pill"></span>{% endif %}{{ icon('share', 18) }} {{ _('Bağlantılar') }}</a>
+    <a class="side-link {{ 'on' if active == '/davet' }}" href="/davet">{% if active == '/davet' %}<span class="side-pill"></span>{% endif %}{{ icon('gift', 18) }} {{ _('Davet et') }}</a>
+    <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{% if active == '/hesap' %}<span class="side-pill"></span>{% endif %}{{ icon('user', 18) }} {{ _('Hesabım') }}</a>
+    {% set other = 'tr' if lang == 'en' else 'en' %}<a class="side-link" href="/dil/{{ other }}?next={{ path|urlencode }}" lang="{{ other }}">{{ icon('globe', 18) }} {{ langs[other] }}</a>
+    {% if user.is_admin %}<div class="side-label">{{ _('Yönetim') }}</div><a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{% if active == '/admin' %}<span class="side-pill"></span>{% endif %}{{ icon('shield', 18) }} {{ _('Yönetim paneli') }}</a>{% endif %}
     <div class="side-foot">
       <div class="wallet">
-        <div class="row between"><span class="tiny faint mono" style="letter-spacing:.08em">BAKİYE</span>{{ icon('gem', 16, 'faint') }}</div>
-        <div class="bal"><b data-count="{{ user.credits }}" data-count-key="bal">{{ user.credits }}</b><span class="faint small">kredi</span></div>
-        <a class="btn btn-ghost btn-sm btn-block" href="/kredi">{{ icon('plus', 14) }} Kredi yükle</a>
+        <div class="row between"><span class="tiny faint mono" style="letter-spacing:.08em">{{ _('BAKİYE') }}</span>{{ icon('gem', 16, 'faint') }}</div>
+        <div class="bal"><b data-count="{{ user.credits }}" data-count-key="bal">{{ user.credits }}</b><span class="faint small">{{ _('kredi') }}</span></div>
+        <a class="btn btn-ghost btn-sm btn-block" href="/kredi">{{ icon('plus', 14) }} {{ _('Kredi yükle') }}</a>
       </div>
       <div class="me">
-        <a class="avatar" href="/hesap" aria-label="Hesabım">{{ (user.name or user.email)[:1]|upper }}</a>
-        <a class="who" href="/hesap" title="Hesabım"><div>{{ user.name or 'Hesabım' }}</div><div class="tiny faint">{{ user.email }}</div></a>
-        <form method="post" action="/cikis"><input type="hidden" name="csrf" value="{{ csrf }}"><button title="Çıkış yap" aria-label="Çıkış yap">{{ icon('logout', 17) }}</button></form>
+        <a class="avatar" href="/hesap" aria-label="{{ _('Hesabım') }}">{{ (user.name or user.email)[:1]|upper }}</a>
+        <a class="who" href="/hesap" title="{{ _('Hesabım') }}"><div>{{ user.name or _('Hesabım') }}</div><div class="tiny faint">{{ user.email }}</div></a>
+        <form method="post" action="/cikis"><input type="hidden" name="csrf" value="{{ csrf }}"><button title="{{ _('Çıkış yap') }}" aria-label="{{ _('Çıkış yap') }}">{{ icon('logout', 17) }}</button></form>
       </div>
     </div>
   </aside>
@@ -32,9 +34,9 @@
       <a class="brand" href="/panel">{{ LOGO }}{{ site }}</a>
       <div class="row">
         <a class="pill" href="/kredi">{{ icon('gem', 14) }} {{ user.credits }}</a>
-        {% if user.is_admin %}<a class="icon-btn" href="/admin" aria-label="Yönetim">{{ icon('shield', 16) }}</a>{% endif %}
-        <a class="icon-btn {{ 'done' if active == '/hesap' }}" href="/hesap" aria-label="Hesabım">{{ icon('user', 16) }}</a>
-        <form method="post" action="/cikis"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="icon-btn" aria-label="Çıkış yap">{{ icon('logout', 16) }}</button></form>
+        {% if user.is_admin %}<a class="icon-btn" href="/admin" aria-label="{{ _('Yönetim') }}">{{ icon('shield', 16) }}</a>{% endif %}
+        <a class="icon-btn {{ 'done' if active == '/hesap' }}" href="/hesap" aria-label="{{ _('Hesabım') }}">{{ icon('user', 16) }}</a>
+        <form method="post" action="/cikis"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="icon-btn" aria-label="{{ _('Çıkış yap') }}">{{ icon('logout', 16) }}</button></form>
       </div>
     </div>
     <main class="main"><div class="page">
@@ -42,19 +44,19 @@
       {% if not user.email_verified %}
       <div class="verify-bar reveal">
         <span class="icon-box accent">{{ icon('mail', 17) }}</span>
-        <div style="flex:1;min-width:200px"><b>E-postanı doğrula</b><div class="small muted"><b>{{ user.email }}</b> adresine bir bağlantı gönderdik.{% if signup_bonus %} Doğrulayınca <b class="hl">{{ signup_bonus }} hediye kredi</b> hesabına yüklenecek.{% endif %}</div></div>
-        <form method="post" action="/dogrula/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('refund', 14) }} Tekrar gönder</button></form>
+        <div style="flex:1;min-width:200px"><b>{{ _('E-postanı doğrula') }}</b><div class="small muted">{{ _h('<b>{email}</b> adresine bir bağlantı gönderdik.', email=user.email) }}{% if signup_bonus %} {{ _h('Doğrulayınca <b class="hl">{n} hediye kredi</b> hesabına yüklenecek.', n=signup_bonus) }}{% endif %}</div></div>
+        <form method="post" action="/dogrula/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('refund', 14) }} {{ _('Tekrar gönder') }}</button></form>
       </div>
       {% endif %}
       {% if user.email_verified and user.credits < qualities.lite.credits and active not in ('/kredi', '/admin') %}
-      <div class="low-bar reveal">{{ icon('gem', 16) }}<div style="flex:1;min-width:180px"><b>Kredin azaldı</b> <span class="small muted">· {{ user.credits }} kredin var, en uygun video {{ qualities.lite.credits }} kredi.</span></div>
-        <a class="btn btn-primary btn-sm" href="/kredi">Kredi yükle</a></div>
+      <div class="low-bar reveal">{{ icon('gem', 16) }}<div style="flex:1;min-width:180px"><b>{{ _('Kredin azaldı') }}</b> <span class="small muted">· {{ _('{n} kredin var, en uygun video {m} kredi.', n=user.credits, m=qualities.lite.credits) }}</span></div>
+        <a class="btn btn-primary btn-sm" href="/kredi">{{ _('Kredi yükle') }}</a></div>
       {% endif %}
       {% block content %}{% endblock %}
     </div></main>
   </div>
   <nav class="tabbar">
-    {% for href, ic, label in nav %}<a class="{{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="tab-pill"></span>{% endif %}{{ icon(ic, 20) }}<span>{{ label.split(' ')[-1]|capitalize if href == '/kanallar' else label.split(' ')[0] }}</span></a>{% endfor %}
+    {% for href, ic, label in nav %}<a class="{{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="tab-pill"></span>{% endif %}{{ icon(ic, 20) }}<span>{{ tabs[loop.index0] }}</span></a>{% endfor %}
   </nav>
 </div>
 {% endblock %}

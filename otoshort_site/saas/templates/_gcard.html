@@ -1,9 +1,9 @@
 {# Keşfet kartı (j = herkese açık Job): tıklanınca yerinde oynar #}
 <figure class="gcard reveal">
-  <button type="button" class="gthumb" data-play="/kesfet/{{ j.id }}/video" aria-label="{{ j.title or 'Video' }} — oynat">
+  <button type="button" class="gthumb" data-play="/kesfet/{{ j.id }}/video" aria-label="{{ _('{title} — oynat', title=j.title or 'Video') }}">
     <img src="/kesfet/{{ j.id }}/kapak" alt="" loading="lazy" data-hide-broken>
     <span class="play">{{ icon('play', 20) }}</span>
-    {% if j.featured %}<span class="gtag">{{ icon('sparkles', 12) }} Öne çıkan</span>{% endif %}
+    {% if j.featured %}<span class="gtag">{{ icon('sparkles', 12) }} {{ _('Öne çıkan') }}</span>{% endif %}
   </button>
-  <figcaption><b>{{ j.title or 'Video' }}</b><span class="tiny faint">{{ styles.get(j.style, j.style) }} · {{ languages.get(j.language, j.language) }}</span></figcaption>
+  <figcaption><b>{{ j.title or 'Video' }}</b><span class="tiny faint">{{ _(styles.get(j.style, j.style)) }} · {{ languages.get(j.language, j.language) }}</span></figcaption>
 </figure>

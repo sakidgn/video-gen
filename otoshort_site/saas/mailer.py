@@ -23,18 +23,21 @@ def outbox() -> Path:
     return config.DATA_DIR / "epostalar"
 
 
-def render(title: str, intro: str, button: tuple[str, str] | None = None, outro: str = "") -> str:
+def render(title: str, intro: str, button: tuple[str, str] | None = None, outro: str = "", lang: str | None = None) -> str:
     """Marka renklerinde, e-posta programlarıyla uyumlu (tablolu, satır içi stilli) HTML."""
+    from . import i18n
+
+    lang = lang or i18n.current()
     btn = ""
     if button:
         label, url = button
         btn = (f'<tr><td style="padding:8px 0 28px"><a href="{escape(url)}" style="display:inline-block;padding:15px 28px;'
                'border-radius:999px;background:#f4efe6;color:#0c0b0a;'
                f'font-weight:700;font-size:15px;text-decoration:none">{escape(label)}</a></td></tr>'
-               f'<tr><td style="font-size:12px;color:#857e73;padding-bottom:20px;word-break:break-all">Buton çalışmazsa bu bağlantıyı '
-               f'tarayıcına yapıştır:<br><a href="{escape(url)}" style="color:#c9ff6b">{escape(url)}</a></td></tr>')
+               f'<tr><td style="font-size:12px;color:#857e73;padding-bottom:20px;word-break:break-all">'
+               f'{escape(i18n.t("Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:", lang))}<br><a href="{escape(url)}" style="color:#c9ff6b">{escape(url)}</a></td></tr>')
     outro_html = f'<tr><td style="font-size:15px;line-height:1.6;color:#bdb5a8;padding-bottom:8px">{outro}</td></tr>' if outro else ""
-    return f'''<!doctype html><html lang="tr"><body style="margin:0;background:#0c0b0a;padding:32px 12px;font-family:'Plus Jakarta Sans',Segoe UI,Arial,sans-serif">
+    return f'''<!doctype html><html lang="{lang}"><body style="margin:0;background:#0c0b0a;padding:32px 12px;font-family:'Plus Jakarta Sans',Segoe UI,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#151311;border:1px solid #2e2a25;border-radius:22px">
 <tr><td style="height:6px;border-radius:22px 22px 0 0;background:#d8b98a;background-image:linear-gradient(90deg,#f4efe6,#d8b98a)"></td></tr>
@@ -46,7 +49,7 @@ def render(title: str, intro: str, button: tuple[str, str] | None = None, outro:
 <tr><td style="font-size:15px;line-height:1.6;color:#bdb5a8;padding-bottom:22px">{intro}</td></tr>
 {btn}{outro_html}
 </table></td></tr>
-<tr><td style="padding:18px 32px 26px;border-top:1px solid #2a2622;font-size:12px;color:#857e73">Bu e-postayı {escape(config.SITE_NAME)} hesabınla ilgili bir işlem yapıldığı için aldın.</td></tr>
+<tr><td style="padding:18px 32px 26px;border-top:1px solid #2a2622;font-size:12px;color:#857e73">{escape(i18n.t("Bu e-postayı {site} hesabınla ilgili bir işlem yapıldığı için aldın.", lang, site=config.SITE_NAME))}</td></tr>
 </table></td></tr></table></body></html>'''
 
 

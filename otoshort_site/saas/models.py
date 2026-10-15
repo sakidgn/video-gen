@@ -24,6 +24,7 @@ class User(Base):
     ref_code: Mapped[str | None] = mapped_column(String(12), nullable=True)  # davet kodu (ilk gerektiğinde üretilir)
     referred_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # davet eden kullanıcının id'si
     ref_rewarded: Mapped[bool] = mapped_column(Boolean, default=False)  # davet ödülü verildi mi
+    lang: Mapped[str] = mapped_column(String(5), default="tr")  # site ve e-posta dili
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 

@@ -1,18 +1,18 @@
 {% extends "app_base.html" %}
-{% block title %}Video üret · {{ site }}{% endblock %}
+{% block title %}{{ _('Video üret') }} · {{ site }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="t"><span class="eyebrow">Stüdyo</span><h1>Yeni video</h1></div></div>
+<div class="page-head"><div class="t"><span class="eyebrow">{{ _('Stüdyo') }}</span><h1>{{ _('Yeni video') }}</h1></div></div>
 <form method="post" action="/video/yeni" enctype="multipart/form-data" data-studio data-balance="{{ user.credits }}">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="studio">
     <div class="card card-lg reveal">
       {% set ch = pre %}{% set n0 = 1 %}
-      {% if pre %}<div class="invite-note" style="margin:0 0 18px">{{ icon('repeat', 15) }} “{{ pre.title or pre.idea or 'Önceki video' }}” videosunun ayarlarıyla dolduruldu. İstediğini değiştir.</div>{% endif %}
-      <div class="step-title"><span class="n">1</span><h3>Fikir</h3><span class="faint">Boş bırakabilirsin</span></div>
-      <textarea class="textarea" name="idea" maxlength="600" placeholder="Örn: Portakal ve muz markette son indirimli ürün için kavga ediyor, kasiyer de aslında bir karpuz.">{{ idea }}</textarea>
+      {% if pre %}<div class="invite-note" style="margin:0 0 18px">{{ icon('repeat', 15) }} {{ _('“{title}” videosunun ayarlarıyla dolduruldu. İstediğini değiştir.', title=pre.title or pre.idea or _('Önceki video')) }}</div>{% endif %}
+      <div class="step-title"><span class="n">1</span><h3>{{ _('Fikir') }}</h3><span class="faint">{{ _('Boş bırakabilirsin') }}</span></div>
+      <textarea class="textarea" name="idea" maxlength="600" placeholder="{{ _('Örn: Portakal ve muz markette son indirimli ürün için kavga ediyor, kasiyer de aslında bir karpuz.') }}">{{ idea }}</textarea>
       <div class="ideas" data-ideas>
-        <button type="button" class="idea-ai" data-ai-ideas>{{ icon('wand', 13) }} Yapay zekâ fikir versin</button>
-        {% for i in ['Dinozor ilk kez metrobüse biniyor','Kedi, sahibinin toplantısına gizlice katılıyor','Robot, Türk düğününde halaya kalkıyor','Penguen, plajda güneş kremi satmaya çalışıyor'] %}
+        <button type="button" class="idea-ai" data-ai-ideas data-err-text="{{ _('Fikir üretilemedi') }}">{{ icon('wand', 13) }} {{ _('Yapay zekâ fikir versin') }}</button>
+        {% for i in [_('Dinozor ilk kez metrobüse biniyor'),_('Kedi, sahibinin toplantısına gizlice katılıyor'),_('Robot, Türk düğününde halaya kalkıyor'),_('Penguen, plajda güneş kremi satmaya çalışıyor')] %}
         <button type="button" data-idea="{{ i }}">{{ icon('sparkles', 13) }} {{ i }}</button>{% endfor %}
       </div>
       {% include "_video_fields.html" %}
@@ -20,13 +20,13 @@
     <aside class="aside reveal" data-delay="1">
       {% include "_preview.html" %}
       <div class="card summary">
-        <div class="line"><span>Tarz</span><b id="pv-style">–</b></div>
-        <div class="line"><span>Dil</span><b id="pv-lang">–</b></div>
-        <div class="line"><span>Kalite</span><b id="pv-quality">–</b></div>
-        <div class="line"><span>Bakiyen sonra</span><b><span id="pv-left" class="mono">–</span> kredi</b></div>
-        <div class="total"><span class="muted">Toplam</span><b><span id="pv-cost">–</span> <span class="small faint" style="font-weight:400">kredi</span></b></div>
-        <button class="btn btn-accent btn-lg btn-block" type="submit" id="pv-go">{{ icon('sparkles', 17) }} Videoyu üret</button>
-        <p class="hint center">Genelde 2–5 dakika sürer. Üretilemezse kredin iade edilir.</p>
+        <div class="line"><span>{{ _('Tarz') }}</span><b id="pv-style">–</b></div>
+        <div class="line"><span>{{ _('Dil') }}</span><b id="pv-lang">–</b></div>
+        <div class="line"><span>{{ _('Kalite') }}</span><b id="pv-quality">–</b></div>
+        <div class="line"><span>{{ _('Bakiyen sonra') }}</span><b><span id="pv-left" class="mono">–</span> {{ _('kredi') }}</b></div>
+        <div class="total"><span class="muted">{{ _('Toplam') }}</span><b><span id="pv-cost">–</span> <span class="small faint" style="font-weight:400">{{ _('kredi') }}</span></b></div>
+        <button class="btn btn-accent btn-lg btn-block" type="submit" id="pv-go">{{ icon('sparkles', 17) }} {{ _('Videoyu üret') }}</button>
+        <p class="hint center">{{ _('Genelde 2–5 dakika sürer. Üretilemezse kredin iade edilir.') }}</p>
       </div>
     </aside>
   </div>

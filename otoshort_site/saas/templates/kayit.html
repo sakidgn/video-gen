@@ -1,22 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Kayıt ol · {{ site }}{% endblock %}
+{% block title %}{{ _('Kayıt ol') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="auth"><div class="auth-card reveal">
-  <h1>Hesabını oluştur</h1>
-  <p class="sub">Bir dakikada kaydol, ilk videonu üret.</p>
-  {% if invited %}<div class="invite-note">{{ icon('gift', 16) }} Davetle geldin: ilk kredini yüklediğinde hesabına hediye kredi eklenecek.</div>{% endif %}
+  <h1>{{ _('Hesabını oluştur') }}</h1>
+  <p class="sub">{{ _('Bir dakikada kaydol, ilk videonu üret.') }}</p>
+  {% if invited %}<div class="invite-note">{{ icon('gift', 16) }} {{ _('Davetle geldin: ilk kredini yüklediğinde hesabına hediye kredi eklenecek.') }}</div>{% endif %}
   <form class="card card-lg stack" method="post" action="/kayit" style="gap:0">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     {% include "_google.html" %}
-    <div class="field"><label class="label" for="name">Adın <span class="opt">(isteğe bağlı)</span></label><input class="input" id="name" name="name" maxlength="100" autocomplete="name" placeholder="Örn. Saki"></div>
-    <div class="field"><label class="label" for="email">E-posta</label><input class="input" id="email" name="email" type="email" required autocomplete="email" placeholder="sen@ornek.com"></div>
-    <div class="field"><label class="label" for="pw">Şifre</label><input class="input" id="pw" name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="En az 8 karakter"></div>
-    <div class="stack" style="margin:22px 0 24px;gap:12px">
-      <label class="check"><input type="checkbox" name="accept" value="1" required><span><a href="/yasal/kullanim" target="_blank">Kullanım şartlarını</a> ve <a href="/yasal/kvkk" target="_blank">KVKK aydınlatma metnini</a> okudum, kabul ediyorum.</span></label>
-      <label class="check"><input type="checkbox" name="consent" value="1" required><span>Video üretimi için girdiğim metinlerin yurt dışındaki yapay zekâ hizmet sağlayıcısına aktarılmasına açık rıza veriyorum.</span></label>
-    </div>
-    <button class="btn btn-primary btn-lg btn-block" type="submit">Kayıt ol {{ icon('arrow-right', 17) }}</button>
+    <div class="field"><label class="label" for="name">{{ _('Adın') }} <span class="opt">{{ _('(isteğe bağlı)') }}</span></label><input class="input" id="name" name="name" maxlength="100" autocomplete="name" placeholder="{{ _('Örn. Saki') }}"></div>
+    <div class="field"><label class="label" for="email">{{ _('E-posta') }}</label><input class="input" id="email" name="email" type="email" required autocomplete="email" placeholder="{{ _('sen@ornek.com') }}"></div>
+    <div class="field"><label class="label" for="pw">{{ _('Şifre') }}</label><input class="input" id="pw" name="password" type="password" minlength="8" required autocomplete="new-password" placeholder="{{ _('En az 8 karakter') }}"></div>
+    {% include "_consents.html" %}
+    <button class="btn btn-primary btn-lg btn-block" type="submit">{{ _('Kayıt ol') }} {{ icon('arrow-right', 17) }}</button>
   </form>
-  <p class="center muted small">Zaten hesabın var mı? <a href="/giris" style="color:var(--text)">Giriş yap</a></p>
+  <p class="center muted small">{{ _('Zaten hesabın var mı?') }} <a href="{{ L('/giris') }}" style="color:var(--text)">{{ _('Giriş yap') }}</a></p>
 </div></div>
 {% endblock %}

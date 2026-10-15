@@ -42,15 +42,21 @@ def _site() -> str:
     return config.SITE_URL or "http://localhost:8000"
 
 
-def notify(user_id: int, subject: str, title: str, intro: str, button: tuple[str, str] | None = None) -> None:
-    """Bildirim e-postası (kullanıcı bildirimleri kapattıysa ya da e-postası doğrulanmamışsa gönderilmez)."""
+def notify(user_id: int, subject: str, title: str, intro: str, button: tuple[str, str] | None = None, /, **kw) -> None:
+    """Bildirim e-postası (kullanıcı bildirimleri kapattıysa ya da e-postası doğrulanmamışsa gönderilmez).
+    Metinler Türkçe kalıptır; kullanıcının dilinde gönderilir. {ad} yer tutucuları kw ile dolar ({site} hazır)."""
+    from . import i18n
+
     try:
         with db.session() as s:
             u = s.get(User, user_id)
             if not u or not u.notify or not u.email_verified:
                 return
-            to = u.email
-        mailer.send(to, subject, mailer.render(title, intro, button))
+            to, lang = u.email, i18n.norm(u.lang)
+        kw.setdefault("site", config.SITE_NAME)
+        btn = (i18n.t(button[0], lang), button[1]) if button else None
+        mailer.send(to, i18n.t(subject, lang, **kw), mailer.render(i18n.t(title, lang, **kw), i18n.th(intro, lang, **kw),
+                                                                   btn, lang=lang))
     except Exception:
         log.exception("Bildirim gönderilemedi")
 
@@ -108,12 +114,10 @@ def run_job(job_id: int, generator) -> None:
 
         publisher.queue_for_channel_job(job_id)
         if ch_name:  # otomatik kanal videosu: kullanıcı başında değil, haber ver
-            from html import escape
-
-            notify(uid, f"{ch_name}: yeni videon hazır 🎬", "Yeni videon hazır!",
-                   f"<b>{escape(ch_name)}</b> kanalın için yeni video üretildi: “{escape(script.title)}”. "
+            notify(uid, "{channel}: yeni videon hazır 🎬", "Yeni videon hazır!",
+                   "<b>{channel}</b> kanalın için yeni video üretildi: “{title}”. "
                    "Başlığı, açıklaması ve hashtag'leriyle birlikte paylaşmaya hazır.",
-                   ("Videoyu gör", f"{_site()}/video/{job_id}"))
+                   ("Videoyu gör", f"{_site()}/video/{job_id}"), channel=ch_name, title=script.title)
     except Exception as e:
         log.exception("İş %s başarısız", job_id)
         if isinstance(e, ai_mod.ContentBlocked):
@@ -188,13 +192,12 @@ def schedule_channels(at: datetime | None = None) -> list[int]:
                 with db.session() as s:
                     first = not s.get(Channel, ch.id).notice
                     s.execute(update(Channel).where(Channel.id == ch.id).values(
-                        notice=f"{slot} videosu kredi yetersiz olduğu için üretilmedi. Kredi yükle."))
+                        notice=f"{slot} videosu kredi yetersiz olduğu için üretilmedi."))
                 if first:  # aynı uyarı için tekrar tekrar e-posta atma
-                    from html import escape
-
-                    notify(ch.user_id, f"{ch.name}: kredin bitti", "Otomatik kanalın durdu",
-                           f"<b>{escape(ch.name)}</b> kanalının {slot} videosu kredi yetersiz olduğu için üretilmedi. "
-                           "Kredi yüklediğinde kanal kaldığı yerden devam eder.", ("Kredi yükle", f"{_site()}/kredi"))
+                    notify(ch.user_id, "{channel}: kredin bitti", "Otomatik kanalın durdu",
+                           "<b>{channel}</b> kanalının {slot} videosu kredi yetersiz olduğu için üretilmedi. "
+                           "Kredi yüklediğinde kanal kaldığı yerden devam eder.", ("Kredi yükle", f"{_site()}/kredi"),
+                           channel=ch.name, slot=slot)
             except IntegrityError:
                 pass  # aynı saat için iş zaten oluşturulmuş
     return created

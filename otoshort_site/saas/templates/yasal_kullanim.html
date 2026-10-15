@@ -1,7 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Kullanım şartları · {{ site }}{% endblock %}
+{% block title %}{{ _('Kullanım şartları') }} · {{ site }}{% endblock %}
 {% block content %}
-<div class="wrap"><div class="prose">
+<div class="wrap"><div class="prose" lang="tr">
+{% if lang == 'en' %}<div class="lang-note" lang="en">{{ icon('globe', 16) }}<p>{{ _('Bu metin, sözleşmenin geçerli dili olan Türkçe ile yayımlanır. Resmi olmayan bir çeviri için tarayıcının çeviri özelliğini kullanabilirsin.') }}</p></div>{% endif %}
 <h1>Kullanım Şartları</h1>
 <p class="muted">Son güncelleme: [TARİH]</p>
 <p>Bu şartlar, {{ site }} ("Hizmet") web sitesini kullanan herkes ("Kullanıcı") için geçerlidir. Hizmet, [ŞİRKET UNVANI / AD SOYAD] ("Sağlayıcı") tarafından sunulur. Hesap oluşturarak bu şartları kabul etmiş olursun.</p>

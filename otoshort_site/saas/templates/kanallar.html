@@ -1,11 +1,11 @@
 {% extends "app_base.html" %}
-{% block title %}Otomatik kanallar · {{ site }}{% endblock %}
+{% block title %}{{ _('Otomatik kanallar') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><span class="eyebrow">Otomatik kanallar</span><h1>Kanalların</h1><p class="muted">Her kanal seçtiğin saatlerde kendiliğinden yeni video üretir. Kredin bitince durur.</p></div>
-  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} Yeni kanal</a>
+  <div class="t"><span class="eyebrow">{{ _('Otomatik kanallar') }}</span><h1>{{ _('Kanalların') }}</h1><p class="muted">{{ _('Her kanal seçtiğin saatlerde kendiliğinden yeni video üretir. Kredin bitince durur.') }}</p></div>
+  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} {{ _('Yeni kanal') }}</a>
 </div>
-<a class="card invite-cta reveal" href="/baglantilar" style="margin-bottom:18px"><span class="icon-box accent">{{ icon('share', 18) }}</span><div><b>Otomatik paylaşım</b><span class="small muted">{% if linked %}Bağlı: {{ linked.values()|join(', ') }}{% else %}YouTube, TikTok ve Instagram hesabını bağla; videolar kendiliğinden yüklensin{% endif %}</span></div>{{ icon('arrow-right', 16) }}</a>
+<a class="card invite-cta reveal" href="/baglantilar" style="margin-bottom:18px"><span class="icon-box accent">{{ icon('share', 18) }}</span><div><b>{{ _('Otomatik paylaşım') }}</b><span class="small muted">{% if linked %}{{ _('Bağlı:') }} {{ linked.values()|join(', ') }}{% else %}{{ _('YouTube, TikTok ve Instagram hesabını bağla; videolar kendiliğinden yüklensin') }}{% endif %}</span></div>{{ icon('arrow-right', 16) }}</a>
 {% set avgrad = {'meme3d':'linear-gradient(140deg,#7aa7ff,#5fbf62)','cartoon':'linear-gradient(140deg,#ff8fb1,#ffcf6b)','realistic':'linear-gradient(140deg,#3b4a63,#a06a4a)','claymation':'linear-gradient(140deg,#e66a4e,#d8a978)','anime':'linear-gradient(140deg,#b58cff,#ffc1e3)'} %}
 {% if channels %}
 <div class="grid g2">
@@ -15,24 +15,24 @@
     <div class="chan-top">
       <span class="chan-av" style="background:{{ avgrad.get(ch.style) }}">{{ ch.name[:1]|upper }}</span>
       <div style="flex:1;min-width:0"><h3 style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ch.name }}</h3>
-        <span class="badge {{ 'b-ok' if ch.active else 'b-off' }}">{{ 'Aktif' if ch.active else 'Durduruldu' }}</span></div>
+        <span class="badge {{ 'b-ok' if ch.active else 'b-off' }}">{{ _('Aktif') if ch.active else _('Durduruldu') }}</span></div>
       <form method="post" action="/kanallar/{{ ch.id }}/durum"><input type="hidden" name="csrf" value="{{ csrf }}">
-        <button class="switch {{ 'on' if ch.active }}" title="{{ 'Durdur' if ch.active else 'Başlat' }}" aria-label="{{ 'Durdur' if ch.active else 'Başlat' }}"></button></form>
+        <button class="switch {{ 'on' if ch.active }}" title="{{ _('Durdur') if ch.active else _('Başlat') }}" aria-label="{{ _('Durdur') if ch.active else _('Başlat') }}"></button></form>
     </div>
     {% if ch.topic %}<p class="muted small" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ ch.topic }}</p>{% endif %}
-    <div class="chan-meta"><span>{{ icon('palette', 14) }} {{ styles.get(ch.style) }}</span><span>{{ icon('globe', 14) }} {{ languages.get(ch.language) }}</span><span>{{ icon('zap', 14) }} {{ q.label }}</span></div>
+    <div class="chan-meta"><span>{{ icon('palette', 14) }} {{ _(styles.get(ch.style, '')) }}</span><span>{{ icon('globe', 14) }} {{ languages.get(ch.language) }}</span><span>{{ icon('zap', 14) }} {{ _(q.label) }}</span>{% if ch.publish_to %}<span>{{ icon('share', 14) }} {{ ch.publish_to.split()|map('capitalize')|join(', ') }}</span>{% endif %}</div>
     <div class="row" style="gap:6px">{% for t in ch.time_list() %}<span class="pill time">{{ t }}</span>{% endfor %}</div>
-    {% if ch.notice %}<div class="flash warn" style="margin:0">{{ icon('alert', 16) }}<div>{{ ch.notice }} <a href="/kredi">Kredi yükle</a></div></div>{% endif %}
+    {% if ch.notice %}<div class="flash warn" style="margin:0">{{ icon('alert', 16) }}<div>{{ _db(ch.notice) }} <a href="/kredi">{{ _('Kredi yükle') }}</a></div></div>{% endif %}
     <hr class="sep" style="margin:4px 0">
-    <div class="row between"><span class="small faint"><span class="mono">{{ ch.time_list()|length }}</span> video/gün · <span class="mono">{{ ch.time_list()|length * q.credits }}</span> kredi/gün</span>
-      <div class="row" style="gap:6px"><form method="post" action="/kanallar/{{ ch.id }}/simdi" data-confirm="Şimdi bir video üretilsin mi? {{ q.credits }} kredi düşecek."><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-text btn-sm" type="submit">{{ icon('zap', 14) }} Şimdi üret</button></form>
-        <a class="btn btn-ghost btn-sm" href="/kanallar/{{ ch.id }}">{{ icon('edit', 14) }} Düzenle</a></div></div>
+    <div class="row between"><span class="small faint">{{ _h('{n} video/gün · {c} kredi/gün', n=_h('<span class="mono">{x}</span>', x=ch.time_list()|length), c=_h('<span class="mono">{x}</span>', x=ch.time_list()|length * q.credits)) }}</span>
+      <div class="row" style="gap:6px"><form method="post" action="/kanallar/{{ ch.id }}/simdi" data-confirm="{{ _('Şimdi bir video üretilsin mi? {n} kredi düşecek.', n=q.credits) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-text btn-sm" type="submit">{{ icon('zap', 14) }} {{ _('Şimdi üret') }}</button></form>
+        <a class="btn btn-ghost btn-sm" href="/kanallar/{{ ch.id }}">{{ icon('edit', 14) }} {{ _('Düzenle') }}</a></div></div>
   </div>
 {% endfor %}
 </div>
 {% else %}
-<div class="card empty"><span class="icon-box accent">{{ icon('repeat', 24) }}</span><h3 style="font-size:20px">Henüz otomatik kanalın yok</h3>
-  <p>Karakterlerini ve konunu bir kere ayarla, saatleri seç. Videolar her gün kendiliğinden gelsin.</p>
-  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} İlk kanalını kur</a></div>
+<div class="card empty"><span class="icon-box accent">{{ icon('repeat', 24) }}</span><h3 style="font-size:20px">{{ _('Henüz otomatik kanalın yok') }}</h3>
+  <p>{{ _('Karakterlerini ve konunu bir kere ayarla, saatleri seç. Videolar her gün kendiliğinden gelsin.') }}</p>
+  <a class="btn btn-accent" href="/kanallar/yeni">{{ icon('plus', 16) }} {{ _('İlk kanalını kur') }}</a></div>
 {% endif %}
 {% endblock %}

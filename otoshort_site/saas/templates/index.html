@@ -3,85 +3,85 @@
 {% block head %}
 <script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
   {"@type": "SoftwareApplication", "name": site, "applicationCategory": "MultimediaApplication", "operatingSystem": "Web",
-   "url": base_url ~ "/", "image": base_url ~ "/static/og.png", "inLanguage": "tr",
-   "description": "Yapay zekâ ile sesli, dikey TikTok, Reels ve Shorts videoları üret; otomatik kanallarla her gün yeni video.",
+   "url": canonical, "image": base_url ~ S("/static/og.png"), "inLanguage": lang,
+   "description": _("Yapay zekâ ile sesli, dikey TikTok, Reels ve Shorts videoları üret; otomatik kanallarla her gün yeni video."),
    "offers": {"@type": "AggregateOffer", "priceCurrency": "TRY", "lowPrice": qualities.lite.credits, "highPrice": qualities.standard.credits}},
   {"@type": "FAQPage", "mainEntity": faqs_ld}]}|tojson }}</script>
 {% endblock %}
 {% block content %}
-{% set start = '/video/yeni' if user else '/kayit' %}
+{% set start = '/video/yeni' if user else L('/kayit') %}
 
 <section class="hero-film">
-  <video class="hf-video" autoplay muted loop playsinline preload="auto" poster="/static/hero/hero.jpg" data-hero-video
-    data-src="/static/hero/hero.mp4" data-src-m="/static/hero/hero-m.mp4" data-poster-m="/static/hero/hero-m.jpg" aria-hidden="true"></video>
+  <video class="hf-video" autoplay muted loop playsinline preload="auto" poster="{{ S('/static/hero/hero.jpg') }}" data-hero-video
+    data-poster="{{ S('/static/hero/hero.jpg') }}" data-src="{{ S('/static/hero/hero.mp4') }}" data-src-m="{{ S('/static/hero/hero-m.mp4') }}" data-poster-m="{{ S('/static/hero/hero-m.jpg') }}" aria-hidden="true"></video>
   <div class="hf-shade" aria-hidden="true"></div>
   <div class="wrap hf-copy">
-    <span class="eyebrow hf-in" style="--i:0">Yapay zekâ ile otomatik kısa video</span>
-    <h1 class="hf-in" style="--i:1">Reels, TikTok ve<br>Shorts için<br><span class="hl">otomatik video.</span></h1>
-    <p class="lead hf-in" style="--i:2">Fikrini yaz ya da boş bırak; yapay zekâ senaryoyu yazar, sesli ve dikey videoyu üretir, başlığı ve hashtag'leri hazırlar. Kanalını bir kez kur, seçtiğin saatlerde her gün yeni video gelsin.</p>
+    <span class="eyebrow hf-in" style="--i:0">{{ _('Yapay zekâ ile otomatik kısa video') }}</span>
+    <h1 class="hf-in" style="--i:1">{{ _h('Reels, TikTok ve<br>Shorts için<br><span class="hl">otomatik video.</span>') }}</h1>
+    <p class="lead hf-in" style="--i:2">{{ _("Fikrini yaz ya da boş bırak; yapay zekâ senaryoyu yazar, sesli ve dikey videoyu üretir, başlığı ve hashtag'leri hazırlar. Kanalını bir kez kur, seçtiğin saatlerde her gün yeni video gelsin.") }}</p>
     <div class="row hf-in" style="--i:3">
-      <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz başla' }} {{ icon('arrow-right', 17) }}</a>
-      <a class="btn btn-ghost btn-lg" href="#nasil">Nasıl çalışır</a>
+      <a class="btn btn-primary btn-lg" href="{{ start }}">{{ _('Video üret') if user else _('Ücretsiz başla') }} {{ icon('arrow-right', 17) }}</a>
+      <a class="btn btn-ghost btn-lg" href="#nasil">{{ _('Nasıl çalışır') }}</a>
     </div>
     <div class="hf-meta hf-in" style="--i:4">
-      <span class="hf-plat" aria-label="TikTok, Instagram Reels ve YouTube Shorts için hazır">{{ brand('tiktok', 17) }}{{ brand('instagram', 17) }}{{ brand('youtube', 19) }}</span>
-      <span class="trust"><span>Kamera ve montaj gerekmez</span><span>Abonelik yok</span><span>Başarısız videoda iade</span></span>
+      <span class="hf-plat" aria-label="{{ _('TikTok, Instagram Reels ve YouTube Shorts için hazır') }}">{{ brand('tiktok', 17) }}{{ brand('instagram', 17) }}{{ brand('youtube', 19) }}</span>
+      <span class="trust"><span>{{ _('Kamera ve montaj gerekmez') }}</span><span>{{ _('Abonelik yok') }}</span><span>{{ _('Başarısız videoda iade') }}</span></span>
     </div>
   </div>
-  <a class="hf-scroll" href="#vitrin" aria-label="Aşağı kaydır">{{ icon('chevron-down', 22) }}</a>
+  <a class="hf-scroll" href="#vitrin" aria-label="{{ _('Aşağı kaydır') }}">{{ icon('chevron-down', 22) }}</a>
 </section>
 
 <div class="wrap"><div class="platforms reveal">
-  <span class="eyebrow">Hazır format</span>
+  <span class="eyebrow">{{ _('Hazır format') }}</span>
   <span class="pf">{{ brand('tiktok', 18) }} TikTok</span>
   <span class="pf">{{ brand('instagram', 18) }} Instagram Reels</span>
   <span class="pf">{{ brand('youtube', 20) }} YouTube Shorts</span>
 </div></div>
 
 <section class="showcase-sec" id="vitrin"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">Stüdyo</span><h2>Profesyonel stüdyo, <span class="hl">tek ekranda.</span></h2>
-    <p class="lead">Karakterini seç, tarzını belirle, kaliteye karar ver. Her şeyi canlı önizlemeyle gör.</p></div>
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Stüdyo') }}</span><h2>{{ _h('Profesyonel stüdyo, <span class="hl">tek ekranda.</span>') }}</h2>
+    <p class="lead">{{ _('Karakterini seç, tarzını belirle, kaliteye karar ver. Her şeyi canlı önizlemeyle gör.') }}</p></div>
   <div class="showcase" data-showcase>
     <div class="sc-glow" aria-hidden="true"></div>
     <div class="sc-frame">
       <div class="sc-bar"><i></i><i></i><i></i><span class="sc-url">{{ icon('lock', 12) }} cutless.app/video/yeni</span></div>
-      <img src="/static/shots/studio.jpg" width="1360" height="850" alt="{{ site }} video stüdyosu ekranı" loading="lazy" decoding="async">
+      <img src="{{ S('/static/shots/studio.jpg') }}" width="1360" height="850" alt="{{ _('{site} video stüdyosu ekranı', site=site) }}" loading="lazy" decoding="async">
     </div>
   </div>
 </div></section>
 
 <div class="marquee" aria-hidden="true">
-  {% set ideas = ['🍊 Portakal markette son indirim için kavga ediyor','🦖 Dinozor ilk kez metrobüse biniyor','🐱 Kedi patronun toplantısına katılıyor','🥔 Patates spor salonunda rekor kırıyor','🤖 Robot ilk kez çay demliyor','🐸 Kurbağa bilgi yarışmasında finalde','🍕 Pizza diyete başlamaya karar veriyor','👽 Uzaylı Kapalıçarşı\'da pazarlık yapıyor'] %}
-  <div class="mq-row"><div class="mq-track">{% for _ in range(2) %}{% for i in ideas %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
-  <div class="mq-row rev"><div class="mq-track">{% for _ in range(2) %}{% for i in ideas|reverse %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
+  {% set ideas = [_('🍊 Portakal markette son indirim için kavga ediyor'),_('🦖 Dinozor ilk kez metrobüse biniyor'),_('🐱 Kedi patronun toplantısına katılıyor'),_('🥔 Patates spor salonunda rekor kırıyor'),_('🤖 Robot ilk kez çay demliyor'),_('🐸 Kurbağa bilgi yarışmasında finalde'),_('🍕 Pizza diyete başlamaya karar veriyor'),_("👽 Uzaylı Kapalıçarşı'da pazarlık yapıyor")] %}
+  <div class="mq-row"><div class="mq-track">{% for rep in range(2) %}{% for i in ideas %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
+  <div class="mq-row rev"><div class="mq-track">{% for rep in range(2) %}{% for i in ideas|reverse %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
 </div>
 
 <section id="nasil"><div class="wrap">
   <div class="sec-head reveal">
-    <span class="eyebrow">Nasıl çalışır</span>
-    <h2>Üç adım. <span class="hl">Sıfır</span> montaj.</h2>
-    <p class="lead">Kamera, mikrofon ya da kurgu programı yok. Fikrini yaz, gerisini yapay zekâ halletsin.</p>
+    <span class="eyebrow">{{ _('Nasıl çalışır') }}</span>
+    <h2>{{ _h('Üç adım. <span class="hl">Sıfır</span> montaj.') }}</h2>
+    <p class="lead">{{ _('Kamera, mikrofon ya da kurgu programı yok. Fikrini yaz, gerisini yapay zekâ halletsin.') }}</p>
   </div>
   <div class="how">
     <div class="card reveal" data-tilt="4">
-      <div class="demo"><div class="mock-input"><span data-type='["Portakal ve muz markette son indirimli ürün için kavga ediyor","Bir dinozor ilk kez metrobüse biniyor","Kedi, sahibinin toplantısına kamerayla katılıyor"]'></span><span class="caret"></span>
-        <div class="mi-foot"><span class="pill" style="height:26px;font-size:12px">{{ icon('sparkles', 13) }} Fikir bul</span><span class="code">TR</span></div></div></div>
-      <div class="txt"><span class="num">01</span><h3>Fikrini yaz — ya da yazma</h3><p class="muted small">Karakterini ve konunu anlat. Aklında bir şey yoksa boş bırak; yapay zekâ özgün bir fikir uydursun.</p></div>
+      <div class="demo"><div class="mock-input"><span data-type='{{ [_("Portakal ve muz markette son indirimli ürün için kavga ediyor"), _("Bir dinozor ilk kez metrobüse biniyor"), _("Kedi, sahibinin toplantısına kamerayla katılıyor")]|tojson }}'></span><span class="caret"></span>
+        <div class="mi-foot"><span class="pill" style="height:26px;font-size:12px">{{ icon('sparkles', 13) }} {{ _('Fikir bul') }}</span><span class="code">{{ lang|upper }}</span></div></div></div>
+      <div class="txt"><span class="num">01</span><h3>{{ _('Fikrini yaz — ya da yazma') }}</h3><p class="muted small">{{ _('Karakterini ve konunu anlat. Aklında bir şey yoksa boş bırak; yapay zekâ özgün bir fikir uydursun.') }}</p></div>
     </div>
     <div class="card reveal" data-delay="1" data-tilt="4">
       <div class="demo"><div class="mock-steps">
-        <div class="ms">{{ icon('check', 15) }} Senaryo yazıldı<span class="pct">0:04</span></div>
-        <div class="ms">{{ icon('check', 15) }} Diyaloglar hazır<span class="pct">0:06</span></div>
-        <div class="ms now"><span class="spin"></span> Video üretiliyor<span class="pct" data-ticker>64%</span></div>
+        <div class="ms">{{ icon('check', 15) }} {{ _('Senaryo yazıldı') }}<span class="pct">0:04</span></div>
+        <div class="ms">{{ icon('check', 15) }} {{ _('Diyaloglar hazır') }}<span class="pct">0:06</span></div>
+        <div class="ms now"><span class="spin"></span> {{ _('Video üretiliyor') }}<span class="pct" data-ticker>64%</span></div>
       </div></div>
-      <div class="txt"><span class="num">02</span><h3>Video üretilsin</h3><p class="muted small">Birkaç dakikada 9:16 dikey, sesli ve konuşmalı video hazır. Türkçe, İngilizce ve daha fazlası.</p></div>
+      <div class="txt"><span class="num">02</span><h3>{{ _('Video üretilsin') }}</h3><p class="muted small">{{ _('Birkaç dakikada 9:16 dikey, sesli ve konuşmalı video hazır. Türkçe, İngilizce ve daha fazlası.') }}</p></div>
     </div>
     <div class="card reveal" data-delay="2" data-tilt="4">
       <div class="demo"><div class="mock-cap">
-        <div class="cap"><small>BAŞLIK</small>Portakal markette olay çıkardı 😭<span class="copied">{{ icon('check', 12) }} Kopyalandı</span></div>
-        <div class="cap"><small>AÇIKLAMA</small>Son indirim kimin olacak? 🍊🍌 <span class="tags">#komik #shorts #market</span></div>
+        <div class="cap"><small>{{ _('BAŞLIK') }}</small>{{ _('Portakal markette olay çıkardı 😭') }}<span class="copied">{{ icon('check', 12) }} {{ _('Kopyalandı') }}</span></div>
+        <div class="cap"><small>{{ _('AÇIKLAMA') }}</small>{{ _('Son indirim kimin olacak? 🍊🍌') }} <span class="tags">{{ _('#komik #shorts #market') }}</span></div>
       </div></div>
-      <div class="txt"><span class="num">03</span><h3>İndir ve paylaş</h3><p class="muted small">Viral başlık, emojili açıklama ve hashtag'ler hazır. Kopyala, yapıştır, paylaş.</p></div>
+      <div class="txt"><span class="num">03</span><h3>{{ _('İndir ve paylaş') }}</h3><p class="muted small">{{ _("Viral başlık, emojili açıklama ve hashtag'ler hazır. Kopyala, yapıştır, paylaş.") }}</p></div>
     </div>
   </div>
 </div></section>
@@ -89,119 +89,120 @@
 <section id="otomatik" style="padding-top:20px"><div class="wrap">
   <div class="auto">
     <div class="auto-copy reveal">
-      <span class="eyebrow">Otomatik kanal</span>
-      <h2>Bir kere kur, <span class="hl">her gün</span> yeni video.</h2>
-      <p class="lead">Karakterlerini, tarzını ve konunu ayarla, saatleri seç. {{ site }} her gün o saatlerde yeni ve birbirini tekrar etmeyen videolar üretir.</p>
+      <span class="eyebrow">{{ _('Otomatik kanal') }}</span>
+      <h2>{{ _h('Bir kere kur, <span class="hl">her gün</span> yeni video.') }}</h2>
+      <p class="lead">{{ _('Karakterlerini, tarzını ve konunu ayarla, saatleri seç. {site} her gün o saatlerde yeni ve birbirini tekrar etmeyen videolar üretir.', site=site) }}</p>
       <ul class="ticks">
-        <li>{{ icon('check', 17) }} Günde istediğin kadar video, istediğin saatlerde</li>
-        <li>{{ icon('check', 17) }} Önceki fikirleri hatırlar, aynı şakayı iki kez yapmaz</li>
-        <li>{{ icon('check', 17) }} Kredin bitince kendiliğinden durur — sürpriz fatura yok</li>
+        <li>{{ icon('check', 17) }} {{ _('Günde istediğin kadar video, istediğin saatlerde') }}</li>
+        <li>{{ icon('check', 17) }} {{ _('Önceki fikirleri hatırlar, aynı şakayı iki kez yapmaz') }}</li>
+        <li>{{ icon('check', 17) }} {{ _('Kredin bitince kendiliğinden durur — sürpriz fatura yok') }}</li>
+        <li>{{ icon('check', 17) }} {{ _("İstersen YouTube, TikTok ve Instagram'a kendiliğinden yüklenir") }}</li>
       </ul>
-      <a class="btn btn-ghost" href="{{ '/kanallar/yeni' if user else '/kayit' }}">{{ icon('repeat', 16) }} Kanalını kur</a>
+      <a class="btn btn-ghost" href="{{ '/kanallar/yeni' if user else L('/kayit') }}">{{ icon('repeat', 16) }} {{ _('Kanalını kur') }}</a>
     </div>
     <div class="card glow-border sched reveal" data-delay="1" data-tilt="5">
       <div class="sched-head">
         <div class="av">{{ icon('sparkles', 20) }}</div>
-        <div style="flex:1"><h3>Komik Meyveler</h3><div class="tiny faint">Konuşan meyveler · Çizgi film · Türkçe</div></div>
-        <span class="badge b-ok">Aktif</span>
+        <div style="flex:1"><h3>{{ _('Komik Meyveler') }}</h3><div class="tiny faint">{{ _('Konuşan meyveler · Çizgi film · Türkçe') }}</div></div>
+        <span class="badge b-ok">{{ _('Aktif') }}</span>
       </div>
       <div class="days">
-        {% for d, slots in [('PZT',['s1','s2','s3']),('SAL',['s4','s1','s2']),('ÇAR',['s3','s4','s1']),('PER',['s2','now','next']),('CUM',['next','next','next'])] %}
+        {% for d, slots in [(_('PZT'),['s1','s2','s3']),(_('SAL'),['s4','s1','s2']),(_('ÇAR'),['s3','s4','s1']),(_('PER'),['s2','now','next']),(_('CUM'),['next','next','next'])] %}
         <div class="day"><div class="dn">{{ d }}</div>{% for c in slots %}<div class="slot {{ c }}"><span>{{ ['09:45','13:00','18:30'][loop.index0] }}</span></div>{% endfor %}</div>
         {% endfor %}
       </div>
-      <div class="sched-foot"><span class="row" style="gap:8px">{{ icon('clock', 15) }} Sıradaki: Perşembe 18:30</span><span class="mono tiny faint">65 kredi / video</span></div>
+      <div class="sched-foot"><span class="row" style="gap:8px">{{ icon('clock', 15) }} {{ _('Sıradaki: Perşembe 18:30') }}</span><span class="mono tiny faint">{{ _('{n} kredi / video', n=65) }}</span></div>
     </div>
   </div>
 </div></section>
 
 <section style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">Özellikler</span><h2>Kanal büyütmek için <span class="hl">gereken</span> her şey.</h2></div>
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Özellikler') }}</span><h2>{{ _h('Kanal büyütmek için <span class="hl">gereken</span> her şey.') }}</h2></div>
   <div class="bento">
     <div class="bx bx-wide reveal" data-tilt="3">
       <div class="bx-viz wave" aria-hidden="true">{% for h in [30,62,44,80,52,90,36,70,58,96,40,74,48,86,32,66,54,92,38,72,46,84,34,60] %}<i style="--h:{{ h }}%;--d:{{ loop.index0 * 70 }}ms"></i>{% endfor %}</div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('mic', 18) }}</span><div><h3>Sesli ve konuşmalı</h3><p class="muted small">Karakterler seçtiğin dilde konuşur; ses efektleri ve müzik dahil.</p></div></div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('mic', 18) }}</span><div><h3>{{ _('Sesli ve konuşmalı') }}</h3><p class="muted small">{{ _('Karakterler seçtiğin dilde konuşur; ses efektleri ve müzik dahil.') }}</p></div></div>
     </div>
     <div class="bx bx-tall reveal" data-delay="1" data-tilt="3">
       <div class="bx-viz ratio" aria-hidden="true"><div class="phone"><span class="ph-notch"></span><span class="ph-scene"></span><span class="ph-cap">9:16</span></div></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('phone', 18) }}</span><div><h3>9:16 dikey format</h3><p class="muted small">TikTok, Reels ve Shorts'a doğrudan yüklemeye hazır.</p></div></div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('phone', 18) }}</span><div><h3>{{ _('9:16 dikey format') }}</h3><p class="muted small">{{ _("TikTok, Reels ve Shorts'a doğrudan yüklemeye hazır.") }}</p></div></div>
     </div>
     <div class="bx reveal" data-delay="1" data-tilt="3">
-      <div class="bx-viz stack" aria-hidden="true"><span>🦖 Metrobüs macerası</span><span>🍊 Market kavgası</span><span class="new">🐱 Toplantı kedisi <b>YENİ</b></span></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('brain', 18) }}</span><div><h3>Tekrar etmeyen fikirler</h3><p class="muted small">Önceki videolarını hatırlar, her seferinde yeni bir şaka bulur.</p></div></div>
+      <div class="bx-viz stack" aria-hidden="true"><span>{{ _('🦖 Metrobüs macerası') }}</span><span>{{ _('🍊 Market kavgası') }}</span><span class="new">{{ _('🐱 Toplantı kedisi') }} <b>{{ _('YENİ') }}</b></span></div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('brain', 18) }}</span><div><h3>{{ _('Tekrar etmeyen fikirler') }}</h3><p class="muted small">{{ _('Önceki videolarını hatırlar, her seferinde yeni bir şaka bulur.') }}</p></div></div>
     </div>
     <div class="bx reveal" data-delay="2" data-tilt="3">
-      <div class="bx-viz tags" aria-hidden="true"><span>#komik</span><span>#shorts</span><span>#keşfet</span><span>#viral</span><span>#mizah</span><span>#fyp</span></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('hash', 18) }}</span><div><h3>Paylaşım metni hazır</h3><p class="muted small">Viral başlık, emojili açıklama ve konuya uygun hashtag'ler.</p></div></div>
+      <div class="bx-viz tags" aria-hidden="true">{% for tag in _('#komik #shorts #keşfet #viral #mizah #fyp').split() %}<span>{{ tag }}</span>{% endfor %}</div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('hash', 18) }}</span><div><h3>{{ _('Paylaşım metni hazır') }}</h3><p class="muted small">{{ _("Viral başlık, emojili açıklama ve konuya uygun hashtag'ler.") }}</p></div></div>
     </div>
     <div class="bx bx-wide reveal" data-tilt="3">
-      <div class="bx-viz styles" aria-hidden="true">{% for k, n in [('cartoon','Çizgi film'),('anime','Anime'),('realistic','Gerçekçi'),('claymation','Kil'),('meme3d','Meme 3D')] %}<span class="st"><span class="swatch sw-{{ k }}"></span><small>{{ n }}</small></span>{% endfor %}</div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('palette', 18) }}</span><div><h3>Beş farklı tarz</h3><p class="muted small">Çizgi film, anime, gerçekçi, kil animasyon ve meme 3D.</p></div></div>
+      <div class="bx-viz styles" aria-hidden="true">{% for k, n in [('cartoon',_('Çizgi film')),('anime',_('Anime')),('realistic',_('Gerçekçi')),('claymation',_('Kil')),('meme3d',_('Meme 3D'))] %}<span class="st"><span class="swatch sw-{{ k }}"></span><small>{{ n }}</small></span>{% endfor %}</div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('palette', 18) }}</span><div><h3>{{ _('Beş farklı tarz') }}</h3><p class="muted small">{{ _('Çizgi film, anime, gerçekçi, kil animasyon ve meme 3D.') }}</p></div></div>
     </div>
     <div class="bx reveal" data-delay="1" data-tilt="3">
-      <div class="bx-viz refund" aria-hidden="true"><div class="rf"><span class="rf-ic">{{ icon('refund', 22) }}</span><b>+65</b><small>kredi iade edildi</small></div></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('refund', 18) }}</span><div><h3>Başarısızsa iade</h3><p class="muted small">Video üretilemezse kredin otomatik olarak geri yüklenir.</p></div></div>
+      <div class="bx-viz refund" aria-hidden="true"><div class="rf"><span class="rf-ic">{{ icon('refund', 22) }}</span><b>+65</b><small>{{ _('kredi iade edildi') }}</small></div></div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('refund', 18) }}</span><div><h3>{{ _('Başarısızsa iade') }}</h3><p class="muted small">{{ _('Video üretilemezse kredin otomatik olarak geri yüklenir.') }}</p></div></div>
     </div>
   </div>
 </div></section>
 
 {% if showcase %}
 <section style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">Keşfet</span><h2>Kullanıcılarımız <span class="hl">ne üretti?</span></h2></div>
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Keşfet') }}</span><h2>{{ _h('Kullanıcılarımız <span class="hl">ne üretti?</span>') }}</h2></div>
   <div class="ggrid">{% for j in showcase %}{% include "_gcard.html" %}{% endfor %}</div>
-  <div class="center reveal" style="margin-top:28px"><a class="btn btn-ghost" href="/kesfet">Tüm videoları gör {{ icon('arrow-right', 16) }}</a></div>
+  <div class="center reveal" style="margin-top:28px"><a class="btn btn-ghost" href="{{ L('/kesfet') }}">{{ _('Tüm videoları gör') }} {{ icon('arrow-right', 16) }}</a></div>
 </div></section>
 {% endif %}
 
 <section id="fiyat" style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">Fiyatlar</span><h2>Kullandığın <span class="hl">kadar</span> öde.</h2><p class="lead">Abonelik yok, gizli ücret yok. 1 kredi = 1 ₺. Video üretilemezse kredin iade.</p></div>
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Fiyatlar') }}</span><h2>{{ _h('Kullandığın <span class="hl">kadar</span> öde.') }}</h2><p class="lead">{{ _('Abonelik yok, gizli ücret yok. 1 kredi = 1 ₺. Video üretilemezse kredin iade.') }}</p></div>
   <div class="plans">
     {% for key, q in qualities.items() %}
     <div class="card plan reveal {{ 'glow-border' if key == 'fast' }}" data-delay="{{ loop.index0 }}" data-tilt="4">
-      {% if key == 'fast' %}<span class="tag">EN POPÜLER</span>{% endif %}
-      <div class="row" style="gap:12px"><span class="icon-box {{ 'accent' if key == 'fast' }}">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[key], 18) }}</span><div><h3>{{ q.label }}</h3><div class="tiny faint">{{ q.desc }}</div></div></div>
-      <div class="price"><b>{{ q.credits }}</b><span>kredi / video</span></div>
-      <ul><li>{{ icon('check', 15) }} 8 saniye · 9:16 · {{ q.resolution }}</li><li>{{ icon('check', 15) }} Sesli ve konuşmalı</li><li>{{ icon('check', 15) }} Başlık + açıklama + hashtag</li></ul>
-      <a class="btn {{ 'btn-primary' if key == 'fast' else 'btn-ghost' }} btn-block" href="{{ start }}" style="margin-top:auto">Başla</a>
+      {% if key == 'fast' %}<span class="tag">{{ _('EN POPÜLER') }}</span>{% endif %}
+      <div class="row" style="gap:12px"><span class="icon-box {{ 'accent' if key == 'fast' }}">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[key], 18) }}</span><div><h3>{{ _(q.label) }}</h3><div class="tiny faint">{{ _(q.desc) }}</div></div></div>
+      <div class="price"><b>{{ q.credits }}</b><span>{{ _('kredi / video') }}</span></div>
+      <ul><li>{{ icon('check', 15) }} {{ _('8 saniye') }} · 9:16 · {{ q.resolution }}</li><li>{{ icon('check', 15) }} {{ _('Sesli ve konuşmalı') }}</li><li>{{ icon('check', 15) }} {{ _('Başlık + açıklama + hashtag') }}</li></ul>
+      <a class="btn {{ 'btn-primary' if key == 'fast' else 'btn-ghost' }} btn-block" href="{{ start }}" style="margin-top:auto">{{ _('Başla') }}</a>
     </div>
     {% endfor %}
   </div>
   <div class="packs">
     {% for tl, cr in packages %}
-    <div class="card pack reveal" data-delay="{{ loop.index0 }}"><div><b>{{ tl }} ₺</b><div class="tiny faint">{{ cr }} kredi</div></div>{% if cr > tl %}<span class="bonus">+%{{ ((cr - tl) * 100 / tl)|round|int }} hediye</span>{% else %}<span class="tiny faint">Başlangıç</span>{% endif %}</div>
+    <div class="card pack reveal" data-delay="{{ loop.index0 }}"><div><b>{{ _('{tl} ₺', tl=tl) }}</b><div class="tiny faint">{{ _('{n} kredi', n=cr) }}</div></div>{% if cr > tl %}<span class="bonus">{{ _('+%{p} hediye', p=((cr - tl) * 100 / tl)|round|int) }}</span>{% else %}<span class="tiny faint">{{ _('Başlangıç') }}</span>{% endif %}</div>
     {% endfor %}
   </div>
   <div class="card calc reveal" data-calc data-packages='{{ packages|tojson }}'>
-    <div class="calc-copy"><span class="eyebrow">Hesapla</span><h3 class="calc-title">Otomatik kanal ayda <span class="hl">ne tutar?</span></h3>
-      <p class="muted small">Günde kaç video istediğini ve kaliteyi seç; maliyeti hemen gör.</p></div>
+    <div class="calc-copy"><span class="eyebrow">{{ _('Hesapla') }}</span><h3 class="calc-title">{{ _h('Otomatik kanal ayda <span class="hl">ne tutar?</span>') }}</h3>
+      <p class="muted small">{{ _('Günde kaç video istediğini ve kaliteyi seç; maliyeti hemen gör.') }}</p></div>
     <div class="calc-ctrl">
-      <label class="label" for="calc-n">Günde <b class="calc-n" data-calc-n>3</b> video</label>
+      <label class="label" for="calc-n">{{ _h('Günde {n} video', n=_h('<b class="calc-n" data-calc-n>3</b>')) }}</label>
       <input id="calc-n" class="range" type="range" min="1" max="10" value="3" data-calc-range>
-      <div class="seg calc-q">{% for k, q in qualities.items() %}<label class="opt"><input type="radio" name="calc-q" value="{{ q.credits }}" {% if k == 'fast' %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ q.label }}</span><span class="code">{{ q.credits }}</span></span></label>{% endfor %}</div>
+      <div class="seg calc-q">{% for k, q in qualities.items() %}<label class="opt"><input type="radio" name="calc-q" value="{{ q.credits }}" {% if k == 'fast' %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ _(q.label) }}</span><span class="code">{{ q.credits }}</span></span></label>{% endfor %}</div>
     </div>
     <div class="calc-out">
-      <div><span class="k">Günlük</span><b><span data-calc-day>195</span> <small>kredi</small></b></div>
-      <div><span class="k">Aylık (30 gün)</span><b><span data-calc-month>5.850</span> <small>₺</small></b></div>
-      <p class="tiny faint" data-calc-hint></p>
+      <div><span class="k">{{ _('Günlük') }}</span><b><span data-calc-day>195</span> <small>{{ _('kredi') }}</small></b></div>
+      <div><span class="k">{{ _('Aylık (30 gün)') }}</span><b><span data-calc-month>5.850</span> <small>₺</small></b></div>
+      <p class="tiny faint" data-calc-hint data-tpl="{{ _('{tl} ₺ paketi ({cr} kredi) bu hızla yaklaşık {days} gün yeter.') }}"></p>
     </div>
   </div>
 </div></section>
 
 <section id="sss" style="padding-top:40px"><div class="wrap narrow">
-  <div class="sec-head reveal"><span class="eyebrow">SSS</span><h2>Sık sorulanlar</h2></div>
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('SSS') }}</span><h2>{{ _('Sık sorulanlar') }}</h2></div>
   <div class="faq">
     {% for q, a in faqs %}
-    <details class="reveal"><summary>{{ q }} {{ icon('chevron-down', 18) }}</summary><p>{{ a }}</p></details>
+    <details class="reveal"><summary>{{ _(q) }} {{ icon('chevron-down', 18) }}</summary><p>{{ _(a) }}</p></details>
     {% endfor %}
   </div>
 </div></section>
 
 <section style="padding-top:20px"><div class="wrap">
   <div class="cta reveal">
-    <span class="eyebrow">Hemen başla</span>
-    <h2>İlk videon <span class="hl">3 dakika</span> uzağında.</h2>
-    <p class="lead" style="max-width:480px">Kaydol, kredini yükle, fikrini yaz. Gerisi bizde.</p>
-    <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz kayıt ol' }} {{ icon('arrow-right', 17) }}</a>
+    <span class="eyebrow">{{ _('Hemen başla') }}</span>
+    <h2>{{ _h('İlk videon <span class="hl">3 dakika</span> uzağında.') }}</h2>
+    <p class="lead" style="max-width:480px">{{ _('Kaydol, kredini yükle, fikrini yaz. Gerisi bizde.') }}</p>
+    <a class="btn btn-primary btn-lg" href="{{ start }}">{{ _('Video üret') if user else _('Ücretsiz kayıt ol') }} {{ icon('arrow-right', 17) }}</a>
   </div>
 </div></section>
 {% endblock %}

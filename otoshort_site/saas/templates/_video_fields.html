@@ -1,46 +1,46 @@
 {# Video ve kanal formlarında ortak alanlar. n0: önceki adım sayısı, ch: düzenlenen kanal (yoksa None) #}
-<div class="step-title"><span class="n">{{ n0 + 1 }}</span><h3>Karakterler</h3><span class="faint">İsteğe bağlı</span></div>
-<textarea class="textarea" name="characters" maxlength="600" placeholder="Örn: Sinirli, kocaman kaşlı bir portakal ve her şeye gülen saf bir muz.">{{ ch.characters if ch else '' }}</textarea>
-<p class="hint" style="margin-top:8px">Görünüşlerini ve kişiliklerini anlat. Boş bırakırsan yapay zekâ karakter uydurur. Ünlüler ve başkasına ait karakterler kullanılamaz.</p>
+<div class="step-title"><span class="n">{{ n0 + 1 }}</span><h3>{{ _('Karakterler') }}</h3><span class="faint">{{ _('İsteğe bağlı') }}</span></div>
+<textarea class="textarea" name="characters" maxlength="600" placeholder="{{ _('Örn: Sinirli, kocaman kaşlı bir portakal ve her şeye gülen saf bir muz.') }}">{{ ch.characters if ch else '' }}</textarea>
+<p class="hint" style="margin-top:8px">{{ _('Görünüşlerini ve kişiliklerini anlat. Boş bırakırsan yapay zekâ karakter uydurur. Ünlüler ve başkasına ait karakterler kullanılamaz.') }}</p>
 <div class="ref-up">
   <label class="ref-drop">
     <input type="file" name="ref" accept="image/png,image/jpeg,image/webp" data-ref-input>
-    <span class="ref-thumb" data-ref-thumb>{% if ch and ch.ref_image %}<img src="/referans/{{ ch.ref_image }}" alt="Referans karakter">{% else %}{{ icon('user', 22) }}{% endif %}</span>
-    <span class="ref-txt"><b>Referans karakter görseli <span class="opt">(isteğe bağlı)</span></b>
-      <small>Maskotunun ya da karakterinin görselini yükle; videolarda hep aynı görünsün. PNG, JPG ya da WEBP · en fazla 6 MB. Kendine ait olmayan karakter ve kişi görselleri yükleme.</small></span>
-    <span class="btn btn-ghost btn-sm">{{ icon('plus', 14) }} {{ 'Değiştir' if ch and ch.ref_image else 'Görsel seç' }}</span>
+    <span class="ref-thumb" data-ref-thumb>{% if ch and ch.ref_image %}<img src="/referans/{{ ch.ref_image }}" alt="{{ _('Referans karakter') }}">{% else %}{{ icon('user', 22) }}{% endif %}</span>
+    <span class="ref-txt"><b>{{ _('Referans karakter görseli') }} <span class="opt">{{ _('(isteğe bağlı)') }}</span></b>
+      <small>{{ _('Maskotunun ya da karakterinin görselini yükle; videolarda hep aynı görünsün. PNG, JPG ya da WEBP · en fazla 6 MB. Kendine ait olmayan karakter ve kişi görselleri yükleme.') }}</small></span>
+    <span class="btn btn-ghost btn-sm">{{ icon('plus', 14) }} {{ _('Değiştir') if ch and ch.ref_image else _('Görsel seç') }}</span>
   </label>
   {% if ch and ch.ref_image %}<input type="hidden" name="ref_keep" value="{{ ch.ref_image }}">
-  <label class="check small" style="margin-top:10px"><input type="checkbox" name="ref_remove" value="1"><span>Görseli kaldır</span></label>{% endif %}
-  {% if ref_qualities|length < qualities|length %}<p class="hint" style="margin-top:8px">{{ icon('info', 13) }} Referans görsel şu kalitelerde kullanılır: {% for k in ref_qualities %}{{ qualities[k].label }}{{ ', ' if not loop.last }}{% endfor %}.</p>{% endif %}
+  <label class="check small" style="margin-top:10px"><input type="checkbox" name="ref_remove" value="1"><span>{{ _('Görseli kaldır') }}</span></label>{% endif %}
+  {% if ref_qualities|length < qualities|length %}<p class="hint" style="margin-top:8px">{{ icon('info', 13) }} {{ _('Referans görsel şu kalitelerde kullanılır:') }} {% for k in ref_qualities %}{{ _(qualities[k].label) }}{{ ', ' if not loop.last }}{% endfor %}.</p>{% endif %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 2 }}</span><h3>Görsel tarz</h3></div>
+<div class="step-title"><span class="n">{{ n0 + 2 }}</span><h3>{{ _('Görsel tarz') }}</h3></div>
 <div class="opts opts-5">
 {% for k, v in styles.items() %}
-  <label class="opt"><input type="radio" name="style" value="{{ k }}" data-label="{{ v }}" {% if (ch and ch.style == k) or (not ch and k == 'cartoon') %}checked{% endif %}>
-    <span class="opt-body"><span class="swatch sw-{{ k }}"></span><span class="opt-title">{{ v }}</span></span></label>
+  <label class="opt"><input type="radio" name="style" value="{{ k }}" data-label="{{ _(v) }}" {% if (ch and ch.style == k) or (not ch and k == 'cartoon') %}checked{% endif %}>
+    <span class="opt-body"><span class="swatch sw-{{ k }}"></span><span class="opt-title">{{ _(v) }}</span></span></label>
 {% endfor %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 3 }}</span><h3>Konuşma dili</h3></div>
+<div class="step-title"><span class="n">{{ n0 + 3 }}</span><h3>{{ _('Konuşma dili') }}</h3></div>
 <div class="seg">
 {% for k, v in languages.items() %}
-  <label class="opt"><input type="radio" name="language" value="{{ k }}" data-label="{{ v }}" {% if (ch and ch.language == k) or (not ch and k == 'tr') %}checked{% endif %}>
+  <label class="opt"><input type="radio" name="language" value="{{ k }}" data-label="{{ v }}" {% if (ch and ch.language == k) or (not ch and k == lang) %}checked{% endif %}>
     <span class="opt-body"><span class="code">{{ k|upper }}</span><span class="opt-title">{{ v }}</span></span></label>
 {% endfor %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 4 }}</span><h3>Kalite</h3></div>
+<div class="step-title"><span class="n">{{ n0 + 4 }}</span><h3>{{ _('Kalite') }}</h3></div>
 <div class="opts opts-3">
 {% for k, q in qualities.items() %}
-  <label class="opt"><input type="radio" name="quality" value="{{ k }}" data-label="{{ q.label }}" data-credits="{{ q.credits }}" {% if (ch and ch.quality == k) or (not ch and k == 'fast') %}checked{% endif %}>
+  <label class="opt"><input type="radio" name="quality" value="{{ k }}" data-label="{{ _(q.label) }}" data-credits="{{ q.credits }}" {% if (ch and ch.quality == k) or (not ch and k == 'fast') %}checked{% endif %}>
     <span class="opt-body"><span class="opt-tick"></span><span class="icon-box">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[k], 17) }}</span>
-      <span class="opt-title">{{ q.label }}</span><span class="opt-sub">{{ q.desc }}</span><span class="opt-price">{{ q.credits }} kredi · {{ q.resolution }}</span></span></label>
+      <span class="opt-title">{{ _(q.label) }}</span><span class="opt-sub">{{ _(q.desc) }}</span><span class="opt-price">{{ _('{n} kredi', n=q.credits) }} · {{ q.resolution }}</span></span></label>
 {% endfor %}
 </div>
 <label class="toggle-row">
   <input type="checkbox" name="subtitles" value="1" {% if ch and ch.subtitles %}checked{% endif %}>
   <span class="tg"></span>
-  <span><b>Altyazı ekle</b><small>Konuşmalar kalın, okunaklı yazıyla videoya basılır; çoğu kişi sessiz izlediği için izlenmeyi artırır. Ücretsiz.</small></span>
+  <span><b>{{ _('Altyazı ekle') }}</b><small>{{ _('Konuşmalar kalın, okunaklı yazıyla videoya basılır; çoğu kişi sessiz izlediği için izlenmeyi artırır. Ücretsiz.') }}</small></span>
 </label>

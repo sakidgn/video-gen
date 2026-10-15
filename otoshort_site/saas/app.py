@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
-from . import config, credits, db, growth, mailer, media, oauth, publisher, secretbox, social, tokens, worker
+from . import config, credits, db, growth, i18n, mailer, media, oauth, publisher, secretbox, social, tokens, worker
 from .icons import LOGO, brand, icon
 from .models import Channel, CreditTx, Job, PromoCode, Publication, SocialAccount, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
@@ -65,6 +65,7 @@ def create_app(*, start_worker: bool | None = None, generator=None, database_url
             resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return resp
 
+    app.add_middleware(i18n.LangMiddleware)  # en dışta: /en/... önekini diğer katmanlardan önce çözer
     app.mount("/static", StaticFiles(directory=str(config.ROOT / "static")), name="static")
     app.state.generator = generator
     _routes(app)
@@ -76,8 +77,9 @@ def create_app(*, start_worker: bool | None = None, generator=None, database_url
 
 # ---------- yardımcılar ----------
 
-def flash(request: Request, msg: str, kind: str = "ok", link: str = "", link_label: str = "") -> None:
-    request.session.setdefault("flash", []).append([kind, msg, link, link_label])
+def flash(request: Request, msg: str, kind: str = "ok", link: str = "", link_label: str = "", **kw) -> None:
+    """Bir sonraki sayfada gösterilecek mesaj; isteğin dilinde saklanır ({ad} yer tutucuları kw ile dolar)."""
+    request.session.setdefault("flash", []).append([kind, i18n.t(msg, **kw), link, i18n.t(link_label)])
 
 
 def site_url(request: Request) -> str:
@@ -96,17 +98,19 @@ def mark_verified(s, user: User) -> None:
 def send_email(request: Request, to: str, subject: str, html: str) -> None:
     name = mailer.send(to, subject, html)
     if name and config.FAKE_AI:  # demo: e-posta gerçekten gitmez, açmak için bağlantı göster
-        flash(request, f"Demo modu: “{subject}” e-postası gerçekten gönderilmedi.", "demo", f"/dev/eposta/{name}",
-              "E-postayı aç")
+        flash(request, "Demo modu: “{subject}” e-postası gerçekten gönderilmedi.", "demo", f"/dev/eposta/{name}",
+              "E-postayı aç", subject=subject)
 
 
 def send_verification(request: Request, uid: int, email: str) -> None:
     url = f"{site_url(request)}/dogrula/{tokens.make_verify(uid, email)}"
-    bonus = f" Doğrulayınca hesabına <b>{config.SIGNUP_BONUS} hediye kredi</b> yüklenecek." if config.SIGNUP_BONUS else ""
-    html = mailer.render("E-postanı doğrula",
-                         f"{config.SITE_NAME}'a hoş geldin! Hesabını kullanmaya başlamak için e-posta adresini doğrula.{bonus}",
-                         ("E-postamı doğrula", url), "Bağlantı 3 gün geçerli. Bu kaydı sen yapmadıysan bu e-postayı yok say.")
-    send_email(request, email, f"{config.SITE_NAME}: e-postanı doğrula", html)
+    t = i18n.t
+    bonus = " " + t("Doğrulayınca hesabına <b>{n} hediye kredi</b> yüklenecek.", n=config.SIGNUP_BONUS) if config.SIGNUP_BONUS else ""
+    html = mailer.render(t("E-postanı doğrula"),
+                         t("{site}'a hoş geldin! Hesabını kullanmaya başlamak için e-posta adresini doğrula.",
+                           site=config.SITE_NAME) + bonus,
+                         (t("E-postamı doğrula"), url), t("Bağlantı 3 gün geçerli. Bu kaydı sen yapmadıysan bu e-postayı yok say."))
+    send_email(request, email, t("{site}: e-postanı doğrula", site=config.SITE_NAME), html)
 
 
 def remember_ref(request: Request, code: str) -> bool:
@@ -154,6 +158,15 @@ def _active(path: str) -> str:
 
 def render(request: Request, name: str, user: User | None = None, status_code: int = 200, **ctx):
     ctx.setdefault("active", _active(request.url.path))
+    lang = i18n.current()
+    path = request.url.path
+    public = path in PUBLIC_PAGES
+    ctx.update(
+        lang=lang, langs=i18n.LANGS, path=path, public_page=public,
+        canonical=site_url(request) + i18n.localized_path(path, lang, tuple(PUBLIC_PAGES)),
+        suggest_en=(public and lang != "en" and not request.state.lang_cookie
+                    and i18n.wants_english(request.headers.get("accept-language", ""))),
+    )
     ctx.update(
         request=request, user=user, site=config.SITE_NAME, csrf=csrf_token(request.session),
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
@@ -207,11 +220,14 @@ def local_time(dt: datetime | None) -> str:
         from datetime import timezone
 
         dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(ZoneInfo(config.TIMEZONE)).strftime("%d.%m.%Y %H:%M")
+    return dt.astimezone(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d %H:%M" if i18n.current() == "en" else "%d.%m.%Y %H:%M")
 
 
 templates.env.filters["tarih"] = local_time
-templates.env.filters["slot"] = lambda slot: (f"{slot[5:21]} · elle" if slot.startswith("elle ") else slot) if slot else ""
+templates.env.filters["slot"] = lambda slot: (f"{slot[5:21]} · {i18n.t('elle')}" if slot.startswith("elle ") else slot) if slot else ""
+templates.env.globals["_"] = i18n.t
+templates.env.globals["_h"] = i18n.th
+templates.env.globals["_db"] = i18n.t_db
 STATUS_LABELS = {"sirada": "Sırada", "uretiliyor": "Üretiliyor", "hazir": "Hazır", "hata": "Hata"}
 templates.env.globals["status_labels"] = STATUS_LABELS
 templates.env.globals["icon"] = icon
@@ -232,6 +248,20 @@ templates.env.globals["v"] = _asset_version()
 templates.env.globals["LOGO"] = LOGO
 STATUS_BADGE = {"sirada": "b-wait", "uretiliyor": "b-wait", "hazir": "b-ok", "hata": "b-err"}
 templates.env.globals["status_badge"] = STATUS_BADGE
+templates.env.globals["L"] = lambda path: i18n.localized_path(path, public=tuple(PUBLIC_PAGES))
+
+
+def static_for_lang(path: str) -> str:
+    """/static/hero/hero.mp4 → dil İngilizceyse ve dosyası varsa /static/hero/hero-en.mp4 (yoksa Türkçesi)."""
+    if i18n.current() == "en":
+        stem, dot, ext = path.rpartition(".")
+        alt = f"{stem}-en{dot}{ext}"
+        if (config.ROOT / alt.removeprefix("/")).exists():
+            return alt
+    return path
+
+
+templates.env.globals["S"] = static_for_lang
 
 
 def _valid_choice(value: str, options: dict, default: str) -> str:
@@ -244,7 +274,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request, ref: str = ""):
         remember_ref(request, ref)
-        faqs_ld = [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQS]
+        faqs_ld = [{"@type": "Question", "name": i18n.t(q), "acceptedAnswer": {"@type": "Answer", "text": i18n.t(a)}}
+                   for q, a in FAQS]
         with db.session() as s:
             showcase = s.scalars(_public_q().order_by(Job.featured.desc(), Job.public_at.desc()).limit(8)).all()
         return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase)
@@ -305,14 +336,21 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def robots(request: Request):
         private = ["/panel", "/video", "/videolar", "/kanallar", "/kredi", "/hesap", "/admin", "/dev", "/auth",
                    "/dogrula", "/sifre-yenile", "/api", "/baglantilar", "/baglan", "/yayin", "/davet", "/d/"]
-        lines = ["User-agent: *", *(f"Disallow: {p}" for p in private), f"Sitemap: {site_url(request)}/sitemap.xml"]
+        lines = ["User-agent: *", *(f"Disallow: {pre}{p}" for pre in ("", "/en") for p in private),
+                 f"Sitemap: {site_url(request)}/sitemap.xml"]
         return "\n".join(lines) + "\n"
 
     @app.get("/sitemap.xml")
     def sitemap(request: Request):
         base = site_url(request)
-        urls = "".join(f"<url><loc>{base}{p}</loc></url>" for p in PUBLIC_PAGES)
-        xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+        def alts(p):
+            return "".join(f'<xhtml:link rel="alternate" hreflang="{lg}" href="{base}{i18n.localized_path(p, lg, (p,))}"/>'
+                           for lg in i18n.LANGS)
+
+        urls = "".join(f"<url><loc>{base}{i18n.localized_path(p, lg, (p,))}</loc>{alts(p)}</url>"
+                       for p in PUBLIC_PAGES for lg in i18n.LANGS)
+        xml = ('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+               f'xmlns:xhtml="http://www.w3.org/1999/xhtml">{urls}</urlset>')
         return Response(xml, media_type="application/xml")
 
     @app.get("/favicon.ico", include_in_schema=False)
@@ -323,14 +361,29 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.get("/manifest.webmanifest")
     def manifest():
         return JSONResponse({
-            "name": config.SITE_NAME, "short_name": config.SITE_NAME, "lang": "tr", "start_url": "/panel",
+            "name": config.SITE_NAME, "short_name": config.SITE_NAME, "lang": i18n.current(), "start_url": "/panel",
             "display": "standalone", "background_color": "#0c0b0a", "theme_color": "#0c0b0a",
-            "description": "Yapay zekâ ile sesli, dikey kısa videolar üret.",
+            "description": i18n.t("Yapay zekâ ile sesli, dikey kısa videolar üret."),
             "icons": [{"src": f"/static/icons/icon-{n}.png", "sizes": f"{n}x{n}", "type": "image/png", "purpose": "any"}
                       for n in (192, 512)] +
                      [{"src": "/static/icons/maskable-512.png", "sizes": "512x512", "type": "image/png",
                        "purpose": "maskable"}],
         }, media_type="application/manifest+json")
+
+    @app.get("/dil/{code}")
+    def set_language(request: Request, code: str, next: str = "/"):
+        """Dil seçici: çerezi yazar, girişliyse hesaba kaydeder (e-postalar da o dilde gider), aynı sayfaya döner."""
+        code = i18n.norm(code)
+        path = next if next.startswith("/") and not next.startswith("//") and "\\" not in next else "/"
+        path = i18n.localized_path(i18n.strip_prefix(path), code, tuple(PUBLIC_PAGES))
+        resp = go(path)
+        resp.set_cookie(i18n.COOKIE, code, max_age=i18n.COOKIE_AGE, samesite="lax",
+                        secure=config.SITE_URL.startswith("https://"))
+        if uid := request.session.get("uid"):
+            with db.session() as s:
+                if u := s.get(User, uid):
+                    u.lang = code
+        return resp
 
     @app.get("/yasal/{page}", response_class=HTMLResponse)
     def legal(request: Request, page: str):
@@ -369,7 +422,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 flash(request, "Bu e-posta ile zaten bir hesap var. Giriş yap.", "err")
                 return go("/giris")
             user = User(email=email, name=clean(name, 100), pw_hash=hash_password(password),
-                        is_admin=email in config.ADMIN_EMAILS, email_verified=False)
+                        is_admin=email in config.ADMIN_EMAILS, email_verified=False, lang=i18n.current())
             s.add(user)
             s.flush()
             growth.attach_referrer(s, user, request.session.get("ref"))
@@ -401,9 +454,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         if not user or not check_password(password, user.pw_hash):
             flash(request, "E-posta ya da şifre yanlış.", "err")
             return go("/giris")
-        request.session.clear()
-        request.session["uid"] = user.id
-        return go("/panel")
+        return _login_as(request, user.id)
 
     # --- Google ile giriş ---
     def _google_redirect_uri(request: Request) -> str:
@@ -412,9 +463,19 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return str(request.url_for("google_callback"))
 
     def _login_as(request: Request, uid: int):
+        """Oturumu açar. Dil: tarayıcıda seçilmişse hesaba yazılır, seçilmemişse hesabın dili kullanılır."""
         request.session.clear()
         request.session["uid"] = uid
-        return go("/panel")
+        resp = go("/panel")
+        chosen = request.state.lang_cookie
+        with db.session() as s:
+            u = s.get(User, uid)
+            if chosen in i18n.LANGS:
+                u.lang = chosen
+            elif u.lang != i18n.current():
+                resp.set_cookie(i18n.COOKIE, i18n.norm(u.lang), max_age=i18n.COOKIE_AGE, samesite="lax",
+                                secure=config.SITE_URL.startswith("https://"))
+        return resp
 
     @app.get("/auth/google")
     def google_start(request: Request):
@@ -479,7 +540,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 flash(request, "Bu hesap zaten var, giriş yap.", "err")
                 return go("/giris")
             user = User(email=prof["email"], name=prof["name"], pw_hash="", google_sub=prof["sub"],
-                        is_admin=prof["email"] in config.ADMIN_EMAILS, email_verified=True)
+                        is_admin=prof["email"] in config.ADMIN_EMAILS, email_verified=True, lang=i18n.current())
             s.add(user)
             s.flush()
             growth.attach_referrer(s, user, request.session.get("ref"))
@@ -509,8 +570,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             mark_verified(s, user)
             uid = user.id
         request.session["uid"] = uid
-        flash(request, "E-posta adresin zaten doğrulanmış." if already else
-              "E-posta adresin doğrulandı! 🎉" + (f" {config.SIGNUP_BONUS} hediye kredin yüklendi." if config.SIGNUP_BONUS else ""))
+        if already:
+            flash(request, "E-posta adresin zaten doğrulanmış.")
+        elif config.SIGNUP_BONUS:
+            flash(request, "E-posta adresin doğrulandı! 🎉 {n} hediye kredin yüklendi.", n=config.SIGNUP_BONUS)
+        else:
+            flash(request, "E-posta adresin doğrulandı! 🎉")
         return go("/panel")
 
     @app.post("/dogrula/tekrar", dependencies=[Depends(check_csrf)])
@@ -521,7 +586,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             flash(request, "Çok fazla istek. Birkaç dakika sonra tekrar dene.", "err")
             return go("/panel")
         send_verification(request, user.id, user.email)
-        flash(request, f"Doğrulama bağlantısını tekrar gönderdik: {user.email}")
+        flash(request, "Doğrulama bağlantısını tekrar gönderdik: {email}", email=user.email)
         return go("/panel")
 
     # --- şifremi unuttum ---
@@ -540,11 +605,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             user = s.scalar(select(User).where(User.email == email))
         if user:
             url = f"{site_url(request)}/sifre-yenile/{tokens.make_reset(user.id, user.pw_hash)}"
-            html = mailer.render("Şifreni yenile", "Hesabın için şifre sıfırlama isteği aldık. Yeni şifreni belirlemek için "
-                                 "aşağıdaki butona tıkla.", ("Yeni şifre belirle", url),
-                                 "Bağlantı 1 saat geçerli ve tek kullanımlık. Bu isteği sen yapmadıysan bu e-postayı yok say; "
-                                 "şifren değişmez.")
-            send_email(request, user.email, f"{config.SITE_NAME}: şifre sıfırlama", html)
+            t = i18n.t
+            html = mailer.render(t("Şifreni yenile"), t("Hesabın için şifre sıfırlama isteği aldık. Yeni şifreni belirlemek "
+                                                       "için aşağıdaki butona tıkla."), (t("Yeni şifre belirle"), url),
+                                 t("Bağlantı 1 saat geçerli ve tek kullanımlık. Bu isteği sen yapmadıysan bu e-postayı "
+                                   "yok say; şifren değişmez."))
+            send_email(request, user.email, t("{site}: şifre sıfırlama", site=config.SITE_NAME), html)
         # hesap olsa da olmasa da aynı mesaj (e-posta tahmini yapılamasın)
         flash(request, "Bu e-postayla bir hesap varsa şifre sıfırlama bağlantısı gönderdik. Gelen kutunu kontrol et.")
         return go("/giris")
@@ -644,7 +710,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                     subtitles=bool(subtitles))
                 job_id = job.id
         except credits.NotEnoughCredits:
-            flash(request, f"Yeterli kredin yok. Bu kalite {config.QUALITIES[quality]['credits']} kredi.", "err")
+            flash(request, "Yeterli kredin yok. Bu kalite {n} kredi.", "err", n=config.QUALITIES[quality]["credits"])
             return go("/kredi")
         return go(f"/video/{job_id}")
 
@@ -714,7 +780,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
         except credits.NotEnoughCredits:
-            flash(request, f"Yeterli kredin yok. Bu kalite {config.QUALITIES[params['quality']]['credits']} kredi.", "err")
+            flash(request, "Yeterli kredin yok. Bu kalite {n} kredi.", "err", n=config.QUALITIES[params["quality"]]["credits"])
             return go("/kredi")
         return go(f"/video/{new_id}")
 
@@ -724,7 +790,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def ideas_api(request: Request, user: User = Depends(require_user), topic: str = Form(""),
                   language: str = Form("tr")):
         if not idea_limiter.allow(f"i:{user.id}"):
-            return JSONResponse({"error": "Çok fazla fikir istedin, birkaç dakika sonra tekrar dene."}, status_code=429)
+            return JSONResponse({"error": i18n.t("Çok fazla fikir istedin, birkaç dakika sonra tekrar dene.")},
+                                status_code=429)
         with db.session() as s:
             past = [t for t in s.scalars(select(Job.title).where(Job.user_id == user.id, Job.title != "")
                                          .order_by(Job.id.desc()).limit(20)) if t]
@@ -737,7 +804,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                               past=past)
         except Exception:
             log.exception("Fikir üretilemedi")
-            return JSONResponse({"error": "Şu an fikir üretilemedi, biraz sonra tekrar dene."}, status_code=503)
+            return JSONResponse({"error": i18n.t("Şu an fikir üretilemedi, biraz sonra tekrar dene.")}, status_code=503)
         return {"ideas": [clean(i, 200) for i in ideas][:4]}
 
     @app.get("/referans/{uid}/{name}")
@@ -752,7 +819,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         with db.session() as s:
             job = _own_job(s, user, job_id)
         stage = f"{job.status}:{bool(job.prompt)}"
-        return JSONResponse({"status": job.status, "label": STATUS_LABELS.get(job.status, job.status), "stage": stage})
+        return JSONResponse({"status": job.status, "label": i18n.t(STATUS_LABELS.get(job.status, job.status)),
+                             "stage": stage})
 
     @app.get("/video/{job_id}/dosya")
     def job_file(job_id: int, indir: int = 0, ham: int = 0, user: User = Depends(require_user)):
@@ -843,7 +911,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def _channel_from_form(form) -> dict:
         times = [t for t in str(form.get("times", "")).replace(",", " ").split() if TIME_RE.match(t)]
         return dict(
-            name=clean(form.get("name", ""), 100) or "Kanalım",
+            name=clean(form.get("name", ""), 100) or i18n.t("Kanalım"),
             characters=clean(form.get("characters", "")), topic=clean(form.get("topic", "")),
             style=_valid_choice(form.get("style", ""), config.STYLES, "cartoon"),
             language=_valid_choice(form.get("language", ""), config.LANGUAGES, "tr"),
@@ -975,7 +1043,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             row.name, row.remote_id = acc.name[:120], acc.remote_id[:120]
             row.access_enc, row.refresh_enc = secretbox.seal(acc.access), secretbox.seal(acc.refresh)
             row.expires_at = now() + timedelta(seconds=acc.expires_in) if acc.expires_in else None
-        flash(request, f"{social.PLATFORMS[platform]['label']} bağlandı: {acc.name} ✅")
+        flash(request, "{platform} bağlandı: {name} ✅", platform=i18n.t(social.PLATFORMS[platform]["label"]), name=acc.name)
         return go("/baglantilar")
 
     @app.post("/baglanti/{platform}/kaldir", dependencies=[Depends(check_csrf)])
@@ -1074,7 +1142,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         except growth.PromoError as e:
             flash(request, str(e), "err")
             return go("/kredi")
-        flash(request, f"Kod kabul edildi, hesabına {amount} kredi yüklendi. 🎉")
+        flash(request, "Kod kabul edildi, hesabına {n} kredi yüklendi. 🎉", n=amount)
         return go("/kredi")
 
     # --- davet ---
@@ -1228,13 +1296,13 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 referrer = growth.reward_referral(s, t.user_id)
             uid, amount_tl, cr = t.user_id, t.amount_tl, t.credits
         if action == "onayla":
-            worker.notify(uid, f"{config.SITE_NAME}: kredin yüklendi 💎", "Kredin yüklendi!",
-                          f"{amount_tl} ₺ havalen onaylandı ve hesabına <b>{cr} kredi</b> yüklendi. Üretmeye başlayabilirsin.",
-                          ("Video üret", f"{site_url(request)}/video/yeni"))
+            worker.notify(uid, "{site}: kredin yüklendi 💎", "Kredin yüklendi!",
+                          "{tl} ₺ havalen onaylandı ve hesabına <b>{n} kredi</b> yüklendi. Üretmeye başlayabilirsin.",
+                          ("Video üret", f"{site_url(request)}/video/yeni"), tl=amount_tl, n=cr)
         if referrer and config.REFERRAL_BONUS:
-            worker.notify(referrer, f"{config.SITE_NAME}: davet ödülün geldi 🎁", "Davet ödülün yüklendi!",
-                          f"Davet ettiğin bir arkadaşın ilk kredisini yükledi; hesabına <b>{config.REFERRAL_BONUS} kredi</b> "
-                          "hediye edildi. Teşekkürler!", ("Davet sayfam", f"{site_url(request)}/davet"))
+            worker.notify(referrer, "{site}: davet ödülün geldi 🎁", "Davet ödülün yüklendi!",
+                          "Davet ettiğin bir arkadaşın ilk kredisini yükledi; hesabına <b>{n} kredi</b> hediye edildi. "
+                          "Teşekkürler!", ("Davet sayfam", f"{site_url(request)}/davet"), n=config.REFERRAL_BONUS)
         flash(request, "Yükleme onaylandı, kredi eklendi." if action == "onayla" else "Bildirim reddedildi.")
         return go("/admin")
 
@@ -1259,11 +1327,11 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return RedirectResponse(exc.headers["Location"], status_code=303)
         if exc.status_code == 404:
             return render(request, "hata.html", current_user(request), status_code=404,
-                          title="Sayfa bulunamadı", message="Aradığın sayfa yok ya da sana ait değil.")
+                          title=i18n.t("Sayfa bulunamadı"), message=i18n.t("Aradığın sayfa yok ya da sana ait değil."))
         return render(request, "hata.html", current_user(request), status_code=exc.status_code,
-                      title="Bir sorun oldu", message=str(exc.detail))
+                      title=i18n.t("Bir sorun oldu"), message=i18n.t(str(exc.detail)))
 
     @app.exception_handler(404)
     async def not_found(request: Request, exc):
         return render(request, "hata.html", current_user(request), status_code=404,
-                      title="Sayfa bulunamadı", message="Aradığın sayfa yok ya da sana ait değil.")
+                      title=i18n.t("Sayfa bulunamadı"), message=i18n.t("Aradığın sayfa yok ya da sana ait değil."))

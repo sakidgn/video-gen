@@ -1,29 +1,29 @@
 {% extends "app_base.html" %}
-{% block title %}{{ ch.name if ch else 'Yeni kanal' }} · {{ site }}{% endblock %}
+{% block title %}{{ ch.name if ch else _('Yeni kanal') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><a class="faint small row" href="/kanallar" style="gap:6px">{{ icon('arrow-left', 15) }} Kanallar</a><h1>{{ ch.name if ch else 'Yeni otomatik kanal' }}</h1></div>
-  {% if ch %}<span class="badge {{ 'b-ok' if ch.active else 'b-off' }}">{{ 'Aktif' if ch.active else 'Durduruldu' }}</span>{% endif %}
+  <div class="t"><a class="faint small row" href="/kanallar" style="gap:6px">{{ icon('arrow-left', 15) }} {{ _('Kanallar') }}</a><h1>{{ ch.name if ch else _('Yeni otomatik kanal') }}</h1></div>
+  {% if ch %}<span class="badge {{ 'b-ok' if ch.active else 'b-off' }}">{{ _('Aktif') if ch.active else _('Durduruldu') }}</span>{% endif %}
 </div>
 <form method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}" enctype="multipart/form-data" data-studio data-balance="{{ user.credits }}">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="studio">
     <div class="card card-lg reveal">
       {% set n0 = 2 %}
-      <div class="step-title"><span class="n">1</span><h3>Kanal adı</h3></div>
-      <input class="input" name="name" maxlength="100" required value="{{ ch.name if ch else '' }}" placeholder="Örn: Komik Meyveler">
-      <div class="step-title"><span class="n">2</span><h3>Konu ve tema</h3></div>
-      <textarea class="textarea" name="topic" maxlength="600" placeholder="Örn: Konuşan meyveler gündelik hayatta saçma olaylar yaşar. Her video farklı bir mekânda geçsin.">{{ ch.topic if ch else '' }}</textarea>
+      <div class="step-title"><span class="n">1</span><h3>{{ _('Kanal adı') }}</h3></div>
+      <input class="input" name="name" maxlength="100" required value="{{ ch.name if ch else '' }}" placeholder="{{ _('Örn: Komik Meyveler') }}">
+      <div class="step-title"><span class="n">2</span><h3>{{ _('Konu ve tema') }}</h3></div>
+      <textarea class="textarea" name="topic" maxlength="600" placeholder="{{ _('Örn: Konuşan meyveler gündelik hayatta saçma olaylar yaşar. Her video farklı bir mekânda geçsin.') }}">{{ ch.topic if ch else '' }}</textarea>
       <div class="ideas">
-        {% for i in ['Konuşan meyveler gündelik hayatta saçma olaylar yaşar','Bir kedi her gün yeni bir meslek dener','Ofiste çalışan robotun komik günlüğü','Dinozorlar modern şehirde yaşamaya çalışıyor'] %}
+        {% for i in [_('Konuşan meyveler gündelik hayatta saçma olaylar yaşar'),_('Bir kedi her gün yeni bir meslek dener'),_('Ofiste çalışan robotun komik günlüğü'),_('Dinozorlar modern şehirde yaşamaya çalışıyor')] %}
         <button type="button" data-idea="{{ i }}">{{ icon('sparkles', 13) }} {{ i }}</button>{% endfor %}
       </div>
       {% include "_video_fields.html" %}
-      <div class="step-title"><span class="n">7</span><h3>Video saatleri</h3><span class="faint">Türkiye saati</span></div>
+      <div class="step-title"><span class="n">7</span><h3>{{ _('Video saatleri') }}</h3><span class="faint">{{ _('Türkiye saati') }}</span></div>
       <input class="input mono" name="times" value="{{ ch.times if ch else '12:00 19:00' }}" placeholder="09:45 13:00 18:30">
       <div class="times">{% for t in ['08:00','09:45','12:00','13:00','15:45','18:30','19:00','21:15','22:30'] %}<button type="button" data-time="{{ t }}">{{ t }}</button>{% endfor %}</div>
-      <p class="hint" style="margin-top:8px">Her saat günde 1 video demek. Listeden seç ya da kendin yaz (SS:DD, aralarında boşluk).</p>
-      <div class="step-title"><span class="n">8</span><h3>Otomatik paylaşım</h3><span class="faint">isteğe bağlı</span></div>
+      <p class="hint" style="margin-top:8px">{{ _('Her saat günde 1 video demek. Listeden seç ya da kendin yaz (SS:DD, aralarında boşluk).') }}</p>
+      <div class="step-title"><span class="n">8</span><h3>{{ _('Otomatik paylaşım') }}</h3><span class="faint">{{ _('isteğe bağlı') }}</span></div>
       {% set chosen = (ch.publish_to if ch else '').split() %}
       <div class="pub-pick">
         {% for p, meta in platforms.items() %}
@@ -31,40 +31,40 @@
         <label class="pub-opt"><input type="checkbox" name="pub_{{ p }}" value="1" {% if p in chosen %}checked{% endif %}>
           <span class="plat-logo sm plat-{{ p }}">{{ brand(meta.icon, 15) }}</span><span><b>{{ meta.short }}</b><small>{{ linked[p] }}</small></span><span class="tick">{{ icon('check', 14) }}</span></label>
         {% else %}
-        <a class="pub-opt off" href="/baglantilar"><span class="plat-logo sm plat-{{ p }}">{{ brand(meta.icon, 15) }}</span><span><b>{{ meta.short }}</b><small>Bağlı değil · bağla</small></span>{{ icon('arrow-right', 14) }}</a>
+        <a class="pub-opt off" href="/baglantilar"><span class="plat-logo sm plat-{{ p }}">{{ brand(meta.icon, 15) }}</span><span><b>{{ meta.short }}</b><small>{{ _('Bağlı değil · bağla') }}</small></span>{{ icon('arrow-right', 14) }}</a>
         {% endif %}
         {% endfor %}
       </div>
-      <p class="hint" style="margin-top:8px">Seçtiğin platformlara her video hazır olur olmaz başlığı ve hashtag'leriyle yüklenir.</p>
+      <p class="hint" style="margin-top:8px">{{ _("Seçtiğin platformlara her video hazır olur olmaz başlığı ve hashtag'leriyle yüklenir.") }}</p>
     </div>
     <aside class="aside reveal" data-delay="1">
       {% include "_preview.html" %}
       <div class="card summary">
-        <div class="line"><span>Tarz</span><b id="pv-style">–</b></div>
-        <div class="line"><span>Dil</span><b id="pv-lang">–</b></div>
-        <div class="line"><span>Kalite</span><b id="pv-quality">–</b></div>
-        <div class="line"><span>Video başı</span><b><span id="pv-cost" class="mono">–</span> kredi</b></div>
-        <div class="total" style="display:block"><span class="muted small">Günlük harcama</span><div id="pv-per" style="font-weight:500;margin-top:4px">–</div></div>
-        <button class="btn btn-accent btn-lg btn-block" type="submit">{{ icon('check', 17) }} {{ 'Kaydet' if ch else 'Kanalı oluştur' }}</button>
-        <p class="hint center">Kredin bitince kanal kendiliğinden durur.</p>
+        <div class="line"><span>{{ _('Tarz') }}</span><b id="pv-style">–</b></div>
+        <div class="line"><span>{{ _('Dil') }}</span><b id="pv-lang">–</b></div>
+        <div class="line"><span>{{ _('Kalite') }}</span><b id="pv-quality">–</b></div>
+        <div class="line"><span>{{ _('Video başı') }}</span><b><span id="pv-cost" class="mono">–</span> {{ _('kredi') }}</b></div>
+        <div class="total" style="display:block"><span class="muted small">{{ _('Günlük harcama') }}</span><div id="pv-per" style="font-weight:500;margin-top:4px" data-tpl="{{ _('{n} video × {c} = {total} kredi / gün') }}">–</div></div>
+        <button class="btn btn-accent btn-lg btn-block" type="submit">{{ icon('check', 17) }} {{ _('Kaydet') if ch else _('Kanalı oluştur') }}</button>
+        <p class="hint center">{{ _('Kredin bitince kanal kendiliğinden durur.') }}</p>
       </div>
     </aside>
   </div>
 </form>
 {% if ch %}
-<div class="row between" style="margin:44px 0 16px"><h2 style="font-size:calc(28px * var(--fs))">Bu kanalın videoları</h2>
-  <form method="post" action="/kanallar/{{ ch.id }}/simdi" data-confirm="Şimdi bir video üretilsin mi? {{ qualities[ch.quality].credits }} kredi düşecek."><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('zap', 14) }} Şimdi bir video üret</button></form></div>
+<div class="row between" style="margin:44px 0 16px"><h2 style="font-size:calc(28px * var(--fs))">{{ _('Bu kanalın videoları') }}</h2>
+  <form method="post" action="/kanallar/{{ ch.id }}/simdi" data-confirm="{{ _('Şimdi bir video üretilsin mi? {n} kredi düşecek.', n=qualities[ch.quality].credits) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('zap', 14) }} {{ _('Şimdi bir video üret') }}</button></form></div>
 {% if jobs %}
 <div class="vgrid">{% for j in jobs %}
   <a class="vcard" href="/video/{{ j.id }}"><div class="thumb">
     {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" data-hide-broken><span class="play">{{ icon('play', 18) }}</span>
-    {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}Üretilemedi</div>{% else %}<div class="state"><span class="ring"></span>Üretiliyor…</div>{% endif %}</div>
-  <div class="vmeta"><b>{{ j.title or 'Video' }}</b><div class="row"><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span><span class="tiny faint mono">{{ j.slot|slot }}</span></div></div></a>
+    {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}{{ _('Üretilemedi') }}</div>{% else %}<div class="state"><span class="ring"></span>{{ _('Üretiliyor…') }}</div>{% endif %}</div>
+  <div class="vmeta"><b>{{ j.title or _('Video') }}</b><div class="row"><span class="badge {{ status_badge[j.status] }}">{{ _(status_labels[j.status]) }}</span><span class="tiny faint mono">{{ j.slot|slot }}</span></div></div></a>
 {% endfor %}</div>
-{% else %}<div class="card empty"><span class="icon-box">{{ icon('clock', 22) }}</span><p>Henüz video yok. İlk video bir sonraki saatte üretilecek.</p></div>{% endif %}
+{% else %}<div class="card empty"><span class="icon-box">{{ icon('clock', 22) }}</span><p>{{ _('Henüz video yok. İlk video bir sonraki saatte üretilecek.') }}</p></div>{% endif %}
 <div class="card" style="margin-top:44px;border-color:rgba(248,113,113,.2)"><div class="row between">
-  <div><h3>Kanalı sil</h3><p class="small faint">Kanal silinir; üretilmiş videoların panelinde kalır.</p></div>
-  <form method="post" action="/kanallar/{{ ch.id }}/sil" data-confirm="Kanal silinsin mi? Üretilmiş videolar silinmez."><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">{{ icon('trash', 14) }} Kanalı sil</button></form>
+  <div><h3>{{ _('Kanalı sil') }}</h3><p class="small faint">{{ _('Kanal silinir; üretilmiş videoların panelinde kalır.') }}</p></div>
+  <form method="post" action="/kanallar/{{ ch.id }}/sil" data-confirm="{{ _('Kanal silinsin mi? Üretilmiş videolar silinmez.') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">{{ icon('trash', 14) }} {{ _('Kanalı sil') }}</button></form>
 </div></div>
 {% endif %}
 {% endblock %}

@@ -1,40 +1,40 @@
 {% extends "app_base.html" %}
-{% block title %}Davet et · {{ site }}{% endblock %}
+{% block title %}{{ _('Davet et') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><span class="eyebrow">Davet</span><h1>Arkadaşını getir, <span class="hl">kredi kazan.</span></h1>
-    <p class="muted">Davet ettiğin biri ilk kredisini yüklediğinde sana <b>{{ ref_bonus }}</b>, ona <b>{{ friend_bonus }}</b> kredi hediye.</p></div>
+  <div class="t"><span class="eyebrow">{{ _('Davet') }}</span><h1>{{ _h('Arkadaşını getir, <span class="hl">kredi kazan.</span>') }}</h1>
+    <p class="muted">{{ _h('Davet ettiğin biri ilk kredisini yüklediğinde sana <b>{a}</b>, ona <b>{b}</b> kredi hediye.', a=ref_bonus, b=friend_bonus) }}</p></div>
 </div>
 <div class="grid" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start" id="davet-grid">
   <div class="card card-lg reveal">
-    <div class="card-head"><h3>{{ icon('gift', 18) }} Davet bağlantın</h3><span class="code">{{ code }}</span></div>
-    <div class="copy-box"><span id="inv-link">{{ link }}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="inv-link" data-label="Kopyalandı">{{ icon('copy', 14) }} Kopyala</button></div>
-    {% set msg = 'Yapay zekâ ile TikTok/Reels/Shorts videoları üretiyorum, sen de dene: ' ~ link %}
+    <div class="card-head"><h3>{{ icon('gift', 18) }} {{ _('Davet bağlantın') }}</h3><span class="code">{{ code }}</span></div>
+    <div class="copy-box"><span id="inv-link">{{ link }}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="inv-link" data-label="{{ _('Kopyalandı') }}">{{ icon('copy', 14) }} {{ _('Kopyala') }}</button></div>
+    {% set msg = _('Yapay zekâ ile TikTok/Reels/Shorts videoları üretiyorum, sen de dene: {link}', link=link) %}
     <div class="row" style="margin-top:18px">
-      <button type="button" class="btn btn-primary" data-share-url="{{ link }}" data-share-text="{{ msg }}">{{ icon('share', 16) }} Paylaş</button>
-      <a class="btn btn-ghost" href="https://wa.me/?text={{ msg|urlencode }}" target="_blank" rel="noopener">WhatsApp'ta gönder</a>
+      <button type="button" class="btn btn-primary" data-share-url="{{ link }}" data-share-text="{{ msg }}" data-copied="{{ _('Bağlantı kopyalandı') }}">{{ icon('share', 16) }} {{ _('Paylaş') }}</button>
+      <a class="btn btn-ghost" href="https://wa.me/?text={{ msg|urlencode }}" target="_blank" rel="noopener">{{ _("WhatsApp'ta gönder") }}</a>
     </div>
     <div class="steps3">
-      {% for n, t, d in [('1','Bağlantını paylaş','Arkadaşına, grubuna ya da profiline koy.'),('2','Arkadaşın kaydolur','Bağlantıyla gelip hesabını açar.'),('3','İkiniz de kazanırsınız','İlk kredisi onaylanınca sana ' ~ ref_bonus ~ ', ona ' ~ friend_bonus ~ ' kredi.')] %}
+      {% for n, t, d in [('1',_('Bağlantını paylaş'),_('Arkadaşına, grubuna ya da profiline koy.')),('2',_('Arkadaşın kaydolur'),_('Bağlantıyla gelip hesabını açar.')),('3',_('İkiniz de kazanırsınız'),_('İlk kredisi onaylanınca sana {a}, ona {b} kredi.', a=ref_bonus, b=friend_bonus))] %}
       <div class="s3"><span class="n">{{ n }}</span><div><b>{{ t }}</b><p class="small muted">{{ d }}</p></div></div>
       {% endfor %}
     </div>
   </div>
   <div class="stack" style="gap:16px">
     <div class="card reveal" data-delay="1">
-      <div class="card-head"><h3>{{ icon('users', 18) }} Davetlerin</h3></div>
+      <div class="card-head"><h3>{{ icon('users', 18) }} {{ _('Davetlerin') }}</h3></div>
       <div class="kpis">
-        <div><span class="v" data-count="{{ stats.invited }}">{{ stats.invited }}</span><span class="k">Kayıt olan</span></div>
-        <div><span class="v" data-count="{{ stats.rewarded }}">{{ stats.rewarded }}</span><span class="k">Kredi yükleyen</span></div>
-        <div><span class="v" data-count="{{ stats.earned }}">{{ stats.earned }}</span><span class="k">Kazandığın kredi</span></div>
+        <div><span class="v" data-count="{{ stats.invited }}">{{ stats.invited }}</span><span class="k">{{ _('Kayıt olan') }}</span></div>
+        <div><span class="v" data-count="{{ stats.rewarded }}">{{ stats.rewarded }}</span><span class="k">{{ _('Kredi yükleyen') }}</span></div>
+        <div><span class="v" data-count="{{ stats.earned }}">{{ stats.earned }}</span><span class="k">{{ _('Kazandığın kredi') }}</span></div>
       </div>
     </div>
     <div class="card reveal" data-delay="2">
-      <div class="card-head"><h3>{{ icon('info', 18) }} Kurallar</h3></div>
+      <div class="card-head"><h3>{{ icon('info', 18) }} {{ _('Kurallar') }}</h3></div>
       <ul class="ticks small" style="gap:10px">
-        <li>{{ icon('check', 15) }} Ödül, arkadaşının ilk havalesi onaylanınca otomatik yüklenir.</li>
-        <li>{{ icon('check', 15) }} Davet edebileceğin kişi sayısında sınır yok.</li>
-        <li>{{ icon('check', 15) }} Kendi kendini davet etmek ya da sahte hesap açmak ödülü iptal ettirir.</li>
+        <li>{{ icon('check', 15) }} {{ _('Ödül, arkadaşının ilk havalesi onaylanınca otomatik yüklenir.') }}</li>
+        <li>{{ icon('check', 15) }} {{ _('Davet edebileceğin kişi sayısında sınır yok.') }}</li>
+        <li>{{ icon('check', 15) }} {{ _('Kendi kendini davet etmek ya da sahte hesap açmak ödülü iptal ettirir.') }}</li>
       </ul>
     </div>
   </div>
