@@ -669,6 +669,13 @@ EN = {
     "<b>{channel}</b> kanalının {slot} videosu kredi yetersiz olduğu için üretilmedi. Kredi yüklediğinde kanal kaldığı yerden devam eder.":
         "The {slot} video for your <b>{channel}</b> channel wasn't made because you ran out of credits. Once you top up, the channel picks up where it left off.",
 
+    # --- vitrin (demo yayını) ---
+    "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",
+    "Demo sürümde ödeme alınmıyor": "No payments in the demo",
+    "Demo sürümde ödeme alınmıyor.": "No payments are taken in the demo.",
+    "Hesabına deneme kredisi tanımlandı; videolar örnek animasyondur. Gerçek sürüm yakında.": "Trial credits were added to your account; videos are sample animations. The full version is coming soon.",
+    "Demo sürümde şifre sıfırlama kapalı.": "Password reset is disabled in the demo.",
+
     # --- kredi hareketleri (veritabanında Türkçe) ---
     "Hoş geldin hediyesi": "Welcome gift",
     "Davet ödülü: arkadaşın ilk yüklemesini yaptı": "Invite reward: your friend made their first top-up",

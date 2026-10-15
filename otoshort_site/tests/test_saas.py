@@ -1478,3 +1478,44 @@ def test_admin_user_search_detail_block_and_failed_jobs(client):
     other = TestClient(client.app)
     signup(other, "o@b.com")
     assert other.get(f"/admin/kullanici/{uid}").status_code == 404
+
+
+def test_showcase_mode_is_safe_for_public_demo(client, monkeypatch):
+    monkeypatch.setattr(config, "SHOWCASE", True)
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    monkeypatch.setattr(config, "SIGNUP_BONUS", 300)
+    r = client.get("/")
+    assert "demo-bar" in r.text and r.headers["x-robots-tag"].startswith("noindex")
+    assert client.get("/robots.txt").text == "User-agent: *\nDisallow: /\n"
+    c = TestClient(client.app)
+    r = c.post("/kayit", data={"email": "admin@x.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                               "csrf": csrf(c, "/kayit")})
+    assert "verify-bar" not in r.text and balance("admin@x.com") == 300  # doğrulama atlanır, hediye gelir
+    assert c.get("/admin").status_code == 404  # yönetici e-postasıyla bile yönetim kapalı
+    assert "ödeme alınmıyor" in c.get("/kredi").text and 'action="/kredi/bildirim"' not in c.get("/kredi").text
+    c.post("/kredi/bildirim", data={"package": 0, "sender_name": "x", "accept": "1", "csrf": csrf(c, "/kredi")})
+    from saas.models import TopUp
+
+    with db.session() as s:
+        assert s.scalar(select(TopUp)) is None
+    anon = TestClient(client.app)
+    r = anon.post("/sifremi-unuttum", data={"email": "admin@x.com", "csrf": csrf(anon, "/sifremi-unuttum")})
+    assert "şifre sıfırlama kapalı" in r.text and "/dev/eposta/" not in r.text
+
+
+def test_showcase_launcher_finds_tunnel_url_and_refuses_known_secret(tmp_path, monkeypatch):
+    from saas import canli
+
+    fake = tmp_path / "cf.sh"
+    fake.write_text("#!/bin/sh\necho 'INF Requesting new quick Tunnel on trycloudflare.com... https://api.trycloudflare.com'\n"
+                    "echo 'INF |  https://blue-river-demo.trycloudflare.com  |'\nsleep 30\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("CLOUDFLARED", str(fake))
+    proc, url = canli.start_tunnel(8999, timeout=10)
+    proc.terminate()
+    assert url == "https://blue-river-demo.trycloudflare.com"  # api. adresi değil, rastgele tünel adresi
+    key = canli.secret_for(tmp_path / "v")
+    assert len(key) >= 32 and canli.secret_for(tmp_path / "v") == key  # kalıcı
+    monkeypatch.setattr(config, "SHOWCASE", True)
+    with pytest.raises(RuntimeError, match="GIZLI_ANAHTAR"):
+        create_app(start_worker=False, database_url=f"sqlite:///{tmp_path / 'x.db'}")

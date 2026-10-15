@@ -36,7 +36,10 @@ SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
 # Davet programı: davet edilen kişinin ilk havalesi onaylanınca ikisine de kredi (sahte hesapla kredi toplanamasın diye)
 REFERRAL_BONUS = int(_env("DAVET_ODULU", "50") or 0)  # davet edene
 REFERRAL_FRIEND_BONUS = int(_env("DAVET_HEDIYE", "25") or 0)  # davetle gelene
-FAKE_AI = _env("SAHTE_AI") == "1"  # geliştirme/test: API'ye gitmeden sahte video üretir
+# Vitrin modu: herkese açık deneme yayını (Canliya_Al.bat). Her zaman sahte video üretir, ödeme ve yönetim kapalıdır,
+# e-posta doğrulaması atlanır; arama motorlarına kapalıdır.
+SHOWCASE = _env("VITRIN_MODU") == "1"
+FAKE_AI = _env("SAHTE_AI") == "1" or SHOWCASE  # geliştirme/test: API'ye gitmeden sahte video üretir
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")
 TIMEZONE = _env("SAAT_DILIMI", "Europe/Istanbul")
 WORKER_ENABLED = _env("ISCI", "1") != "0"

@@ -52,6 +52,8 @@ PUBLIC_PAGES = ["/", "/kesfet", "/kayit", "/giris", "/yasal/kullanim", "/yasal/k
 
 
 def create_app(*, start_worker: bool | None = None, generator=None, database_url: str | None = None) -> FastAPI:
+    if config.SHOWCASE and len(config.SECRET_KEY) < 32:  # herkese açık yayında bilinen anahtar oturum taklidine açar
+        raise RuntimeError("Vitrin modu için uzun ve rastgele GIZLI_ANAHTAR gerekli (Canliya_Al.bat kendisi üretir).")
     db.init(database_url)
     app = FastAPI(title=config.SITE_NAME, docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, max_age=60 * 60 * 24 * 30,
@@ -62,6 +64,8 @@ def create_app(*, start_worker: bool | None = None, generator=None, database_url
         resp = await call_next(request)
         for k, v in SECURITY_HEADERS.items():
             resp.headers.setdefault(k, v)
+        if config.SHOWCASE:
+            resp.headers.setdefault("X-Robots-Tag", "noindex, nofollow")
         if request.url.scheme == "https" or config.SITE_URL.startswith("https://"):
             resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return resp
@@ -106,7 +110,7 @@ def mark_verified(s, user: User) -> None:
 
 def send_email(request: Request, to: str, subject: str, html: str) -> None:
     name = mailer.send(to, subject, html)
-    if name and config.FAKE_AI:  # demo: e-posta gerçekten gitmez, açmak için bağlantı göster
+    if name and config.FAKE_AI and not config.SHOWCASE:  # demo: e-posta gerçekten gitmez, açmak için bağlantı göster
         flash(request, "Demo modu: “{subject}” e-postası gerçekten gönderilmedi.", "demo", f"/dev/eposta/{name}",
               "E-postayı aç", subject=subject)
 
@@ -195,7 +199,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         request=request, user=user, site=config.SITE_NAME, csrf=csrf_token(request.session),
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
         languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
-        google_button=oauth.enabled() or config.FAKE_AI, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
+        google_button=oauth.enabled() or (config.FAKE_AI and not config.SHOWCASE), demo_mode=config.SHOWCASE, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
         quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS, legal=config.LEGAL,
         ref_qualities=[k for k in config.QUALITIES if config.supports_refs(k)],
     )
@@ -237,7 +241,7 @@ def require_user(request: Request) -> User:
 
 
 def require_admin(user: User = Depends(require_user)) -> User:
-    if not (user.is_admin and user.email_verified):
+    if config.SHOWCASE or not (user.is_admin and user.email_verified):  # vitrinde e-posta sahipliği kanıtlanamaz
         raise HTTPException(status_code=404)
     return user
 
@@ -377,6 +381,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     @app.get("/robots.txt", response_class=PlainTextResponse)
     def robots(request: Request):
+        if config.SHOWCASE:  # geçici demo adresi aranmasın
+            return "User-agent: *\nDisallow: /\n"
         private = ["/panel", "/video", "/videolar", "/kanallar", "/kredi", "/hesap", "/admin", "/dev", "/auth",
                    "/dogrula", "/sifre-yenile", "/api", "/baglantilar", "/baglan", "/yayin", "/davet", "/d/"]
         lines = ["User-agent: *", *(f"Disallow: {pre}{p}" for pre in ("", "/en") for p in private),
@@ -477,6 +483,14 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             growth.attach_referrer(s, user, request.session.get("ref"))
             uid = user.id
         start_session(request, user)
+        if config.SHOWCASE:  # herkese açık demo: gerçek e-posta yok, hesap hemen açılır
+            with db.session() as s:
+                u = s.get(User, uid)
+                u.email_verified = True
+                if config.SIGNUP_BONUS:
+                    credits.add(s, uid, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
+            flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
+            return go("/panel")
         flash(request, "Hesabın oluşturuldu! E-postana bir doğrulama bağlantısı gönderdik. 🎉")
         send_verification(request, uid, email)
         return go("/panel")
@@ -657,6 +671,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.post("/sifremi-unuttum", dependencies=[Depends(check_csrf)])
     def forgot(request: Request, email: str = Form(...)):
         email = email.strip().lower()
+        if config.SHOWCASE:  # demo e-postası isteyene gösterildiği için vitrinde sıfırlama başkasının hesabını açardı
+            flash(request, "Demo sürümde şifre sıfırlama kapalı.", "warn")
+            return go("/giris")
         ip = request.client.host if request.client else "?"
         if not reset_limiter.allow(f"{ip}:{email}"):
             flash(request, "Çok fazla deneme yaptın. Biraz sonra tekrar dene.", "err")
@@ -712,7 +729,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     # --- demo: kaydedilen e-postayı görüntüle (sadece SAHTE_AI ve SMTP yokken) ---
     @app.get("/dev/eposta/{name}", response_class=HTMLResponse)
     def dev_email(name: str):
-        if not config.FAKE_AI or mailer.enabled() or not re.fullmatch(r"[\w.-]+\.html", name):
+        if not config.FAKE_AI or config.SHOWCASE or mailer.enabled() or not re.fullmatch(r"[\w.-]+\.html", name):
             raise HTTPException(404)
         path = mailer.outbox() / name
         if not path.exists():
@@ -1220,6 +1237,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                       sender_name: str = Form(...), note: str = Form(""), accept: str = Form("")):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
+        if config.SHOWCASE:
+            flash(request, "Demo sürümde ödeme alınmıyor.", "warn")
+            return go("/kredi")
         if not 0 <= package < len(config.PACKAGES) or not sender_name.strip() or not accept:
             flash(request, "Paketi seç, gönderen adını yaz ve sözleşmeyi onayla.", "err")
             return go("/kredi")

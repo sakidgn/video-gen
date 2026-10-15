@@ -11,6 +11,13 @@ Bu klasör kendi başına bir projedir (shitpost otomatiğinden ayrı).
 - Elle: `pip install -r saas/requirements.txt` sonra `SAHTE_AI=1 ADMIN_EPOSTALAR=sen@mail.com python -m saas`
 Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yönetim'den kendine kredi ver → video üret.
 
+## Öylesine canlıya al (ücretsiz demo yayını)
+`Canliya_Al.bat`'ı çalıştır: site bu bilgisayardan Cloudflare'in ücretsiz tüneliyle `https://….trycloudflare.com`
+adresinde herkese açılır (hesap, alan adı, sunucu, kart gerekmez). **Vitrin modu**nda çalışır: videolar sahte (para
+harcanmaz), ödeme ve yönetim paneli kapalı, e-posta doğrulaması yok, şifre sıfırlama kapalı, arama motorlarına kapalı;
+her sayfada "Demo sürüm" şeridi görünür. Pencere kapanınca yayın biter, her açılışta adres değişir. Veriler
+`saas_veri_vitrin/` klasöründe kalır. Kayıt olanların e-postaları da orada durur; demo bitince klasörü silebilirsin.
+
 ## Gerçek API denemesi (satıştan önce)
 1. `.env.ornek` dosyasını `.env` adıyla kopyala, `GEMINI_API_KEY=` satırına Google AI Studio anahtarını yaz
    (fal.ai modeli seçtiysen `FAL_KEY` de). Anahtarı kimseyle paylaşma.
