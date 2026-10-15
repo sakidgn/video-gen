@@ -1799,3 +1799,53 @@ def test_character_library_used_in_videos_and_channels(client):
     client.post(f"/karakterler/{banana.id}/sil", data={"csrf": t})
     with db.session() as s:
         assert s.get(Channel, ch.id).cast_ids == "" and s.get(Character, banana.id) is None
+
+
+def test_viral_subtitles_word_by_word():
+    from saas import media
+
+    ass = media.build_ass([{"start": 0.3, "end": 2.6, "text": "Bu son {\\\\an8}indirim benim!"},
+                           {"start": 3.0, "end": 4.0, "text": "ışık", "words": [{"text": "ışık", "start": 3.2, "end": 3.9}]}],
+                          style="viral", language="tr")
+    lines = [l for l in ass.splitlines() if l.startswith("Dialogue:")]
+    assert len(lines) == 5  # her kelime için bir olay
+    texts = [l.split(",", 9)[9] for l in lines]
+    assert all(t.count("\\c&H") == 1 for t in texts)  # her olayda tek renkli (söylenen) kelime
+    assert texts[0].endswith("BU{\\r} SON") and "(AN8)İNDİRİM" in texts[2] and "an8}" not in ass
+    assert "IŞIK" in texts[-1] and "0:00:03.20" in lines[-1] and "0:00:03.90" in lines[-1]  # verilen kelime zamanı
+    # parça içinde kelimeler kesintisiz: bir olayın bitişi sonrakinin başlangıcı
+    ends = [l.split(",")[2] for l in lines[:3]]
+    starts = [l.split(",")[1] for l in lines[1:4]]
+    assert ends[:2] == starts[:2]
+    classic = media.build_ass([{"start": 0, "end": 1, "text": "Bu son indirim"}])
+    assert "Bu son indirim" in classic and "\\c&H" not in classic and media.FONT_NAME in classic
+
+
+def test_viral_subtitle_style_flows_to_jobs_and_channels(client):
+    class Spy(ai.FakeAI):
+        words = []
+
+        def transcribe(self, *, video, language, words=False):
+            Spy.words.append(words)
+            return super().transcribe(video=video, language=language)
+
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni").text
+    assert re.search(r'name="subtitles" value="1"\s+checked', page) and re.search(r'value="viral"\s+checked', page)
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "subtitles": "1", "subtitle_style": "viral", "csrf": t})
+    client.post("/video/yeni", data={"idea": "y", "quality": "lite", "subtitles": "1", "subtitle_style": "klasik", "csrf": t})
+    client.post("/video/yeni", data={"idea": "z", "quality": "lite", "subtitle_style": "<script>", "csrf": t})
+    run_queue(Spy())
+    with db.session() as s:
+        jobs = s.scalars(select(Job).order_by(Job.id)).all()
+    assert [j.subtitle_style for j in jobs] == ["viral", "", ""] and Spy.words == [True, False]
+    assert "viral altyazılı" in client.get(f"/video/{jobs[0].id}").text
+    client.post("/kanallar/yeni", data={"name": "K", "topic": "x", "times": "09:00", "subtitles": "1",
+                                        "subtitle_style": "viral", "csrf": t})
+    worker.schedule_channels(datetime(2026, 1, 5, 9, 1, tzinfo=ZoneInfo(config.TIMEZONE)))
+    with db.session() as s:
+        ch = s.scalar(select(Channel))
+        cj = s.scalar(select(Job).where(Job.channel_id == ch.id))
+    assert ch.subtitle_style == "viral" and cj.subtitles and cj.subtitle_style == "viral"

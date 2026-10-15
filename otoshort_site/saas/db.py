@@ -53,6 +53,8 @@ NEW_COLUMNS = [
     ("waitlist", "pending", "INTEGER NOT NULL DEFAULT 0"),
     ("waitlist", "earned", "INTEGER NOT NULL DEFAULT 0"),
     ("channels", "cast_ids", "VARCHAR(60) NOT NULL DEFAULT ''"),
+    ("channels", "subtitle_style", "VARCHAR(10) NOT NULL DEFAULT ''"),  # eski kanallar klasik kalır
+    ("jobs", "subtitle_style", "VARCHAR(10) NOT NULL DEFAULT ''"),
 ]
 
 

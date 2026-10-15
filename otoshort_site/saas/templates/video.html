@@ -113,7 +113,7 @@
         {% if job.characters %}<dt>{{ _('Karakterler') }}</dt><dd>{{ job.characters }}</dd>{% endif %}
         {% if job.ref_image %}<dt>{{ _('Referans') }}</dt><dd><img class="ref-mini" src="/referans/{{ job.ref_image }}" alt="{{ _('Referans karakter') }}" data-hide-broken></dd>{% endif %}
         <dt>{{ _('Tarz') }}</dt><dd>{{ _(styles.get(job.style, job.style)) }}</dd>
-        <dt>{{ _('Dil') }}</dt><dd>{{ languages.get(job.language, job.language) }}{% if job.subtitles %} · {{ _('altyazılı') }}{% endif %}</dd>
+        <dt>{{ _('Dil') }}</dt><dd>{{ languages.get(job.language, job.language) }}{% if job.subtitles %} · {{ _('viral altyazılı') if job.subtitle_style == 'viral' else _('altyazılı') }}{% endif %}</dd>
         <dt>{{ _('Kalite') }}</dt><dd>{{ _(qualities[job.quality].label) }} · <span class="mono">{{ job.cost }}</span> {{ _('kredi') }}</dd>
         {% if job.channel %}<dt>{{ _('Kanal') }}</dt><dd><a href="/kanallar/{{ job.channel_id }}" style="text-decoration:underline;text-underline-offset:3px">{{ job.channel.name }}</a></dd>{% endif %}
         <dt>{{ _('Tarih') }}</dt><dd class="mono small">{{ job.created_at|tarih }}</dd>

@@ -363,9 +363,6 @@ EN = {
     "Referans görsel şu kalitelerde kullanılır:": "The reference image is used with these qualities:",
     "Görsel tarz": "Visual style",
     "Konuşma dili": "Spoken language",
-    "Altyazı ekle": "Add subtitles",
-    "Konuşmalar kalın, okunaklı yazıyla videoya basılır; çoğu kişi sessiz izlediği için izlenmeyi artırır. Ücretsiz.":
-        "Dialogue is burned into the video in bold, readable text; most people watch on mute, so it boosts views. Free.",
     "Önizleme · 9:16 dikey · 8 sn": "Preview · 9:16 vertical · 8 s",
 
     # --- videolar ---
@@ -810,6 +807,21 @@ EN = {
     "Örn: Portakal Paşa": "E.g. Sir Orange",
     "Ünlüler ve başkasına ait karakterler (çizgi film, marka maskotu vb.) kullanılamaz.": "Celebrities and characters owned by others (cartoons, brand mascots, etc.) can't be used.",
     "“{name}” silinsin mi? Kanallarından da çıkarılır.": "Delete “{name}”? It will also be removed from your channels.",
+
+    # --- viral altyazı ---
+    "Altyazı stili": "Caption style",
+    "BU SON İNDİRİM BENİM": "THIS LAST DEAL IS MINE",
+    "Klasik": "Classic",
+    "Konuşmalar konuşmayla senkron, kelime kelime ekrana basılır. Kısa videoların çoğu sessiz izlendiği için izlenme süresini artırır. Ücretsiz.": "Dialogue pops on screen word by word, in sync with the speech. Most short videos are watched on mute, so this keeps viewers watching longer. Free.",
+    "Konuşmayla senkron, kelime kelime patlayan renkli Shorts altyazısı. Sessiz izleyenleri de tutar; istersen kapat.": "Colorful Shorts-style captions that pop word by word, in sync with the speech. Keeps muted viewers hooked; turn it off anytime.",
+    "Otomatik viral altyazı": "Auto viral captions",
+    "SON": "LAST",
+    "Son indirim": "Last deal",
+    "Viral": "Viral",
+    "kelime kelime, renkli": "word by word, colorful",
+    "sade, cümle cümle": "simple, line by line",
+    "viral altyazılı": "viral captions",
+    "İNDİRİM": "DEAL",
 
     # --- vitrin (demo yayını) ---
     "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",

@@ -51,8 +51,17 @@
       <span class="opt-title">{{ _(q.label) }}</span><span class="opt-sub">{{ _(q.desc) }}</span><span class="opt-price">{{ _('{n} kredi', n=q.credits) }} · {{ q.resolution }}</span></span></label>
 {% endfor %}
 </div>
+{% set sub_on = ch.subtitles if ch else true %}{% set sub_style = (ch.subtitle_style if ch and ch.subtitle_style is defined else 'viral') %}
+<div class="subs-box">
 <label class="toggle-row">
-  <input type="checkbox" name="subtitles" value="1" {% if ch and ch.subtitles %}checked{% endif %}>
+  <input type="checkbox" name="subtitles" value="1" {% if sub_on %}checked{% endif %}>
   <span class="tg"></span>
-  <span><b>{{ _('Altyazı ekle') }}</b><small>{{ _('Konuşmalar kalın, okunaklı yazıyla videoya basılır; çoğu kişi sessiz izlediği için izlenmeyi artırır. Ücretsiz.') }}</small></span>
+  <span><b>{{ _('Otomatik viral altyazı') }}</b><small>{{ _('Konuşmalar konuşmayla senkron, kelime kelime ekrana basılır. Kısa videoların çoğu sessiz izlendiği için izlenme süresini artırır. Ücretsiz.') }}</small></span>
 </label>
+<div class="seg subs-style" role="radiogroup" aria-label="{{ _('Altyazı stili') }}">
+  <label class="opt"><input type="radio" name="subtitle_style" value="viral" {% if sub_style == 'viral' %}checked{% endif %}>
+    <span class="opt-body"><span class="sub-prev viral" aria-hidden="true">{{ _('SON') }} <b>{{ _('İNDİRİM') }}</b></span><span class="opt-title">{{ _('Viral') }}</span><span class="opt-sub">{{ _('kelime kelime, renkli') }}</span></span></label>
+  <label class="opt"><input type="radio" name="subtitle_style" value="klasik" {% if sub_style != 'viral' %}checked{% endif %}>
+    <span class="opt-body"><span class="sub-prev" aria-hidden="true">{{ _('Son indirim') }}</span><span class="opt-title">{{ _('Klasik') }}</span><span class="opt-sub">{{ _('sade, cümle cümle') }}</span></span></label>
+</div>
+</div>

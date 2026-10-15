@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from . import ai as ai_mod
 from . import config, credits, db, mailer
+from .media import SUB_STYLES
 from .models import Channel, Job, User, now
 
 log = logging.getLogger("saas.worker")
@@ -67,16 +68,17 @@ def channel_params(s, ch: Channel) -> dict:
 
     characters, ref_image = karakter.cast(s, ch.user_id, ch.cast_ids, ch.characters, ch.ref_image)
     return dict(idea=ch.topic, characters=characters, style=ch.style, language=ch.language, quality=ch.quality,
-                channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles)
+                channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles, subtitle_style=ch.subtitle_style)
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
                channel_id: int | None = None, slot: str | None = None, ref_image: str = "",
-               subtitles: bool = False) -> Job:
+               subtitles: bool = False, subtitle_style: str = "viral") -> Job:
     """İşi oluşturur ve krediyi düşer (yetmezse credits.NotEnoughCredits)."""
     cost = config.QUALITIES[quality]["credits"]
     job = Job(user_id=user_id, channel_id=channel_id, slot=slot, idea=idea, characters=characters, style=style,
-              language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles))
+              language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles),
+              subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "")
     s.add(job)
     s.flush()
     credits.charge(s, user_id, cost, f"Video #{job.id} ({config.QUALITIES[quality]['label']})", job.id)
@@ -95,7 +97,7 @@ def run_job(job_id: int, generator) -> None:
         past = _past_summaries(s, job)
         params = dict(idea=job.idea, characters=job.characters, style=job.style, language=job.language)
         quality = job.quality
-        want_subs = job.subtitles
+        want_subs, sub_style = job.subtitles, job.subtitle_style
         from . import media
 
         ref = media.ref_path(job.ref_image) if job.ref_image and config.supports_refs(job.quality) else None
@@ -110,7 +112,7 @@ def run_job(job_id: int, generator) -> None:
                 hashtags=" ".join(script.hashtags), summary=script.summary))
         rel = f"{job_id}.mp4"
         generator.make_video(prompt=script.video_prompt, quality=quality, out=video_dir() / rel, refs=refs)
-        raw = add_subtitles(generator, video_dir() / rel, params["language"]) if want_subs else None
+        raw = add_subtitles(generator, video_dir() / rel, params["language"], sub_style) if want_subs else None
         make_poster(video_dir() / rel)
         with db.session() as s:
             s.execute(update(Job).where(Job.id == job_id).values(status="hazir", video_file=rel, finished_at=now(),
@@ -136,13 +138,14 @@ def run_job(job_id: int, generator) -> None:
         fail_job(job_id, msg, f"{type(e).__name__}: {e}")
 
 
-def add_subtitles(generator, video: Path, language: str) -> Path | None:
-    """Konuşmaları döküp videoya basar. Başarısız olursa video altyazısız kalır (iş yine de hazır sayılır)."""
+def add_subtitles(generator, video: Path, language: str, style: str = "") -> Path | None:
+    """Konuşmaları döküp videoya basar. Başarısız olursa video altyazısız kalır (iş yine de hazır sayılır).
+    style="viral": kelime kelime renklenen Shorts altyazısı (kelime zamanları da istenir)."""
     from . import media
 
     try:
-        segments = generator.transcribe(video=video, language=language)
-        return media.burn_subtitles(video, segments)
+        segments = generator.transcribe(video=video, language=language, words=style == "viral")
+        return media.burn_subtitles(video, segments, style, language)
     except Exception:
         log.exception("Altyazı eklenemedi: %s", video.name)
         return None

@@ -950,7 +950,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     async def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
                         characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
                         quality: str = Form("fast"), ref: UploadFile | None = File(None), ref_keep: str = Form(""),
-                        ref_remove: str = Form(""), subtitles: str = Form(""), cast: list[str] = Form([])):
+                        ref_remove: str = Form(""), subtitles: str = Form(""), cast: list[str] = Form([]),
+                        subtitle_style: str = Form("viral")):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
@@ -964,7 +965,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                     s, user.id, idea=clean(idea), characters=characters,
                     style=_valid_choice(style, config.STYLES, "cartoon"),
                     language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image,
-                    subtitles=bool(subtitles))
+                    subtitles=bool(subtitles), subtitle_style=subtitle_style)
                 job_id = job.id
         except credits.NotEnoughCredits:
             flash(request, "Yeterli kredin yok. Bu kalite {n} kredi.", "err", n=config.QUALITIES[quality]["credits"])
@@ -1051,7 +1052,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             if old.user_id != user.id:
                 raise HTTPException(404)
             params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
-                          quality=old.quality, ref_image=old.ref_image, subtitles=old.subtitles)
+                          quality=old.quality, ref_image=old.ref_image, subtitles=old.subtitles,
+                          subtitle_style=old.subtitle_style)
         try:
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
@@ -1304,6 +1306,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             quality=_valid_choice(form.get("quality", ""), config.QUALITIES, "fast"),
             times=" ".join(sorted(set(times), key=lambda t: (int(t.split(":")[0]), t)))[:200] or "12:00",
             subtitles=bool(form.get("subtitles")),
+            subtitle_style=_valid_choice(str(form.get("subtitle_style", "")), media.SUB_STYLES, ""),
             publish_to=" ".join(p for p in social.PLATFORMS if form.get(f"pub_{p}")),
         )
 

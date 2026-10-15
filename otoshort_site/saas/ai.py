@@ -173,21 +173,27 @@ class RealAI:
                                                temperature=1.2))
         return [i.strip() for i in json.loads(resp.text).get("ideas", []) if i.strip()][:n]
 
-    def transcribe(self, *, video: Path, language: str) -> list[dict]:
-        """Videodaki konuşmaları zaman damgalı döker: [{"start": sn, "end": sn, "text": "..."}]"""
+    def transcribe(self, *, video: Path, language: str, words: bool = False) -> list[dict]:
+        """Videodaki konuşmaları zaman damgalı döker: [{"start": sn, "end": sn, "text": "..."}]
+        words=True: her segmentte kelime zamanları da istenir ("words": [{"text","start","end"}]; viral altyazı için)."""
         from google.genai import types
 
         lang = config.LANGUAGES.get(language, language)
+        props = {"start": {"type": "number"}, "end": {"type": "number"}, "text": {"type": "string"}}
+        if words:
+            props["words"] = {"type": "array", "items": {"type": "object", "properties": {
+                "text": {"type": "string"}, "start": {"type": "number"}, "end": {"type": "number"}},
+                "required": ["text", "start", "end"]}}
         schema = {"type": "object", "properties": {"segments": {"type": "array", "items": {
-            "type": "object", "properties": {"start": {"type": "number"}, "end": {"type": "number"},
-                                             "text": {"type": "string"}}, "required": ["start", "end", "text"]}}},
-                  "required": ["segments"]}
+            "type": "object", "properties": props, "required": ["start", "end", "text"]}}}, "required": ["segments"]}
         resp = self.client.models.generate_content(
             model=config.TEXT_MODEL,
             contents=[types.Part.from_bytes(data=video.read_bytes(), mime_type="video/mp4"),
                       f"Transcribe every spoken line in this video exactly as spoken (language: {lang}). Split into short "
-                      "subtitle segments of at most 6 words with precise start/end times in seconds. Ignore music and "
-                      "sound effects. If nobody speaks, return an empty list."],
+                      "subtitle segments of at most 6 words with precise start/end times in seconds. "
+                      + ("For each segment also list every word with its own precise start/end time in seconds. "
+                         if words else "") +
+                      "Ignore music and sound effects. If nobody speaks, return an empty list."],
             config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
                                                temperature=0))
         return [seg for seg in json.loads(resp.text).get("segments", []) if str(seg.get("text", "")).strip()]
@@ -350,7 +356,7 @@ class FakeAI:
 
         return random.sample(IDEA_POOL, n)
 
-    def transcribe(self, *, video: Path, language: str) -> list[dict]:
+    def transcribe(self, *, video: Path, language: str, words: bool = False) -> list[dict]:
         return [{"start": 0.3, "end": 2.6, "text": "Bu son indirim benim!"},
                 {"start": 2.8, "end": 5.4, "text": "Muz bile şahit"}, {"start": 5.6, "end": 7.8, "text": "Kasiyer nerede?!"}]
 

@@ -190,6 +190,10 @@
       </div>
       <div class="bx-txt"><span class="icon-box">{{ icon('users', 18) }}</span><div><h3>{{ _('Karakterini kaydet') }}</h3><p class="muted small">{{ _('Kendi karakterinin görünümünü ve sesini bir kez kaydet, tüm videolarında aynı karakter oynasın.') }}</p></div></div>
     </div>
+    <div class="bx reveal" data-delay="1" data-tilt="3">
+      <div class="bx-viz karaoke" aria-hidden="true"><div class="kr-phone">{% for w in _('BU SON İNDİRİM BENİM').split() %}<span style="--i:{{ loop.index0 }}">{{ w }}</span>{% endfor %}</div></div>
+      <div class="bx-txt"><span class="icon-box">{{ icon('type', 18) }}</span><div><h3>{{ _('Otomatik viral altyazı') }}</h3><p class="muted small">{{ _('Konuşmayla senkron, kelime kelime patlayan renkli Shorts altyazısı. Sessiz izleyenleri de tutar; istersen kapat.') }}</p></div></div>
+    </div>
   </div>
 </div></section>
 
