@@ -1704,3 +1704,35 @@ def test_edit_share_text(client):
     other = TestClient(client.app)
     signup(other, "o@b.com")
     assert other.post(f"/video/{jid}/metin", data={"title": "x", "csrf": csrf(other, "/panel")}).status_code == 404
+
+
+def test_signup_free_script_trial(client, monkeypatch):
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    client.app.state.generator = ai.FakeAI()
+    t = csrf(client, "/")
+    r = client.post("/api/deneme-senaryo", data={"idea": "Kedi markette kasiyerle tartışıyor", "csrf": t})
+    assert r.status_code == 200
+    data = r.json()
+    p = data["preview"]
+    assert p["title"] and p["scene"] and len(p["lines"]) >= 2 and all(x["who"] and x["text"] for x in p["lines"])
+    assert data["demo"] is True and data["start"].startswith("/kayit?fikir=")
+    assert client.post("/api/deneme-senaryo", data={"idea": "x", "csrf": t}).status_code == 400
+    assert client.post("/api/deneme-senaryo", data={"idea": "kedi"}).status_code == 400  # CSRF yok
+    en = TestClient(client.app)
+    r = en.post("/api/deneme-senaryo", data={"idea": "A cat argues with a cashier", "language": "en",
+                                             "csrf": csrf(en, "/en/")})
+    assert r.status_code == 200 and r.json()["start"].startswith("/en/kayit?fikir=")
+    assert r.json()["preview"]["lines"][0]["text"] != p["lines"][0]["text"]
+    for _ in range(4):
+        assert client.post("/api/deneme-senaryo", data={"idea": "kedi uçuyor", "csrf": t}).status_code == 200
+    r = client.post("/api/deneme-senaryo", data={"idea": "kedi uçuyor", "csrf": t})
+    assert r.status_code == 429 and "kaydolup" in r.json()["error"]
+
+
+def test_script_trial_logged_in_goes_to_studio(client):
+    client.app.state.generator = ai.FakeAI()
+    signup(client, "a@b.com")
+    r = client.post("/api/deneme-senaryo", data={"idea": "Portakal ve muz kavga ediyor", "csrf": csrf(client, "/")})
+    assert r.status_code == 200 and r.json()["start"].startswith("/video/yeni?idea=")
+    page = client.get(r.json()["start"]).text
+    assert "Portakal ve muz kavga ediyor" in page

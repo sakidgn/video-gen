@@ -81,7 +81,8 @@ def send(to: str, subject: str, html: str, *, background: bool = True) -> str | 
     if not enabled():
         outbox().mkdir(parents=True, exist_ok=True)
         # tahmin edilemez ad: demo modda bile başkasının doğrulama/sıfırlama e-postası açılamasın
-        name = f"{time.strftime('%Y%m%d-%H%M%S')}-{time.time_ns() % 10**9:09d}-{secrets.token_hex(8)}.html"
+        ns = time.time_ns()  # tek okuma: saniye sınırında sıra kaymasın
+        name = f"{time.strftime('%Y%m%d-%H%M%S', time.localtime(ns // 10**9))}-{ns % 10**9:09d}-{secrets.token_hex(8)}.html"
         (outbox() / name).write_text(f"<!-- Kime: {escape(to)} | Konu: {escape(subject)} -->\n{html}", encoding="utf-8")
         log.info("Demo e-posta kaydedildi: %s -> %s (%s)", subject, to, name)
         return name

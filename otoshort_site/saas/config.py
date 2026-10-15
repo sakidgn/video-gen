@@ -39,6 +39,8 @@ EARLY_BONUS = int(_env("ERKEN_ERISIM_HEDIYE", "100") or 0)
 # Erken erişim davetleri: davetle gelen kişi kaydolup doğrulayınca davet edene (en fazla toplam sınır kadar)
 EARLY_INVITE_BONUS = int(_env("ERKEN_DAVET_ODULU", "20") or 0)
 EARLY_INVITE_CAP = int(_env("ERKEN_DAVET_SINIRI", "200") or 0)
+# Ana sayfadaki kayıtsız senaryo denemesi: günlük toplam sınır (yalnızca metin modeli; maliyet tavanı)
+TRIAL_DAILY_LIMIT = int(_env("DENEME_GUNLUK_SINIR", "300") or 0)
 # Davet programı: davet edilen kişinin ilk havalesi onaylanınca ikisine de kredi (sahte hesapla kredi toplanamasın diye)
 REFERRAL_BONUS = int(_env("DAVET_ODULU", "50") or 0)  # davet edene
 REFERRAL_FRIEND_BONUS = int(_env("DAVET_HEDIYE", "25") or 0)  # davetle gelene

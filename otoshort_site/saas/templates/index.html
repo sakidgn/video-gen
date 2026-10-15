@@ -39,6 +39,34 @@
   <span class="pf">{{ brand('youtube', 20) }} YouTube Shorts</span>
 </div></div>
 
+<section class="idea-sec" id="fikir"><div class="wrap">
+  <div class="idea-box reveal" data-idea-machine data-ideas='{{ ideas|tojson }}'>
+    <div class="im-copy"><span class="eyebrow">{{ _('Kayıt olmadan dene') }}</span>
+      <h2>{{ _h('Fikrini yaz, <span class="hl">senaryosunu gör.</span>') }}</h2>
+      <p class="muted">{{ _('Yapay zekâ saniyeler içinde 8 saniyelik komik senaryoyu, diyaloğu ve viral başlığı yazsın. Aklında fikir yoksa zar at.') }}</p></div>
+    <div class="im-card" aria-live="polite">
+      <form class="trial" data-trial>
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="language" value="{{ lang }}">
+        <textarea class="textarea" name="idea" maxlength="200" rows="2" required data-trial-idea placeholder="{{ _('Örn: Kedi markette kasiyerle indirim için tartışıyor') }}"></textarea>
+        <div class="row im-actions">
+          <button type="button" class="btn btn-ghost" data-im-roll>🎲 {{ _('Bana fikir ver') }}</button>
+          <button type="submit" class="btn btn-primary" data-trial-go>{{ icon('sparkles', 16) }} {{ _('Deneme senaryosu oluştur') }}</button>
+        </div>
+      </form>
+      <p class="trial-err" data-trial-err hidden></p>
+      <div class="trial-out" data-trial-out hidden>
+        {% if demo_mode %}<span class="tiny faint">{{ _('Demo: örnek senaryo. Gerçek sürümde yapay zekâ senin fikrine özel yazar.') }}</span>{% endif %}
+        <h3 data-t-title></h3>
+        <p class="small muted" data-t-scene></p>
+        <ul class="t-lines" data-t-lines></ul>
+        <p class="tiny hl-tags" data-t-tags></p>
+        <a class="btn btn-primary btn-block" data-t-start href="{{ start }}">{{ _('Bu senaryoyu şimdi videoya dönüştür · {n} kredi', n=qualities.lite.credits) }} {{ icon('arrow-right', 16) }}</a>
+        {% if not user %}<p class="tiny faint center">{{ _('Ücretsiz kayıt · kart gerekmez') }}</p>{% endif %}
+      </div>
+    </div>
+  </div>
+</div></section>
+
 <section class="showcase-sec" id="vitrin"><div class="wrap">
   <div class="sec-head reveal"><span class="eyebrow">{{ _('Stüdyo') }}</span><h2>{{ _h('Profesyonel stüdyo, <span class="hl">tek ekranda.</span>') }}</h2>
     <p class="lead">{{ _('Karakterini seç, tarzını belirle, kaliteye karar ver. Her şeyi canlı önizlemeyle gör.') }}</p></div>
@@ -87,23 +115,6 @@
         <div class="cap"><small>{{ _('AÇIKLAMA') }}</small>{{ _('Son indirim kimin olacak? 🍊🍌') }} <span class="tags">{{ _('#komik #shorts #market') }}</span></div>
       </div></div>
       <div class="txt"><span class="num">03</span><h3>{{ _('İndir ve paylaş') }}</h3><p class="muted small">{{ _("Viral başlık, emojili açıklama ve hashtag'ler hazır. Kopyala, yapıştır, paylaş.") }}</p></div>
-    </div>
-  </div>
-</div></section>
-
-<section class="idea-sec" id="fikir"><div class="wrap">
-  <div class="idea-box reveal" data-idea-machine data-ideas='{{ ideas|tojson }}' data-start="{{ '/video/yeni?idea=' if user else L('/kayit') ~ '?fikir=' }}">
-    <div class="im-copy"><span class="eyebrow">{{ _('Fikir makinesi') }}</span>
-      <h2>{{ _h('Aklında fikir yok mu? <span class="hl">Zar at.</span>') }}</h2>
-      <p class="muted">{{ _('Her tıklamada yeni bir kısa video fikri. Beğendiğinle hemen başla; yapay zekâ senaryosunu yazıp videoya çevirsin.') }}</p></div>
-    <div class="im-card" aria-live="polite">
-      <span class="im-emoji" data-im-emoji>🎬</span>
-      <p class="im-text" data-im-text>{{ _('Zarı at, ilk fikrin gelsin.') }}</p>
-      <span class="im-style" data-im-style hidden></span>
-      <div class="row im-actions">
-        <button type="button" class="btn btn-ghost" data-im-roll>🎲 {{ _('Bana fikir ver') }}</button>
-        <a class="btn btn-primary" data-im-go href="{{ '/video/yeni' if user else L('/kayit') }}" hidden>{{ _('Bu fikirle başla') }} {{ icon('arrow-right', 16) }}</a>
-      </div>
     </div>
   </div>
 </div></section>

@@ -202,7 +202,7 @@
   }, 4000);
 
   // Form gönderilirken buton yükleniyor
-  $$('form').forEach(f => f.addEventListener('submit', () => {
+  $$('form:not([data-trial])').forEach(f => f.addEventListener('submit', () => {  // fetch'li formlar kendi yönetir
     const b = f.querySelector('button[type=submit]'); if (b && f.checkValidity()) b.classList.add('is-loading');
   }));
 
@@ -240,18 +240,35 @@
   const fill = (tpl, vals) => (tpl || '').replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m));
   const locale = document.documentElement.lang === 'en' ? 'en-US' : 'tr-TR';
 
-  // Fikir makinesi: rastgele fikir (aynısı arka arkaya gelmez), "Bu fikirle başla" bağlantısı güncellenir
+  // Kayıtsız deneme: zar fikir yazar, "Deneme senaryosu" yapay zekâya kısa senaryo yazdırır (video üretmez)
   const im = $('[data-idea-machine]');
   if (im) {
-    const ideas = JSON.parse(im.dataset.ideas || '[]'), emo = $('[data-im-emoji]', im), txt = $('[data-im-text]', im),
-      sty = $('[data-im-style]', im), go = $('[data-im-go]', im), roll = $('[data-im-roll]', im), card = $('.im-card', im);
+    const ideas = JSON.parse(im.dataset.ideas || '[]'), box = $('[data-trial-idea]', im), form = $('[data-trial]', im),
+      out = $('[data-trial-out]', im), err = $('[data-trial-err]', im), btn = $('[data-trial-go]', im);
     let bag = [];
-    roll.addEventListener('click', () => {
+    $('[data-im-roll]', im).addEventListener('click', () => {
       if (!bag.length) bag = ideas.map((_, i) => i).sort(() => Math.random() - .5);
       const it = ideas[bag.pop()];
-      card.classList.remove('im-pop'); void card.offsetWidth; card.classList.add('im-pop');
-      emo.textContent = it.e; txt.textContent = it.t; sty.textContent = it.l; sty.hidden = false;
-      go.href = im.dataset.start + encodeURIComponent(it.t); go.hidden = false;
+      box.value = it.e + ' ' + it.t; box.focus();
+    });
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading'); err.hidden = true;
+      try {
+        const r = await fetch('/api/deneme-senaryo', { method: 'POST', body: new FormData(form) }), d = await r.json();
+        if (!r.ok) throw new Error(d.error || '');
+        const p = d.preview;
+        $('[data-t-title]', out).textContent = p.title;
+        $('[data-t-scene]', out).textContent = p.scene;
+        const ul = $('[data-t-lines]', out); ul.innerHTML = '';
+        p.lines.forEach(l => { const li = document.createElement('li'), b = document.createElement('b');
+          b.textContent = l.who + ': '; li.append(b, document.createTextNode(l.text)); ul.appendChild(li); });
+        $('[data-t-tags]', out).textContent = p.hashtags.map(h => '#' + h).join(' ');
+        $('[data-t-start]', out).href = d.start;
+        out.hidden = false; out.classList.remove('im-pop'); void out.offsetWidth; out.classList.add('im-pop');
+      } catch (x) { err.textContent = x.message || err.dataset.fallback || ''; err.hidden = false; }
+      btn.classList.remove('is-loading');
     });
   }
 

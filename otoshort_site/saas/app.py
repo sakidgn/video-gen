@@ -1058,6 +1058,45 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return go("/kredi")
         return go(f"/video/{new_id}")
 
+    def _generator(request: Request):
+        gen = request.app.state.generator
+        if gen is None:
+            gen = request.app.state.generator = (getattr(request.app.state, "worker", None) and
+                                                 request.app.state.worker.generator) or ai_mod.default_ai()
+        return gen
+
+    trial_limiter = RateLimiter(limit=6, window=3600)  # ziyaretçi başına saatte 6 deneme
+    trial_daily: dict = {}  # gün → sayı (toplam günlük sınır: maliyet tavanı)
+
+    @app.post("/api/deneme-senaryo", dependencies=[Depends(check_csrf)])
+    def trial_script(request: Request, idea: str = Form(""), language: str = Form("")):
+        """Kayıt olmadan deneme: fikirden okunacak kısa senaryo (yalnızca ucuz metin modeli, video yok)."""
+        from datetime import date
+
+        idea = clean(idea, 200)
+        lang = _valid_choice(language or i18n.current(), config.LANGUAGES, "tr")
+        if len(idea) < 3:
+            return JSONResponse({"error": i18n.t("Önce bir fikir yaz.")}, status_code=400)
+        ip = request.client.host if request.client else "?"
+        today = date.today().isoformat()
+        if not trial_limiter.allow(f"t:{ip}") or trial_daily.get(today, 0) >= config.TRIAL_DAILY_LIMIT:
+            return JSONResponse({"error": i18n.t("Deneme sınırına ulaştın. Ücretsiz kaydolup devam edebilirsin.")},
+                                status_code=429)
+        if today not in trial_daily:  # yeni gün: sayaç sıfırlanır
+            trial_daily.clear()
+        trial_daily[today] = trial_daily.get(today, 0) + 1
+        try:
+            prev = _generator(request).preview(idea=idea, language=lang)
+        except Exception:
+            log.exception("Deneme senaryosu yazılamadı")
+            return JSONResponse({"error": i18n.t("Şu an senaryo yazılamadı, biraz sonra tekrar dene.")}, status_code=503)
+        from urllib.parse import quote
+
+        user = current_user(request)
+        start = f"/video/yeni?idea={quote(idea)}" if user else \
+            i18n.localized_path("/kayit", public=tuple(PUBLIC_PAGES)) + f"?fikir={quote(idea)}"
+        return {"preview": prev, "start": start, "demo": config.FAKE_AI}
+
     idea_limiter = RateLimiter(limit=12, window=600)
 
     @app.post("/api/fikirler", dependencies=[Depends(check_csrf)])
@@ -1069,10 +1108,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         with db.session() as s:
             past = [t for t in s.scalars(select(Job.title).where(Job.user_id == user.id, Job.title != "")
                                          .order_by(Job.id.desc()).limit(20)) if t]
-        gen = request.app.state.generator
-        if gen is None:
-            gen = request.app.state.generator = (getattr(request.app.state, "worker", None) and
-                                                 request.app.state.worker.generator) or ai_mod.default_ai()
+        gen = _generator(request)
         try:
             ideas = gen.ideas(topic=clean(topic, 300), language=_valid_choice(language, config.LANGUAGES, "tr"),
                               past=past)

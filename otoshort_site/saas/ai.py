@@ -53,6 +53,41 @@ def build_script_request(*, idea: str, characters: str, style: str, language: st
     return "\n".join(parts)
 
 
+def build_preview_request(idea: str, language: str) -> str:
+    """Ana sayfadaki kayıtsız deneme: video üretmeden, okunacak kısa senaryo (ucuz metin modeli)."""
+    lang = config.LANGUAGES.get(language, language)
+    return "\n".join([
+        f"Write a funny {config.DURATION_SECONDS}-second vertical short video script (TikTok/Reels/Shorts) in {lang}.",
+        f"Idea from the visitor: {idea.strip()}",
+        RULES,
+        f"Return JSON (all text in {lang}): title (viral, max 50 chars, 1-2 emojis), scene (1-2 sentences: setting, "
+        "look of the characters, camera), lines (2-4 dialogue lines, each with who (short character name) and text "
+        "(short, punchy); a strong hook first and a punchline last), caption (one short line with 1-2 emojis), "
+        "hashtags (3-5 words without #).",
+    ])
+
+
+PREVIEW_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"}, "scene": {"type": "string"}, "caption": {"type": "string"},
+        "lines": {"type": "array", "items": {"type": "object", "properties": {"who": {"type": "string"},
+                                                                             "text": {"type": "string"}},
+                                             "required": ["who", "text"]}},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["title", "scene", "lines", "caption", "hashtags"],
+}
+
+
+def clean_preview(data: dict) -> dict:
+    lines = [{"who": str(x.get("who", "")).strip()[:30], "text": str(x.get("text", "")).strip()[:160]}
+             for x in (data.get("lines") or []) if str(x.get("text", "")).strip()][:4]
+    return {"title": str(data.get("title", "")).strip()[:80], "scene": str(data.get("scene", "")).strip()[:400],
+            "lines": lines, "caption": str(data.get("caption", "")).strip()[:160],
+            "hashtags": [h.strip().lstrip("#")[:30] for h in (data.get("hashtags") or []) if h.strip()][:5]}
+
+
 IDEA_POOL = [
     "Kedi, sahibinin online toplantısına gizlice katılıp patronu yönetmeye çalışıyor",
     "Dinozor ilk kez metrobüse biniyor ve kuyruğu kapıya sıkışıyor",
@@ -107,6 +142,17 @@ class RealAI:
             caption=data["caption"].strip(), summary=data["summary"].strip(),
             hashtags=[h.strip().lstrip("#") for h in data.get("hashtags", []) if h.strip()][:8],
         )
+
+    def preview(self, *, idea: str, language: str) -> dict:
+        """Kayıtsız ziyaretçiye okunacak kısa senaryo (video üretmez)."""
+        from google.genai import types
+
+        resp = self.client.models.generate_content(
+            model=config.TEXT_MODEL, contents=build_preview_request(idea, language),
+            config=types.GenerateContentConfig(response_mime_type="application/json",
+                                               response_json_schema=PREVIEW_SCHEMA, temperature=1.0),
+        )
+        return clean_preview(json.loads(resp.text))
 
     def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
         """Kullanıcıya fikir önerir (ucuz metin modeli; video üretmez)."""
@@ -280,6 +326,24 @@ class FakeAI:
         n = len(past) + 1
         return Script(video_prompt=f"[sahte] {idea or 'rastgele fikir'} #{n}", title=f"Deneme videosu {n} 😂",
                       caption="Bu bir deneme 💀", hashtags=["deneme", "shorts"], summary=f"fake idea {n}")
+
+    def preview(self, *, idea: str, language: str) -> dict:
+        """Sahte mod: fikirden kalıp senaryo (demo; gerçek sürümde yapay zekâ yazar)."""
+        import random
+
+        idea = idea.strip().rstrip(".!") or "Kedi markette kasiyerle tartışıyor"
+        rnd = random.Random(idea)
+        if language == "en":
+            lines = [("Hero", "Wait. Nobody told me about this!"), ("Sidekick", "Act natural. Everyone's looking."),
+                     ("Hero", "I AM acting natural!"), ("Sidekick", "...that's what worries me.")]
+            return {"title": f"{idea[:40]} 😂", "scene": f"Close-up, bright daylight. {idea}. The camera zooms in on "
+                    "the main character's shocked face.", "lines": [{"who": w, "text": x} for w, x in lines[:rnd.choice([3, 4])]],
+                    "caption": "Wait for the ending 😭", "hashtags": ["funny", "shorts", "ai", "viral"]}
+        lines = [("Kahraman", "Bir dakika... Bunu kimse bana söylemedi!"), ("Yan karakter", "Sakin ol, herkes bize bakıyor."),
+                 ("Kahraman", "Ben zaten sakinim!"), ("Yan karakter", "...asıl korktuğum da bu.")]
+        return {"title": f"{idea[:40]} 😂", "scene": f"Gün ışığı, yakın çekim. {idea}. Kamera ana karakterin "
+                "şaşkın yüzüne yaklaşıyor.", "lines": [{"who": w, "text": x} for w, x in lines[:rnd.choice([3, 4])]],
+                "caption": "Sonunu bekle 😭", "hashtags": ["komik", "shorts", "yapayzeka", "viral"]}
 
     def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
         import random

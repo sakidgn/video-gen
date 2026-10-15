@@ -754,6 +754,19 @@ EN = {
     "Otomatik paylaşımlar da bu metni kullanır.": "Auto-posts use this text too.",
     "Paylaşım metni kaydedildi.": "Caption saved.",
 
+    # --- kayıtsız senaryo denemesi ---
+    "Kayıt olmadan dene": "Try it without signing up",
+    'Fikrini yaz, <span class="hl">senaryosunu gör.</span>': 'Write your idea, <span class="hl">see the script.</span>',
+    "Yapay zekâ saniyeler içinde 8 saniyelik komik senaryoyu, diyaloğu ve viral başlığı yazsın. Aklında fikir yoksa zar at.": "AI writes a funny 8-second script, the dialogue and a viral title in seconds. No idea? Roll the dice.",
+    "Örn: Kedi markette kasiyerle indirim için tartışıyor": "E.g. A cat argues with the cashier over a discount",
+    "Deneme senaryosu oluştur": "Create a sample script",
+    "Demo: örnek senaryo. Gerçek sürümde yapay zekâ senin fikrine özel yazar.": "Demo: sample script. In the full version, AI writes one just for your idea.",
+    "Bu senaryoyu şimdi videoya dönüştür · {n} kredi": "Turn this script into a video now · {n} credits",
+    "Ücretsiz kayıt · kart gerekmez": "Free sign-up · no card needed",
+    "Önce bir fikir yaz.": "Write an idea first.",
+    "Deneme sınırına ulaştın. Ücretsiz kaydolup devam edebilirsin.": "You've hit the trial limit. Sign up for free to keep going.",
+    "Şu an senaryo yazılamadı, biraz sonra tekrar dene.": "Couldn't write a script right now, try again in a bit.",
+
     # --- vitrin (demo yayını) ---
     "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",
     "Demo sürümde ödeme alınmıyor": "No payments in the demo",
