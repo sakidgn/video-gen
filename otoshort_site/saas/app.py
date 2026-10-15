@@ -200,6 +200,19 @@ STATUS_LABELS = {"sirada": "Sırada", "uretiliyor": "Üretiliyor", "hazir": "Haz
 templates.env.globals["status_labels"] = STATUS_LABELS
 templates.env.globals["icon"] = icon
 templates.env.globals["brand"] = brand
+
+
+def _asset_version() -> str:
+    """Statik dosyalar değişince adres de değişsin (tarayıcı eski CSS/JS'i önbellekten kullanmasın)."""
+    import hashlib
+
+    h = hashlib.md5()
+    for f in sorted((config.ROOT / "static").glob("*.*")) + sorted((config.ROOT / "static" / "vendor").glob("*.js")):
+        h.update(f.read_bytes())
+    return h.hexdigest()[:10]
+
+
+templates.env.globals["v"] = _asset_version()
 templates.env.globals["LOGO"] = LOGO
 STATUS_BADGE = {"sirada": "b-wait", "uretiliyor": "b-wait", "hazir": "b-ok", "hata": "b-err"}
 templates.env.globals["status_badge"] = STATUS_BADGE

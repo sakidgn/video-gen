@@ -213,11 +213,11 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:24px 0}
 /* ============ Hero ============ */
 /* ============ Tanıtım filmi (hero) ============ */
 .home .nav{margin-bottom:calc(-68px * var(--fs) - 1px)}
-.hero-film{position:relative;height:100svh;min-height:640px;max-height:1100px;padding-top:calc(68px * var(--fs) + 24px);box-sizing:border-box;display:flex;align-items:flex-end;overflow:hidden;background:#0c0b0a;isolation:isolate}
+.hero-film{position:relative;height:auto;min-height:max(640px,100svh);padding-top:calc(68px * var(--fs) + 24px);box-sizing:border-box;display:flex;align-items:flex-end;overflow:hidden;background:#0c0b0a;isolation:isolate}
 .hf-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;animation:hfin 1.6s var(--ease) both}
 .hf-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(12,11,10,.88) 0%,rgba(12,11,10,.55) 34%,rgba(12,11,10,0) 62%),linear-gradient(0deg,#0c0b0a 0%,rgba(12,11,10,0) 30%),linear-gradient(180deg,rgba(12,11,10,.6) 0%,rgba(12,11,10,0) 18%)}
 .hf-copy{display:grid;gap:26px;justify-items:start;padding-bottom:clamp(64px,11vh,120px)}
-.hf-copy h1{font-size:clamp(48px,5.4vw,112px);line-height:1.02;max-width:11em}
+.hf-copy h1{font-size:clamp(44px,min(5.4vw,10.5vh),112px);line-height:1.02;max-width:11em}
 .hf-copy .lead{max-width:38em}
 .hf-copy .trust{gap:0;color:var(--text-3);font-size:calc(13px * var(--fs));letter-spacing:.02em}
 .hf-meta{display:flex;align-items:center;gap:18px;flex-wrap:wrap}

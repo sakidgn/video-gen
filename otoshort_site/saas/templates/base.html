@@ -14,7 +14,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/static/fonts/cormorant-garamond-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/site.css">
+<link rel="stylesheet" href="/static/site.css?v={{ v }}">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
@@ -60,7 +60,7 @@
   <div class="legal"><span>© {{ site }}</span><span>Yapay zekâ ile üretilen videolar platformlarda “AI” etiketiyle paylaşılmalıdır.</span></div>
 </div><div class="footer-mark" aria-hidden="true">{{ site }}</div></footer>
 {% endblock %}
-<script src="/static/fx.js" defer></script>
+<script src="/static/fx.js?v={{ v }}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
