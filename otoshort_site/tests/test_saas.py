@@ -1508,10 +1508,12 @@ def test_showcase_launcher_finds_tunnel_url_and_refuses_known_secret(tmp_path, m
 
     fake = tmp_path / "cf.sh"
     fake.write_text("#!/bin/sh\necho 'INF Requesting new quick Tunnel on trycloudflare.com... https://api.trycloudflare.com'\n"
-                    "echo 'INF |  https://blue-river-demo.trycloudflare.com  |'\nsleep 30\n")
+                    "echo 'INF |  https://blue-river-demo.trycloudflare.com  |'\n"
+                    "echo 'INF Registered tunnel connection connIndex=0'\nsleep 30\n")
     fake.chmod(0o755)
     monkeypatch.setenv("CLOUDFLARED", str(fake))
-    proc, url = canli.start_tunnel(8999, timeout=10)
+    proc, url, registered = canli.start_tunnel(8999, timeout=10)
+    assert registered.wait(5)
     proc.terminate()
     assert url == "https://blue-river-demo.trycloudflare.com"  # api. adresi değil, rastgele tünel adresi
     key = canli.secret_for(tmp_path / "v")
