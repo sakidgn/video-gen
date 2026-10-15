@@ -122,6 +122,21 @@ def send_verification(request: Request, uid: int, email: str) -> None:
     send_email(request, email, t("{site}: e-postanı doğrula", site=config.SITE_NAME), html)
 
 
+def notify_admins_topup(request: Request, email: str, tl: int, sender: str) -> None:
+    """Yeni havale bildirimi yöneticilere e-postayla gider (hızlı onay için). Yönetici e-postaları Türkçe."""
+    from html import escape
+
+    html = mailer.render("Yeni havale bildirimi",
+                         f"<b>{escape(email)}</b> {tl} ₺ havale yaptığını bildirdi (gönderen: {escape(sender)}). "
+                         "Banka hesabında parayı gördükten sonra onayla.",
+                         ("Yönetim paneli", f"{site_url(request)}/admin"), lang="tr")
+    for to in sorted(config.ADMIN_EMAILS):
+        try:
+            mailer.send(to, f"{config.SITE_NAME}: {tl} ₺ havale bildirimi", html)
+        except Exception:
+            log.exception("Yönetici bildirimi gönderilemedi")
+
+
 def remember_ref(request: Request, code: str) -> bool:
     """Davet bağlantısıyla gelen ziyaretçinin kodunu kayıt olana kadar oturumda tutar."""
     code = growth.norm_code(code)
@@ -1217,6 +1232,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 return go("/kredi")
             s.add(TopUp(user_id=user.id, amount_tl=tl, credits=cr, sender_name=clean(sender_name, 120),
                         note=clean(note, 300)))
+        notify_admins_topup(request, user.email, tl, clean(sender_name, 120))
         flash(request, "Bildirimin alındı. Havale kontrol edilince kredin yüklenecek (genelde birkaç saat).")
         return go("/kredi")
 

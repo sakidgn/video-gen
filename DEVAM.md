@@ -77,6 +77,12 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
 - İngilizce site: `saas/i18n.py` (LangMiddleware: /en önekini atar, "dil" çerezi; contextvar ile `i18n.t`), şablonlarda
   `_()`/`_h()`/`_db()` (veritabanındaki Türkçe kalıplar), çeviriler `saas/i18n_en.py`, eksik kontrolü `saas/i18n_keys.py`.
   User.lang e-posta dili. Herkese açık sayfalar `L('/yol')` ile /en adresi alır. Film/og/stüdyo görselinin -en sürümleri var.
+- Yayına hazırlık (Ekim 2026): yönetimde /admin/hazirlik kontrol listesi (`saas/hazirlik.py`, CLI de var), yasal satıcı
+  bilgileri SIRKET_* env'den, `API_Dene.bat`/`saas/api_dene.py` gerçek API denemesi, sunucu paketi (docker-compose +
+  Caddy https + `sunucu_kur.sh`, Docker içinde denendi), güvenlik düzeltmeleri (yönetici yetkisi sadece doğrulanmış
+  e-postaya, Google ile ele geçirme önlemi, şifre değişince diğer oturumlar düşer, atomik havale onayı, kayıt hız sınırı),
+  yönetimde kullanıcı arama/detay/askıya alma, başarısız işlerin teknik hatası (Job.error_detail), havale bildiriminde
+  yöneticiye e-posta.
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

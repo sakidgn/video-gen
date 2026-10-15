@@ -1425,6 +1425,8 @@ def test_topup_approved_once_and_signup_rate_limited(client):
     admin.post(f"/admin/yukleme/{tid}/onayla", data={"csrf": t})
     admin.post(f"/admin/yukleme/{tid}/onayla", data={"csrf": t})
     assert balance("a@b.com") == config.PACKAGES[0][1]
+    mails = [f.read_text(encoding="utf-8") for f in (config.DATA_DIR / "epostalar").glob("*.html")]
+    assert any("Yeni havale bildirimi" in m and "a@b.com" in m for m in mails)  # yöneticiye haber gitti
     spam = TestClient(client.app)
     codes = [spam.post("/kayit", data={"email": f"s{i}@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
                                        "csrf": csrf(spam, "/kayit")}, follow_redirects=False).headers["location"]
