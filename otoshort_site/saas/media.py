@@ -53,7 +53,10 @@ def save_reference(data: bytes, user_id: int) -> str:
     try:
         import imageio_ffmpeg
 
-        subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(src),
+        # biçim zorla seçilir: dosya ne iddia ederse etsin ffmpeg onu sadece o görsel türü olarak okur
+        demux = {"png": "png_pipe", "jpg": "jpeg_pipe", "webp": "webp_pipe"}[kind]
+        subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-protocol_whitelist", "file",
+                        "-f", demux, "-i", str(src),
                         "-vf", "scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease",
                         "-frames:v", "1", "-map_metadata", "-1", str(out)], check=True, timeout=60)
     except Exception:

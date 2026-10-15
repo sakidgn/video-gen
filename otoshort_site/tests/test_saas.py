@@ -32,7 +32,9 @@ def signup(c, email, pw="sifre1234", verify=True):
     assert r.status_code == 303 and r.headers["location"] == "/panel"
     if verify:
         with db.session() as s:
-            s.scalar(select(User).where(User.email == email)).email_verified = True
+            u = s.scalar(select(User).where(User.email == email))
+            u.email_verified = True
+            u.is_admin = email in config.ADMIN_EMAILS  # gerçekte doğrulama bağlantısında verilir
 
 
 def last_mail(tmp_path):
@@ -1353,3 +1355,84 @@ def test_api_trial_tool_with_fake_generator(tmp_path, monkeypatch, capsys):
     assert "faturalandırma" in capsys.readouterr().out
     assert "geçersiz" in api_dene.explain(RuntimeError("API key not valid. Please pass a valid API key."))
     assert "Model adı" in api_dene.explain(RuntimeError("404 NOT_FOUND models/veo-x"))
+
+
+# --- güvenlik ---
+def test_admin_email_needs_verification_before_admin_rights(client, tmp_path):
+    c = TestClient(client.app)
+    signup(c, "admin@x.com", verify=False)  # saldırgan yönetici e-postasıyla kaydolur ama doğrulayamaz
+    assert c.get("/admin").status_code == 404
+    with db.session() as s:
+        assert not s.scalar(select(User).where(User.email == "admin@x.com")).is_admin
+    link = mail_link(tmp_path, "/dogrula")
+    c.get(link)  # e-postanın gerçek sahibi doğrularsa yetki gelir
+    assert c.get("/admin").status_code == 200
+
+
+def test_verification_link_does_not_log_in_other_browser(client, tmp_path):
+    signup(client, "a@b.com", verify=False)
+    link = mail_link(tmp_path, "/dogrula")
+    other = TestClient(client.app)
+    r = other.get(link, follow_redirects=False)
+    assert r.headers["location"] == "/giris"
+    assert other.get("/panel", follow_redirects=False).status_code == 303  # sızan bağlantı oturum açmaz
+    with db.session() as s:
+        assert s.scalar(select(User)).email_verified
+
+
+def test_password_change_logs_out_other_sessions(client):
+    signup(client, "a@b.com")
+    phone = TestClient(client.app)
+    phone.post("/giris", data={"email": "a@b.com", "password": "sifre1234", "csrf": csrf(phone, "/giris")})
+    assert phone.get("/panel", follow_redirects=False).status_code == 200
+    client.post("/hesap/sifre", data={"current": "sifre1234", "password": "yenisifre99", "password2": "yenisifre99",
+                                      "csrf": csrf(client, "/hesap")})
+    assert client.get("/panel", follow_redirects=False).status_code == 200  # değiştiren oturum açık kalır
+    assert phone.get("/panel", follow_redirects=False).status_code == 303
+
+
+def test_google_login_drops_password_planted_on_unverified_account(client, monkeypatch):
+    from saas import oauth
+
+    signup(client, "kurban@b.com", verify=False)  # saldırgan kurbanın e-postasıyla şifreli hesap açar
+    monkeypatch.setattr(oauth, "enabled", lambda: True)
+    monkeypatch.setattr(oauth, "exchange_code", lambda code, redirect: {
+        "sub": "g-1", "email": "kurban@b.com", "email_verified": True, "name": "Kurban"})
+    import urllib.parse
+
+    victim = TestClient(client.app)
+    loc = victim.get("/auth/google", follow_redirects=False).headers["location"]
+    st = urllib.parse.parse_qs(urllib.parse.urlparse(loc).query)["state"][0]
+    victim.get(f"/auth/google/donus?code=x&state={st}")
+    with db.session() as s:
+        u = s.scalar(select(User).where(User.email == "kurban@b.com"))
+        assert u.google_sub == "g-1" and u.pw_hash == "" and u.email_verified
+    attacker = TestClient(client.app)
+    attacker.post("/giris", data={"email": "kurban@b.com", "password": "sifre1234", "csrf": csrf(attacker, "/giris")})
+    assert attacker.get("/panel", follow_redirects=False).status_code == 303
+
+
+def test_topup_approved_once_and_signup_rate_limited(client):
+    from saas.models import TopUp
+
+    signup(client, "a@b.com")
+    client.post("/kredi/bildirim", data={"package": 0, "sender_name": "Ali", "accept": "1", "csrf": csrf(client, "/kredi")})
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    with db.session() as s:
+        tid = s.scalar(select(TopUp.id))
+    t = csrf(admin, "/admin")
+    admin.post(f"/admin/yukleme/{tid}/onayla", data={"csrf": t})
+    admin.post(f"/admin/yukleme/{tid}/onayla", data={"csrf": t})
+    assert balance("a@b.com") == config.PACKAGES[0][1]
+    spam = TestClient(client.app)
+    codes = [spam.post("/kayit", data={"email": f"s{i}@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                                       "csrf": csrf(spam, "/kayit")}, follow_redirects=False).headers["location"]
+             for i in range(12)]
+    assert codes.count("/kayit") >= 4  # 8'den sonrası reddedilir (2 hesap yukarıda açıldı)
+
+
+def test_language_switch_rejects_unsafe_next(client):
+    for bad in ["//kotu.site", "/\\kotu.site", "https://kotu.site", "/%0d%0aSet-Cookie:x=1", "javascript:alert(1)"]:
+        loc = client.get("/dil/en", params={"next": bad}, follow_redirects=False).headers["location"]
+        assert loc == "/en/", bad

@@ -84,7 +84,7 @@ def send(to: str, subject: str, html: str, *, background: bool = True) -> str | 
         log.info("Demo e-posta kaydedildi: %s -> %s (%s)", subject, to, name)
         return name
     msg = EmailMessage()
-    msg["Subject"] = subject
+    msg["Subject"] = " ".join(subject.split())  # kullanıcı metni (kanal adı) başlığa satır sonu sokamasın
     msg["From"] = formataddr((config.SITE_NAME, config.SMTP_FROM))
     msg["To"] = to
     msg.set_content(_text(html))

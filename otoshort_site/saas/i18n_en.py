@@ -568,6 +568,7 @@ EN = {
     "E-posta adresin zaten doğrulanmış.": "Your email is already verified.",
     "E-posta adresin doğrulandı! 🎉 {n} hediye kredin yüklendi.": "Your email is verified! 🎉 {n} bonus credits added.",
     "E-posta adresin doğrulandı! 🎉": "Your email is verified! 🎉",
+    "E-posta adresin doğrulandı. Giriş yapabilirsin. 🎉": "Your email is verified. You can log in now. 🎉",
     "Çok fazla istek. Birkaç dakika sonra tekrar dene.": "Too many requests. Try again in a few minutes.",
     "Doğrulama bağlantısını tekrar gönderdik: {email}": "We sent the verification link again: {email}",
     "Bu e-postayla bir hesap varsa şifre sıfırlama bağlantısı gönderdik. Gelen kutunu kontrol et.": "If there's an account with this email, we sent a password reset link. Check your inbox.",

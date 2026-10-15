@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request,
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import selectinload
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -21,6 +21,7 @@ from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_pas
 log = logging.getLogger("saas")
 templates = Jinja2Templates(directory=str(config.ROOT / "templates"))
 login_limiter = RateLimiter(limit=10, window=600)
+SAFE_NEXT = re.compile(r"^/[A-Za-z0-9/_.\-]*(\?[A-Za-z0-9_=&%.\-]*)?$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 TIME_RE = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d$")
 MAX_TEXT = 600
@@ -94,6 +95,8 @@ def site_url(request: Request) -> str:
 
 def mark_verified(s, user: User) -> None:
     """E-postayı doğrulanmış yapar; hoş geldin kredisi yalnızca ilk doğrulamada verilir."""
+    if user.email in config.ADMIN_EMAILS:  # yönetici yetkisi ancak e-posta sahipliği kanıtlanınca
+        user.is_admin = True
     if user.email_verified:
         return
     user.email_verified = True
@@ -184,12 +187,27 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
 
+def _pw_mark(user: User) -> str:
+    """Oturuma yazılan şifre izi: şifre değişince eski oturumlar (başka cihazlar) geçersiz olur."""
+    return (user.pw_hash or "")[-12:]
+
+
+def start_session(request: Request, user: User) -> None:
+    request.session.clear()
+    request.session["uid"] = user.id
+    request.session["pv"] = _pw_mark(user)
+
+
 def current_user(request: Request) -> User | None:
     uid = request.session.get("uid")
     if not uid:
         return None
     with db.session() as s:
-        return s.get(User, uid)
+        user = s.get(User, uid)
+    if not user or request.session.get("pv") != _pw_mark(user):
+        request.session.pop("uid", None)  # şifre değişmiş ya da hesap silinmiş
+        return None
+    return user
 
 
 def require_user(request: Request) -> User:
@@ -200,7 +218,7 @@ def require_user(request: Request) -> User:
 
 
 def require_admin(user: User = Depends(require_user)) -> User:
-    if not user.is_admin:
+    if not (user.is_admin and user.email_verified):
         raise HTTPException(status_code=404)
     return user
 
@@ -380,7 +398,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def set_language(request: Request, code: str, next: str = "/"):
         """Dil seçici: çerezi yazar, girişliyse hesaba kaydeder (e-postalar da o dilde gider), aynı sayfaya döner."""
         code = i18n.norm(code)
-        path = next if next.startswith("/") and not next.startswith("//") and "\\" not in next else "/"
+        path = next if SAFE_NEXT.match(next) and not next.startswith("//") else "/"  # başka siteye yönlenmesin
         path = i18n.localized_path(i18n.strip_prefix(path), code, tuple(PUBLIC_PAGES))
         resp = go(path)
         resp.set_cookie(i18n.COOKIE, code, max_age=i18n.COOKIE_AGE, samesite="lax",
@@ -409,11 +427,17 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         remember_ref(request, ref)
         return render(request, "kayit.html", current_user(request), invited=bool(request.session.get("ref")))
 
+    signup_limiter = RateLimiter(limit=8, window=3600)  # aynı IP'den saatte en fazla 8 hesap
+
     @app.post("/kayit", dependencies=[Depends(check_csrf)])
     def register(request: Request, email: str = Form(...), name: str = Form(""), password: str = Form(...),
                  accept: str = Form(""), consent: str = Form("")):
         email = email.strip().lower()
         err = None
+        ip = request.client.host if request.client else "?"
+        if not signup_limiter.allow(f"s:{ip}"):
+            flash(request, "Çok fazla deneme yaptın. Biraz sonra tekrar dene.", "err")
+            return go("/kayit")
         if not EMAIL_RE.match(email):
             err = "Geçerli bir e-posta yaz."
         elif len(password) < 8:
@@ -428,13 +452,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 flash(request, "Bu e-posta ile zaten bir hesap var. Giriş yap.", "err")
                 return go("/giris")
             user = User(email=email, name=clean(name, 100), pw_hash=hash_password(password),
-                        is_admin=email in config.ADMIN_EMAILS, email_verified=False, lang=i18n.current())
+                        is_admin=False, email_verified=False, lang=i18n.current())
             s.add(user)
             s.flush()
             growth.attach_referrer(s, user, request.session.get("ref"))
             uid = user.id
-        request.session.clear()
-        request.session["uid"] = uid
+        start_session(request, user)
         flash(request, "Hesabın oluşturuldu! E-postana bir doğrulama bağlantısı gönderdik. 🎉")
         send_verification(request, uid, email)
         return go("/panel")
@@ -452,14 +475,16 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return go("/giris")
         with db.session() as s:
             user = s.scalar(select(User).where(User.email == email))
-            if user and email in config.ADMIN_EMAILS and not user.is_admin:
-                user.is_admin = True
         if user and not user.pw_hash and user.google_sub:
             flash(request, "Bu hesap Google ile açılmış. “Google ile devam et” butonunu kullan.", "warn")
             return go("/giris")
         if not user or not check_password(password, user.pw_hash):
             flash(request, "E-posta ya da şifre yanlış.", "err")
             return go("/giris")
+        with db.session() as s:  # ADMIN_EPOSTALAR'a sonradan eklenen doğrulanmış hesap
+            u = s.get(User, user.id)
+            if u.email_verified and u.email in config.ADMIN_EMAILS:
+                u.is_admin = True
         return _login_as(request, user.id)
 
     # --- Google ile giriş ---
@@ -470,12 +495,11 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     def _login_as(request: Request, uid: int):
         """Oturumu açar. Dil: tarayıcıda seçilmişse hesaba yazılır, seçilmemişse hesabın dili kullanılır."""
-        request.session.clear()
-        request.session["uid"] = uid
         resp = go("/panel")
         chosen = request.state.lang_cookie
         with db.session() as s:
             u = s.get(User, uid)
+            start_session(request, u)
             if chosen in i18n.LANGS:
                 u.lang = chosen
             elif u.lang != i18n.current():
@@ -513,9 +537,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 user = s.scalar(select(User).where(User.email == prof["email"]))
                 if user and not user.google_sub:
                     user.google_sub = prof["sub"]  # aynı e-postalı hesaba Google bağlandı
+                    if not user.email_verified:
+                        # e-postası doğrulanmamış hesabın şifresini başkası koymuş olabilir: gerçek sahibi Google ile geldi
+                        user.pw_hash = ""
             if user:
-                if prof["email"] in config.ADMIN_EMAILS:
-                    user.is_admin = True
                 if user.email == prof["email"]:
                     mark_verified(s, user)
                 uid = user.id
@@ -575,7 +600,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             already = user.email_verified
             mark_verified(s, user)
             uid = user.id
-        request.session["uid"] = uid
+        if request.session.get("uid") != uid:
+            flash(request, "E-posta adresin doğrulandı. Giriş yapabilirsin. 🎉" if not already else
+                  "E-posta adresin zaten doğrulanmış.")
+            return go(i18n.localized_path("/giris", public=tuple(PUBLIC_PAGES)))
         if already:
             flash(request, "E-posta adresin zaten doğrulanmış.")
         elif config.SIGNUP_BONUS:
@@ -651,8 +679,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             u = s.get(User, user.id)
             u.pw_hash = hash_password(password)
             mark_verified(s, u)  # e-postasına erişebildiğini kanıtladı
-        request.session.clear()
-        request.session["uid"] = user.id
+            start_session(request, u)  # diğer cihazlardaki oturumlar düşer
         flash(request, "Şifren güncellendi, giriş yaptın. 🔐")
         return go("/panel")
 
@@ -744,7 +771,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     def _own_job(s, user: User, job_id: int) -> Job:
         job = s.get(Job, job_id)
-        if not job or (job.user_id != user.id and not user.is_admin):
+        if not job or (job.user_id != user.id and not (user.is_admin and user.email_verified)):
             raise HTTPException(404)
         return job
 
@@ -816,7 +843,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.get("/referans/{uid}/{name}")
     def reference_image(uid: int, name: str, user: User = Depends(require_user)):
         path = media.ref_path(f"{uid}/{name}")
-        if (uid != user.id and not user.is_admin) or not path:
+        if (uid != user.id and not (user.is_admin and user.email_verified)) or not path:
             raise HTTPException(404)
         return FileResponse(path, media_type="image/png", headers={"Cache-Control": "private, max-age=86400"})
 
@@ -878,7 +905,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             flash(request, "Yeni şifreler aynı olmalı ve en az 8 karakter olmalı.", "err")
             return go("/hesap")
         with db.session() as s:
-            s.get(User, user.id).pw_hash = hash_password(password)
+            u = s.get(User, user.id)
+            u.pw_hash = hash_password(password)
+            request.session["pv"] = _pw_mark(u)  # bu oturum açık kalır, diğer cihazlar çıkış yapar
         flash(request, "Şifren güncellendi. 🔐")
         return go("/hesap")
 
@@ -1298,12 +1327,13 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         if action not in ("onayla", "reddet"):
             raise HTTPException(404)
         with db.session() as s:
-            t = s.get(TopUp, tid)
-            if not t or t.status != "bekliyor":
+            # aynı anda iki kez onaylansa da kredi bir kere yüklensin
+            res = s.execute(update(TopUp).where(TopUp.id == tid, TopUp.status == "bekliyor").values(
+                status="onaylandi" if action == "onayla" else "reddedildi", decided_at=now()))
+            if res.rowcount != 1:
                 flash(request, "Bu bildirim zaten işlenmiş.", "err")
                 return go("/admin")
-            t.status = "onaylandi" if action == "onayla" else "reddedildi"
-            t.decided_at = now()
+            t = s.get(TopUp, tid)
             referrer = None
             if action == "onayla":
                 credits.add(s, t.user_id, t.credits, f"Havale ile yükleme ({t.amount_tl} TL)")
