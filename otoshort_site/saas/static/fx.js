@@ -240,6 +240,35 @@
   const fill = (tpl, vals) => (tpl || '').replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m));
   const locale = document.documentElement.lang === 'en' ? 'en-US' : 'tr-TR';
 
+  // Fikir makinesi: rastgele fikir (aynısı arka arkaya gelmez), "Bu fikirle başla" bağlantısı güncellenir
+  const im = $('[data-idea-machine]');
+  if (im) {
+    const ideas = JSON.parse(im.dataset.ideas || '[]'), emo = $('[data-im-emoji]', im), txt = $('[data-im-text]', im),
+      sty = $('[data-im-style]', im), go = $('[data-im-go]', im), roll = $('[data-im-roll]', im), card = $('.im-card', im);
+    let bag = [];
+    roll.addEventListener('click', () => {
+      if (!bag.length) bag = ideas.map((_, i) => i).sort(() => Math.random() - .5);
+      const it = ideas[bag.pop()];
+      card.classList.remove('im-pop'); void card.offsetWidth; card.classList.add('im-pop');
+      emo.textContent = it.e; txt.textContent = it.t; sty.textContent = it.l; sty.hidden = false;
+      go.href = im.dataset.start + encodeURIComponent(it.t); go.hidden = false;
+    });
+  }
+
+  // Telefonda sabit çağrı çubuğu: tanıtım filmi geçilince görünür, son çağrı/erken erişim bölümünde gizlenir
+  const mcta = $('[data-mcta]'), heroSec = $('.hero-film');
+  if (mcta && heroSec && 'IntersectionObserver' in window) {
+    let pastHero = false, nearEnd = false;
+    const sync = () => { const on = pastHero && !nearEnd; mcta.classList.toggle('on', on); mcta.setAttribute('aria-hidden', !on); };
+    new IntersectionObserver(([e]) => { pastHero = !e.isIntersecting; sync(); }).observe(heroSec);
+    const seen = new Set();
+    const endObs = new IntersectionObserver(es => {
+      es.forEach(e => (e.isIntersecting ? seen.add(e.target) : seen.delete(e.target)));
+      nearEnd = seen.size > 0; sync();
+    });
+    $$('#erken, .cta, .footer').forEach(el => endObs.observe(el));
+  }
+
   // Ana sayfa: otomatik kanal maliyet hesaplayıcı
   const calc = $('[data-calc]');
   if (calc) {

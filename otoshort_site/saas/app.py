@@ -22,7 +22,7 @@ from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_pas
 log = logging.getLogger("saas")
 templates = Jinja2Templates(directory=str(config.ROOT / "templates"))
 login_limiter = RateLimiter(limit=10, window=600)
-SAFE_NEXT = re.compile(r"^/[A-Za-z0-9/_.\-]*(\?[A-Za-z0-9_=&%.\-]*)?$")
+SAFE_NEXT = re.compile(r"^/[A-Za-z0-9/_.\-]*(\?[A-Za-z0-9_=&%.\-]*)?(#[A-Za-z0-9_\-]*)?$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 TIME_RE = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d$")
 MAX_TEXT = 600
@@ -127,6 +127,13 @@ def mark_verified(s, user: User) -> None:
     user.email_verified = True
     if config.SIGNUP_BONUS:
         credits.add(s, user.id, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
+    from .models import Waitlist
+
+    # erken erişim listesindeydi: hediye bir kez (aynı anda iki doğrulamada da tek sefer)
+    w = s.scalar(select(Waitlist).where(Waitlist.email == user.email))
+    if w and config.EARLY_BONUS and s.execute(update(Waitlist).where(Waitlist.id == w.id, Waitlist.rewarded.is_(False))
+                                               .values(rewarded=True)).rowcount == 1:
+        credits.add(s, user.id, config.EARLY_BONUS, "Erken erişim hediyesi")
 
 
 def send_email(request: Request, to: str, subject: str, html: str) -> None:
@@ -220,7 +227,8 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         request=request, user=user, site=config.SITE_NAME, csrf=csrf_token(request.session),
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
         languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
-        google_button=oauth.enabled() or (config.FAKE_AI and not config.SHOWCASE), demo_mode=config.SHOWCASE, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
+        google_button=oauth.enabled() or (config.FAKE_AI and not config.SHOWCASE), demo_mode=config.SHOWCASE,
+        prelaunch=config.PRELAUNCH, early_bonus=config.EARLY_BONUS, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
         quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS, legal=config.LEGAL,
         ref_qualities=[k for k in config.QUALITIES if config.supports_refs(k)],
     )
@@ -346,7 +354,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                    for q, a in FAQS]
         with db.session() as s:
             showcase = s.scalars(_public_q().order_by(Job.featured.desc(), Job.public_at.desc()).limit(8)).all()
-        return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase)
+        from . import fikirler
+
+        return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase,
+                      ideas=[{**i, "l": i18n.t(config.STYLE_LABELS[i["s"]])} for i in fikirler.for_lang(i18n.current())])
 
     def _public_q():
         return select(Job).where(Job.public.is_(True), Job.status == "hazir", Job.video_file != "")
@@ -468,9 +479,44 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             flash(request, "Davet bağlantısı geçersiz, yine de kayıt olabilirsin.", "warn")
         return go("/kayit")
 
+    def _after_signup(idea: str) -> str:
+        from urllib.parse import quote
+
+        return f"/video/yeni?idea={quote(idea)}" if idea else "/panel"
+
+    # --- erken erişim listesi ---
+    waitlist_limiter = RateLimiter(limit=10, window=3600)
+
+    @app.post("/erken-erisim", dependencies=[Depends(check_csrf)])
+    def waitlist_join(request: Request, email: str = Form(""), consent: str = Form(""), kaynak: str = Form(""),
+                      next: str = Form("/")):
+        from .models import Waitlist
+
+        back = next if SAFE_NEXT.match(next) and not next.startswith("//") else "/"
+        email = email.strip().lower()
+        ip = request.client.host if request.client else "?"
+        if not waitlist_limiter.allow(f"w:{ip}"):
+            flash(request, "Çok fazla deneme yaptın. Biraz sonra tekrar dene.", "err")
+        elif not EMAIL_RE.match(email) or len(email) > 255:
+            flash(request, "Geçerli bir e-posta yaz.", "err")
+        elif not consent:
+            flash(request, "Açılış duyurusu için e-posta iznini işaretlemelisin.", "err")
+        else:
+            with db.session() as s:
+                if not s.scalar(select(Waitlist.id).where(Waitlist.email == email)):
+                    s.add(Waitlist(email=email, lang=i18n.current(), source=clean(kaynak, 30)))
+            if config.EARLY_BONUS:
+                flash(request, "Listedesin! 🎉 Açılışta haber vereceğiz; bu e-postayla kaydolunca {n} hediye kredi seni bekliyor.",
+                      n=config.EARLY_BONUS)
+            else:
+                flash(request, "Listedesin! 🎉 Açılışta haber vereceğiz.")
+        return go(back)
+
     @app.get("/kayit", response_class=HTMLResponse)
-    def register_page(request: Request, ref: str = ""):
+    def register_page(request: Request, ref: str = "", fikir: str = ""):
         remember_ref(request, ref)
+        if fikir:  # fikir makinesinden geldi: kayıttan sonra stüdyoda hazır olsun
+            request.session["fikir"] = clean(fikir, 300)
         return render(request, "kayit.html", current_user(request), invited=bool(request.session.get("ref")))
 
     signup_limiter = RateLimiter(limit=8, window=3600)  # aynı IP'den saatte en fazla 8 hesap
@@ -503,6 +549,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             s.flush()
             growth.attach_referrer(s, user, request.session.get("ref"))
             uid = user.id
+        idea = request.session.get("fikir", "")
         start_session(request, user)
         if config.SHOWCASE:  # herkese açık demo: gerçek e-posta yok, hesap hemen açılır
             with db.session() as s:
@@ -511,10 +558,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 if config.SIGNUP_BONUS:
                     credits.add(s, uid, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
             flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
-            return go("/panel")
+            return go(_after_signup(idea))
         flash(request, "Hesabın oluşturuldu! E-postana bir doğrulama bağlantısı gönderdik. 🎉")
         send_verification(request, uid, email)
-        return go("/panel")
+        return go(_after_signup(idea))
 
     @app.get("/giris", response_class=HTMLResponse)
     def login_page(request: Request):
@@ -1331,7 +1378,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                                .order_by(Job.id.desc()).limit(30)).all()
             promos = s.scalars(select(PromoCode).order_by(PromoCode.id.desc()).limit(30)).all()
             public_jobs = s.scalars(select(Job).where(Job.public.is_(True)).order_by(Job.public_at.desc()).limit(30)).all()
+            from .models import Waitlist
+
             stats = {
+                "waitlist": s.scalar(select(func.count(Waitlist.id))),
                 "users": s.scalar(select(func.count(User.id))),
                 "videos": s.scalar(select(func.count(Job.id)).where(Job.status == "hazir")),
                 "queue": s.scalar(select(func.count(Job.id)).where(Job.status.in_(["sirada", "uretiliyor"]))),
@@ -1401,6 +1451,22 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 msg = "Hesap askıya alındı." if target.blocked else "Hesap yeniden açıldı."
         flash(request, msg)
         return go(f"/admin/kullanici/{uid}")
+
+    @app.get("/admin/erken-erisim.csv")
+    def admin_waitlist_csv(user: User = Depends(require_admin)):
+        import csv
+        import io
+
+        from .models import Waitlist
+
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["email", "dil", "kaynak", "tarih", "kaydoldu_hediye"])
+        with db.session() as s:
+            for r in s.scalars(select(Waitlist).order_by(Waitlist.id)):
+                w.writerow([r.email, r.lang, r.source, r.created_at.isoformat(), "evet" if r.rewarded else ""])
+        return Response("\ufeff" + buf.getvalue(), media_type="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": 'attachment; filename="erken-erisim.csv"'})
 
     @app.get("/admin/hazirlik", response_class=HTMLResponse)
     def admin_readiness(request: Request, user: User = Depends(require_admin)):

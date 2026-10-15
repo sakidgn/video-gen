@@ -1521,3 +1521,95 @@ def test_showcase_launcher_finds_tunnel_url_and_refuses_known_secret(tmp_path, m
     monkeypatch.setattr(config, "SHOWCASE", True)
     with pytest.raises(RuntimeError, match="GIZLI_ANAHTAR"):
         create_app(start_worker=False, database_url=f"sqlite:///{tmp_path / 'x.db'}")
+
+
+# --- ziyaretçiyi bağlayanlar: erken erişim, fikir makinesi ---
+def test_waitlist_join_reward_and_export(client, tmp_path, monkeypatch):
+    from saas.models import Waitlist
+
+    monkeypatch.setattr(config, "PRELAUNCH", True)
+    monkeypatch.setattr(config, "EARLY_BONUS", 100)
+    anon = TestClient(client.app)
+    home = anon.get("/").text
+    assert 'id="erken"' in home and "data-mcta" in home
+    t = csrf(anon, "/")
+    assert "e-posta iznini" in anon.post("/erken-erisim", data={"email": "a@b.com", "csrf": t}).text  # izin şart
+    assert "Geçerli bir e-posta" in anon.post("/erken-erisim", data={"email": "x", "consent": "1", "csrf": t}).text
+    r = anon.post("/erken-erisim", data={"email": " A@b.com ", "consent": "1", "kaynak": "ana-sayfa", "next": "/#erken",
+                                         "csrf": t}, follow_redirects=False)
+    assert r.headers["location"] == "/#erken"
+    anon.post("/erken-erisim", data={"email": "a@b.com", "consent": "1", "next": "https://kotu.site", "csrf": t})
+    with db.session() as s:
+        assert [w.email for w in s.scalars(select(Waitlist))] == ["a@b.com"]  # tekrar eklenmez
+    signup(client, "a@b.com", verify=False)
+    client.get(mail_link(tmp_path, "/dogrula"))
+    client.get(mail_link(tmp_path, "/dogrula"))
+    assert balance("a@b.com") == 100  # erken erişim hediyesi bir kez
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    assert "Erken erişim listesi: 1 kişi" in admin.get("/admin").text
+    csv_text = admin.get("/admin/erken-erisim.csv").text
+    assert "a@b.com" in csv_text and "evet" in csv_text
+    assert TestClient(client.app).get("/admin/erken-erisim.csv", follow_redirects=False).status_code == 303
+    monkeypatch.setattr(config, "PRELAUNCH", False)
+    assert 'id="erken"' not in anon.get("/").text
+
+
+def test_waitlist_cli_roundtrip(tmp_path, monkeypatch):
+    from saas import erken_erisim
+    from saas.models import Waitlist
+
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(config, "DATABASE_URL", f"sqlite:///{tmp_path / 'c.db'}")
+    db.init(f"sqlite:///{tmp_path / 'c.db'}")
+    with db.session() as s:
+        s.add(Waitlist(email="x@y.com", source="ana-sayfa"))
+    out = tmp_path / "l.csv"
+    assert erken_erisim.main(["disari", str(out)]) == 0
+    assert "x@y.com" in out.read_text(encoding="utf-8")
+    out.write_text(out.read_text(encoding="utf-8") + "yeni@y.com,en,video,2026-10-15\n", encoding="utf-8")
+    assert erken_erisim.main(["iceri", str(out)]) == 0
+    with db.session() as s:
+        assert sorted(s.scalars(select(Waitlist.email))) == ["x@y.com", "yeni@y.com"]
+
+
+def test_idea_machine_carries_idea_through_signup(client, monkeypatch):
+    import html
+    import json
+
+    page = client.get("/").text
+    m = re.search(r"data-ideas='([^']+)'", page)
+    ideas = json.loads(html.unescape(m.group(1)))
+    assert len(ideas) >= 20 and all(i["t"] and i["e"] and i["l"] for i in ideas)
+    en = json.loads(html.unescape(re.search(r"data-ideas='([^']+)'", TestClient(client.app).get("/en/").text).group(1)))
+    assert en[0]["t"] != ideas[0]["t"] and en[0]["l"] == "Cartoon"
+    idea = ideas[0]["t"]
+    c = TestClient(client.app)
+    c.get("/kayit", params={"fikir": idea})
+    r = c.post("/kayit", data={"email": "f@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                               "csrf": csrf(c, "/kayit")}, follow_redirects=False)
+    assert r.headers["location"].startswith("/video/yeni?idea=")
+    assert html.escape(idea, quote=False) in html.unescape(c.get(r.headers["location"]).text) or idea in html.unescape(
+        c.get(r.headers["location"]).text)
+
+
+def test_showcase_demo_video_offers_waitlist(client, monkeypatch):
+    monkeypatch.setattr(config, "SHOWCASE", True)
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    monkeypatch.setattr(config, "PRELAUNCH", True)
+    c = TestClient(client.app)
+    c.post("/kayit", data={"email": "d@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                           "csrf": csrf(c, "/kayit")})
+    give("d@b.com", 100)
+    c.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": csrf(c, "/video/yeni")})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid = s.scalar(select(Job.id))
+    page = c.get(f"/video/{jid}").text
+    assert "Bu bir demo animasyonu" in page
+    c.post("/erken-erisim", data={"email": "d@b.com", "consent": "1", "kaynak": "demo-video", "next": f"/video/{jid}",
+                                  "csrf": csrf(c, "/panel")})
+    from saas.models import Waitlist
+
+    with db.session() as s:
+        assert s.scalar(select(Waitlist.source)) == "demo-video"

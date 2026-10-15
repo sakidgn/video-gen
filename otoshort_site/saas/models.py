@@ -166,3 +166,15 @@ class Publication(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     job: Mapped["Job"] = relationship()
+
+
+class Waitlist(Base):
+    """Erken erişim listesi: açılış öncesi e-postasını bırakanlar (kaydolunca hediye kredi alır)."""
+    __tablename__ = "waitlist"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    lang: Mapped[str] = mapped_column(String(5), default="tr")
+    source: Mapped[str] = mapped_column(String(30), default="")  # hangi butondan geldi (ana sayfa, video...)
+    rewarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+

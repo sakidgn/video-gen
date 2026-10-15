@@ -669,6 +669,35 @@ EN = {
     "<b>{channel}</b> kanalının {slot} videosu kredi yetersiz olduğu için üretilmedi. Kredi yüklediğinde kanal kaldığı yerden devam eder.":
         "The {slot} video for your <b>{channel}</b> channel wasn't made because you ran out of credits. Once you top up, the channel picks up where it left off.",
 
+    # --- fikir makinesi, erken erişim ---
+    "Fikir makinesi": "Idea machine",
+    'Aklında fikir yok mu? <span class="hl">Zar at.</span>': 'Out of ideas? <span class="hl">Roll the dice.</span>',
+    "Her tıklamada yeni bir kısa video fikri. Beğendiğinle hemen başla; yapay zekâ senaryosunu yazıp videoya çevirsin.":
+        "A new short video idea with every click. Start with the one you like; AI writes the script and turns it into a video.",
+    "Zarı at, ilk fikrin gelsin.": "Roll the dice for your first idea.",
+    "Bana fikir ver": "Give me an idea",
+    "Bu fikirle başla": "Start with this idea",
+    "Erken erişim": "Early access",
+    'Açılışa <span class="hl">ilk sen</span> gel.': 'Be <span class="hl">first</span> at launch.',
+    "Gerçek yapay zekâ videoları çok yakında. E-postanı bırak; açılışta ilk sen haberdar ol, kaydolunca {n} hediye kredi kazan.":
+        "Real AI videos are coming soon. Leave your email to hear first at launch, and get {n} bonus credits when you sign up.",
+    "Gerçek yapay zekâ videoları çok yakında. E-postanı bırak, açılışta ilk sen haberdar ol.":
+        "Real AI videos are coming soon. Leave your email to hear first at launch.",
+    "Listeye katıl": "Join the list",
+    "Açılış duyurusu için e-postamın kullanılmasına izin veriyorum. İstediğim an listeden çıkabilirim.":
+        "I agree to my email being used for the launch announcement. I can leave the list anytime.",
+    "Açılış duyurusu için e-posta iznini işaretlemelisin.": "Please tick the email permission for the launch announcement.",
+    "Listedesin! 🎉 Açılışta haber vereceğiz; bu e-postayla kaydolunca {n} hediye kredi seni bekliyor.":
+        "You're on the list! 🎉 We'll let you know at launch; sign up with this email and {n} bonus credits are waiting.",
+    "Listedesin! 🎉 Açılışta haber vereceğiz.": "You're on the list! 🎉 We'll let you know at launch.",
+    "Erken erişime katıl": "Join early access",
+    "Bu bir demo animasyonu": "This is a demo animation",
+    "Gerçek sürümde fikrin sesli, konuşmalı bir yapay zekâ videosuna dönüşür. Açılışta haber verelim mi?":
+        "In the full version, your idea becomes an AI video with voices and dialogue. Want us to tell you at launch?",
+    "Kaydolunca {n} hediye kredi.": "{n} bonus credits when you sign up.",
+    "Haber ver": "Notify me",
+    "Erken erişim hediyesi": "Early access gift",
+
     # --- vitrin (demo yayını) ---
     "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",
     "Demo sürümde ödeme alınmıyor": "No payments in the demo",

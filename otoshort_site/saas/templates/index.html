@@ -56,9 +56,9 @@
 </div></section>
 
 <div class="marquee" aria-hidden="true">
-  {% set ideas = [_('🍊 Portakal markette son indirim için kavga ediyor'),_('🦖 Dinozor ilk kez metrobüse biniyor'),_('🐱 Kedi patronun toplantısına katılıyor'),_('🥔 Patates spor salonunda rekor kırıyor'),_('🤖 Robot ilk kez çay demliyor'),_('🐸 Kurbağa bilgi yarışmasında finalde'),_('🍕 Pizza diyete başlamaya karar veriyor'),_("👽 Uzaylı Kapalıçarşı'da pazarlık yapıyor")] %}
-  <div class="mq-row"><div class="mq-track">{% for rep in range(2) %}{% for i in ideas %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
-  <div class="mq-row rev"><div class="mq-track">{% for rep in range(2) %}{% for i in ideas|reverse %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
+  {% set mq_ideas = [_('🍊 Portakal markette son indirim için kavga ediyor'),_('🦖 Dinozor ilk kez metrobüse biniyor'),_('🐱 Kedi patronun toplantısına katılıyor'),_('🥔 Patates spor salonunda rekor kırıyor'),_('🤖 Robot ilk kez çay demliyor'),_('🐸 Kurbağa bilgi yarışmasında finalde'),_('🍕 Pizza diyete başlamaya karar veriyor'),_("👽 Uzaylı Kapalıçarşı'da pazarlık yapıyor")] %}
+  <div class="mq-row"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
+  <div class="mq-row rev"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas|reverse %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
 </div>
 
 <section id="nasil"><div class="wrap">
@@ -87,6 +87,23 @@
         <div class="cap"><small>{{ _('AÇIKLAMA') }}</small>{{ _('Son indirim kimin olacak? 🍊🍌') }} <span class="tags">{{ _('#komik #shorts #market') }}</span></div>
       </div></div>
       <div class="txt"><span class="num">03</span><h3>{{ _('İndir ve paylaş') }}</h3><p class="muted small">{{ _("Viral başlık, emojili açıklama ve hashtag'ler hazır. Kopyala, yapıştır, paylaş.") }}</p></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="idea-sec" id="fikir"><div class="wrap">
+  <div class="idea-box reveal" data-idea-machine data-ideas='{{ ideas|tojson }}' data-start="{{ '/video/yeni?idea=' if user else L('/kayit') ~ '?fikir=' }}">
+    <div class="im-copy"><span class="eyebrow">{{ _('Fikir makinesi') }}</span>
+      <h2>{{ _h('Aklında fikir yok mu? <span class="hl">Zar at.</span>') }}</h2>
+      <p class="muted">{{ _('Her tıklamada yeni bir kısa video fikri. Beğendiğinle hemen başla; yapay zekâ senaryosunu yazıp videoya çevirsin.') }}</p></div>
+    <div class="im-card" aria-live="polite">
+      <span class="im-emoji" data-im-emoji>🎬</span>
+      <p class="im-text" data-im-text>{{ _('Zarı at, ilk fikrin gelsin.') }}</p>
+      <span class="im-style" data-im-style hidden></span>
+      <div class="row im-actions">
+        <button type="button" class="btn btn-ghost" data-im-roll>🎲 {{ _('Bana fikir ver') }}</button>
+        <a class="btn btn-primary" data-im-go href="{{ '/video/yeni' if user else L('/kayit') }}" hidden>{{ _('Bu fikirle başla') }} {{ icon('arrow-right', 16) }}</a>
+      </div>
     </div>
   </div>
 </div></section>
@@ -193,6 +210,22 @@
   </div>
 </div></section>
 
+{% if prelaunch %}
+<section id="erken" style="padding-top:40px"><div class="wrap">
+  <div class="early reveal">
+    <div class="early-copy"><span class="eyebrow">{{ _('Erken erişim') }}</span>
+      <h2>{{ _h('Açılışa <span class="hl">ilk sen</span> gel.') }}</h2>
+      <p class="lead">{% if early_bonus %}{{ _('Gerçek yapay zekâ videoları çok yakında. E-postanı bırak; açılışta ilk sen haberdar ol, kaydolunca {n} hediye kredi kazan.', n=early_bonus) }}{% else %}{{ _('Gerçek yapay zekâ videoları çok yakında. E-postanı bırak, açılışta ilk sen haberdar ol.') }}{% endif %}</p></div>
+    <form class="early-form" method="post" action="/erken-erisim">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="kaynak" value="ana-sayfa"><input type="hidden" name="next" value="{{ L('/') }}#erken">
+      <div class="early-row"><input class="input" type="email" name="email" required maxlength="255" placeholder="{{ _('sen@ornek.com') }}" value="{{ user.email if user else '' }}" aria-label="{{ _('E-posta') }}">
+        <button class="btn btn-primary" type="submit">{{ _('Listeye katıl') }} {{ icon('arrow-right', 16) }}</button></div>
+      <label class="check small"><input type="checkbox" name="consent" value="1" required><span>{{ _('Açılış duyurusu için e-postamın kullanılmasına izin veriyorum. İstediğim an listeden çıkabilirim.') }}</span></label>
+    </form>
+  </div>
+</div></section>
+{% endif %}
+
 <section id="sss" style="padding-top:40px"><div class="wrap narrow">
   <div class="sec-head reveal"><span class="eyebrow">{{ _('SSS') }}</span><h2>{{ _('Sık sorulanlar') }}</h2></div>
   <div class="faq">
@@ -210,5 +243,9 @@
     <a class="btn btn-primary btn-lg" href="{{ start }}">{{ _('Video üret') if user else _('Ücretsiz kayıt ol') }} {{ icon('arrow-right', 17) }}</a>
   </div>
 </div></section>
+<div class="m-cta" data-mcta aria-hidden="true">
+  {% if prelaunch and not user %}<a class="btn btn-primary btn-block" href="#erken">{{ _('Erken erişime katıl') }} {{ icon('arrow-right', 16) }}</a>
+  {% else %}<a class="btn btn-primary btn-block" href="{{ start }}">{{ _('Video üret') if user else _('Ücretsiz başla') }} {{ icon('arrow-right', 16) }}</a>{% endif %}
+</div>
 {% endblock %}
 {% block scripts %}<script src="/static/vendor/lenis.min.js?v={{ v }}" defer></script>{% endblock %}

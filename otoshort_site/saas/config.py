@@ -33,6 +33,9 @@ LEGAL = {
     "host": _env("SUNUCU_SAGLAYICI"),  # ör. "Hetzner Online GmbH, Almanya"
 }
 SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
+# Açılış öncesi dönem: ana sayfada erken erişim listesi gösterilir (vitrin modunda her zaman açık).
+# Listede olan e-postayla kaydolup doğrulayan ERKEN_ERISIM_HEDIYE kadar kredi alır.
+EARLY_BONUS = int(_env("ERKEN_ERISIM_HEDIYE", "100") or 0)
 # Davet programı: davet edilen kişinin ilk havalesi onaylanınca ikisine de kredi (sahte hesapla kredi toplanamasın diye)
 REFERRAL_BONUS = int(_env("DAVET_ODULU", "50") or 0)  # davet edene
 REFERRAL_FRIEND_BONUS = int(_env("DAVET_HEDIYE", "25") or 0)  # davetle gelene
@@ -40,6 +43,7 @@ REFERRAL_FRIEND_BONUS = int(_env("DAVET_HEDIYE", "25") or 0)  # davetle gelene
 # e-posta doğrulaması atlanır; arama motorlarına kapalıdır.
 SHOWCASE = _env("VITRIN_MODU") == "1"
 FAKE_AI = _env("SAHTE_AI") == "1" or SHOWCASE  # geliştirme/test: API'ye gitmeden sahte video üretir
+PRELAUNCH = SHOWCASE or _env("ERKEN_ERISIM") == "1"
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")
 TIMEZONE = _env("SAAT_DILIMI", "Europe/Istanbul")
 WORKER_ENABLED = _env("ISCI", "1") != "0"

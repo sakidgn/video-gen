@@ -75,9 +75,9 @@ EXTRA = {
     "Oturum süresi doldu, sayfayı yenileyip tekrar dene.",
     "Video güvenlik filtresine takıldı. Fikri biraz değiştirip tekrar dene. Kredin iade edildi.",
     "Video üretilemedi, kredin iade edildi. Biraz sonra tekrar dene.",
-    "Hoş geldin hediyesi", "Davet ödülü: arkadaşın ilk yüklemesini yaptı", "Davetle gelen hediye", "Yönetici düzeltmesi",
+    "Hoş geldin hediyesi", "Erken erişim hediyesi", "Davet ödülü: arkadaşın ilk yüklemesini yaptı", "Davetle gelen hediye", "Yönetici düzeltmesi",
 }
-IGNORE = {"label", "onayla"}
+IGNORE = {"label", "onayla", "s"}
 
 
 def all_keys() -> set[str]:

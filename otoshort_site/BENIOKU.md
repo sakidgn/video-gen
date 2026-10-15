@@ -18,6 +18,14 @@ harcanmaz), ödeme ve yönetim paneli kapalı, e-posta doğrulaması yok, şifre
 her sayfada "Demo sürüm" şeridi görünür. Pencere kapanınca yayın biter, her açılışta adres değişir. Veriler
 `saas_veri_vitrin/` klasöründe kalır. Kayıt olanların e-postaları da orada durur; demo bitince klasörü silebilirsin.
 
+## Erken erişim listesi ve fikir makinesi
+Açılış öncesi dönemde (vitrin modunda ya da `.env`'de `ERKEN_ERISIM=1`) ana sayfada **Erken erişim** bölümü ve
+telefonda altta sabit bir çağrı çubuğu görünür. E-postasını bırakan, gerçek sitede aynı e-postayla kaydolup
+doğrulayınca `ERKEN_ERISIM_HEDIYE` (varsayılan 100) kredi alır. Vitrinde toplanan listeyi gerçek siteye taşımak:
+`python -m saas.erken_erisim disari liste.csv --vitrin`, sunucuda `python -m saas.erken_erisim iceri liste.csv`.
+Yönetim panelinden de CSV indirilebilir. Ana sayfadaki **Fikir makinesi** (`saas/fikirler.py`) ziyaretçiye
+rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle açar.
+
 ## Gerçek API denemesi (satıştan önce)
 1. `.env.ornek` dosyasını `.env` adıyla kopyala, `GEMINI_API_KEY=` satırına Google AI Studio anahtarını yaz
    (fal.ai modeli seçtiysen `FAL_KEY` de). Anahtarı kimseyle paylaşma.

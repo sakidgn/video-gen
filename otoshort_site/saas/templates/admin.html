@@ -7,6 +7,9 @@
   <div><b>{% if ready.blockers %}Yayına hazırlık: {{ ready.blockers }} zorunlu eksik{% else %}Yayına hazır{% endif %}</b>
     <span class="small muted">{{ ready.ok }} / {{ ready.total }} kontrol tamam · anahtarlar, e-posta, https, yasal bilgiler, fiyat/maliyet</span></div>
   {{ icon('arrow-right', 16) }}</a>
+<div class="card ready-cta ok reveal" style="margin-bottom:24px"><span class="icon-box">{{ icon('mail', 18) }}</span>
+  <div><b>Erken erişim listesi: {{ stats.waitlist }} kişi</b><span class="small muted">Açılışta duyuru gönderilecek e-postalar. Vitrinde toplananlar için: python -m saas.erken_erisim disari liste.csv --vitrin</span></div>
+  <a class="btn btn-ghost btn-sm" href="/admin/erken-erisim.csv">{{ icon('download', 14) }} CSV indir</a></div>
 <div class="grid g4" style="margin-bottom:24px">
   {% for ic, k, v in [('users','Kullanıcı',stats.users),('video','Üretilen video',stats.videos),('clock','Sırada / üretiliyor',stats.queue),('repeat','Aktif kanal',daily.channels)] %}
   <div class="card stat reveal" data-delay="{{ loop.index0 }}"><div class="k">{{ icon(ic, 16) }} {{ k }}</div><div class="v" data-count="{{ v }}">{{ v }}</div></div>{% endfor %}
