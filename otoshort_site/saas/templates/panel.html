@@ -42,7 +42,7 @@
   {% for j in jobs %}
   <a class="vcard reveal" href="/video/{{ j.id }}">
     <div class="thumb">
-      {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" onerror="this.remove()"><span class="play">{{ icon('play', 18) }}</span>
+      {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" data-hide-broken><span class="play">{{ icon('play', 18) }}</span>
       {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}Üretilemedi</div>
       {% else %}<div class="state"><span class="ring"></span>Üretiliyor…</div>{% endif %}
     </div>

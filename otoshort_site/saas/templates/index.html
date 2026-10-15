@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 {% block body_class %}home{% endblock %}
+{% block head %}
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@graph": [
+  {"@type": "SoftwareApplication", "name": site, "applicationCategory": "MultimediaApplication", "operatingSystem": "Web",
+   "url": base_url ~ "/", "image": base_url ~ "/static/og.png", "inLanguage": "tr",
+   "description": "Yapay zekâ ile sesli, dikey TikTok, Reels ve Shorts videoları üret; otomatik kanallarla her gün yeni video.",
+   "offers": {"@type": "AggregateOffer", "priceCurrency": "TRY", "lowPrice": qualities.lite.credits, "highPrice": qualities.standard.credits}},
+  {"@type": "FAQPage", "mainEntity": faqs_ld}]}|tojson }}</script>
+{% endblock %}
 {% block content %}
 {% set start = '/video/yeni' if user else '/kayit' %}
 
@@ -157,12 +165,7 @@
 <section id="sss" style="padding-top:40px"><div class="wrap narrow">
   <div class="sec-head reveal"><span class="eyebrow">SSS</span><h2>Sık sorulanlar</h2></div>
   <div class="faq">
-    {% for q, a in [
-      ('Videoları nereye paylaşabilirim?','TikTok, Instagram Reels, YouTube Shorts ve dikey video kabul eden her yere. Paylaşırken platformun “yapay zekâ ile oluşturuldu” etiketini açmayı unutma.'),
-      ('Kredi kartı gerekiyor mu?','Hayır. Şimdilik kredi yüklemesi banka havalesi / EFT ile yapılıyor. Kartla ödeme yakında geliyor.'),
-      ('Ünlü karakterleri ya da kişileri kullanabilir miyim?','Hayır. Telif ve kişilik hakları nedeniyle gerçek kişiler ve başkalarına ait karakterler üretilmez; yazarsan yapay zekâ onu özgün bir karaktere çevirir. Kendi karakterini dilediğin gibi tarif edebilirsin.'),
-      ('Video beğenmezsem ya da üretilemezse?','Teknik bir hata ya da güvenlik filtresi yüzünden video üretilemezse kredin otomatik iade edilir. Üretilen videolar için iade yapılmaz; önce Ekonomik kaliteyle deneyip beğenince üst kaliteye geçebilirsin.'),
-      ('Otomatik kanalda kredim bitince ne olur?','Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur.')] %}
+    {% for q, a in faqs %}
     <details class="reveal"><summary>{{ q }} {{ icon('chevron-down', 18) }}</summary><p>{{ a }}</p></details>
     {% endfor %}
   </div>

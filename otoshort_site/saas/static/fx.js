@@ -136,6 +136,16 @@
   $$('[data-ticker]').forEach(el => { if (reduce) return; let v = 12;
     setInterval(() => { v = v >= 99 ? 8 : v + 1 + Math.floor(Math.random() * 3); el.textContent = Math.min(v, 99) + '%'; }, 140); });
 
+  // Onay isteyen formlar (satır içi script yok: güvenlik politikası buna izin vermez)
+  $$('form[data-confirm]').forEach(f => f.addEventListener('submit', e => { if (!confirm(f.dataset.confirm)) { e.preventDefault(); e.stopImmediatePropagation(); } }, true));
+  // Yüklenemeyen küçük resimleri gizle
+  $$('img[data-hide-broken]').forEach(img => { const h = () => img.remove(); if (img.complete && !img.naturalWidth) h(); else img.addEventListener('error', h); });
+  // Video üretilirken durumu yokla, aşama değişince sayfayı yenile
+  const poll = $('[data-poll]');
+  if (poll) setInterval(async () => {
+    try { const d = await (await fetch(poll.dataset.poll)).json(); poll.textContent = d.label; if (d.stage !== poll.dataset.stage) location.reload(); } catch (e) {}
+  }, 4000);
+
   // Form gönderilirken buton yükleniyor
   $$('form').forEach(f => f.addEventListener('submit', () => {
     const b = f.querySelector('button[type=submit]'); if (b && f.checkValidity()) b.classList.add('is-loading');

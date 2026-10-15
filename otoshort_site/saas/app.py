@@ -5,7 +5,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
@@ -22,13 +22,45 @@ login_limiter = RateLimiter(limit=10, window=600)
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 TIME_RE = re.compile(r"^([01]?\d|2[0-3]):[0-5]\d$")
 MAX_TEXT = 600
+# Tarayıcı güvenliği: yalnızca kendi dosyalarımız çalışır (satır içi script yok), başka sitede çerçeveye alınamaz
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+       "media-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+       "form-action 'self'; frame-ancestors 'none'")
+SECURITY_HEADERS = {
+    "Content-Security-Policy": CSP, "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin", "Cross-Origin-Opener-Policy": "same-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+}
+FAQS = [
+    ("Videoları nereye paylaşabilirim?",
+     "TikTok, Instagram Reels, YouTube Shorts ve dikey video kabul eden her yere. Paylaşırken platformun “yapay zekâ ile oluşturuldu” etiketini açmayı unutma."),
+    ("Kredi kartı gerekiyor mu?",
+     "Hayır. Şimdilik kredi yüklemesi banka havalesi / EFT ile yapılıyor. Kartla ödeme yakında geliyor."),
+    ("Ünlü karakterleri ya da kişileri kullanabilir miyim?",
+     "Hayır. Telif ve kişilik hakları nedeniyle gerçek kişiler ve başkalarına ait karakterler üretilmez; yazarsan yapay zekâ onu özgün bir karaktere çevirir. Kendi karakterini dilediğin gibi tarif edebilirsin."),
+    ("Video beğenmezsem ya da üretilemezse?",
+     "Teknik bir hata ya da güvenlik filtresi yüzünden video üretilemezse kredin otomatik iade edilir. Üretilen videolar için iade yapılmaz; önce Ekonomik kaliteyle deneyip beğenince üst kaliteye geçebilirsin."),
+    ("Otomatik kanalda kredim bitince ne olur?",
+     "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
+]
+PUBLIC_PAGES = ["/", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
 
 
 def create_app(*, start_worker: bool | None = None, generator=None, database_url: str | None = None) -> FastAPI:
     db.init(database_url)
     app = FastAPI(title=config.SITE_NAME, docs_url=None, redoc_url=None, openapi_url=None)
     app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, max_age=60 * 60 * 24 * 30,
-                       same_site="lax", https_only=False)
+                       same_site="lax", https_only=config.SITE_URL.startswith("https://"))
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next):
+        resp = await call_next(request)
+        for k, v in SECURITY_HEADERS.items():
+            resp.headers.setdefault(k, v)
+        if request.url.scheme == "https" or config.SITE_URL.startswith("https://"):
+            resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return resp
+
     app.mount("/static", StaticFiles(directory=str(config.ROOT / "static")), name="static")
     _routes(app)
     if start_worker if start_worker is not None else config.WORKER_ENABLED:
@@ -162,7 +194,50 @@ def _valid_choice(value: str, options: dict, default: str) -> str:
 def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
-        return render(request, "index.html", current_user(request))
+        faqs_ld = [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQS]
+        return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld)
+
+    @app.get("/saglik")
+    def health():
+        """Sunucu izleme için: veritabanına erişiliyor mu, sırada kaç iş var."""
+        try:
+            with db.session() as s:
+                queue = s.scalar(select(func.count(Job.id)).where(Job.status.in_(["sirada", "uretiliyor"])))
+            return {"ok": True, "queue": queue}
+        except Exception:
+            log.exception("Sağlık kontrolü: veritabanına ulaşılamadı")
+            return JSONResponse({"ok": False}, status_code=503)
+
+    @app.get("/robots.txt", response_class=PlainTextResponse)
+    def robots(request: Request):
+        private = ["/panel", "/video", "/videolar", "/kanallar", "/kredi", "/hesap", "/admin", "/dev", "/auth",
+                   "/dogrula", "/sifre-yenile", "/api"]
+        lines = ["User-agent: *", *(f"Disallow: {p}" for p in private), f"Sitemap: {site_url(request)}/sitemap.xml"]
+        return "\n".join(lines) + "\n"
+
+    @app.get("/sitemap.xml")
+    def sitemap(request: Request):
+        base = site_url(request)
+        urls = "".join(f"<url><loc>{base}{p}</loc></url>" for p in PUBLIC_PAGES)
+        xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}</urlset>'
+        return Response(xml, media_type="application/xml")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return FileResponse(config.ROOT / "static" / "icons" / "icon-192.png", media_type="image/png",
+                            headers={"Cache-Control": "public, max-age=604800"})
+
+    @app.get("/manifest.webmanifest")
+    def manifest():
+        return JSONResponse({
+            "name": config.SITE_NAME, "short_name": config.SITE_NAME, "lang": "tr", "start_url": "/panel",
+            "display": "standalone", "background_color": "#0c0b0a", "theme_color": "#0c0b0a",
+            "description": "Yapay zekâ ile sesli, dikey kısa videolar üret.",
+            "icons": [{"src": f"/static/icons/icon-{n}.png", "sizes": f"{n}x{n}", "type": "image/png", "purpose": "any"}
+                      for n in (192, 512)] +
+                     [{"src": "/static/icons/maskable-512.png", "sizes": "512x512", "type": "image/png",
+                       "purpose": "maskable"}],
+        }, media_type="application/manifest+json")
 
     @app.get("/yasal/{page}", response_class=HTMLResponse)
     def legal(request: Request, page: str):

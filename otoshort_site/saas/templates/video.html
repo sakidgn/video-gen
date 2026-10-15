@@ -4,7 +4,7 @@
 <div class="page-head">
   <div class="t"><a class="faint small row" href="{{ '/kanallar/%d' % job.channel_id if job.channel_id else '/panel' }}" style="gap:6px">{{ icon('arrow-left', 15) }} {{ job.channel.name if job.channel else 'Panel' }}</a>
     <h1 style="view-transition-name:jobtitle">{{ job.title or ('Videon hazırlanıyor' if job.status in ('sirada','uretiliyor') else 'Video') }}</h1></div>
-  <span class="badge {{ status_badge[job.status] }}" id="st">{{ status_labels[job.status] }}</span>
+  <span class="badge {{ status_badge[job.status] }}" id="st"{% if job.status in ('sirada','uretiliyor') %} data-poll="/video/{{ job.id }}/durum" data-stage="{{ job.status }}:{{ job.prompt != '' }}"{% endif %}>{{ status_labels[job.status] }}</span>
 </div>
 <div class="watch">
   <div class="device reveal"><div class="scr">
@@ -62,13 +62,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
-{% block scripts %}
-{% if job.status in ('sirada','uretiliyor') %}
-<script>
-(function(){let stage='{{ job.status }}:{{ job.prompt != "" }}';
-setInterval(async()=>{try{const r=await fetch('/video/{{ job.id }}/durum');const d=await r.json();
-document.getElementById('st').textContent=d.label;if(d.stage!==stage)location.reload();}catch(e){}},4000);})();
-</script>
-{% endif %}
 {% endblock %}

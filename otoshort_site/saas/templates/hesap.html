@@ -29,7 +29,7 @@
   </form>
 
   <form class="card card-lg reveal" data-delay="2" method="post" action="/hesap/sil" style="border-color:rgba(255,92,122,.3)"
-        onsubmit="return confirm('Hesabın ve tüm videoların kalıcı olarak silinecek. Emin misin?')">
+        data-confirm="Hesabın ve tüm videoların kalıcı olarak silinecek. Emin misin?">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="card-head"><h3>{{ icon('trash', 18) }} Hesabı sil</h3></div>
     <p class="muted small">Hesabın, videoların ve kanalların kalıcı olarak silinir; kalan kredilerin de silinir. Ödeme kayıtları yasal zorunluluk nedeniyle kişisel bilgilerinden ayrılarak saklanır.</p>

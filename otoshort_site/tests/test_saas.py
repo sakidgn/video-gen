@@ -367,3 +367,57 @@ def test_channel_video_and_credit_notifications(client, tmp_path):
     worker.schedule_channels(datetime(2026, 10, 13, 10, 0, tzinfo=tz))
     run_queue(ai.FakeAI())
     assert "yeni videon hazır" in last_mail(tmp_path)
+
+
+def test_security_headers_and_no_inline_scripts(client):
+    r = client.get("/")
+    csp = r.headers["content-security-policy"]
+    assert "script-src 'self'" in csp and "frame-ancestors 'none'" in csp
+    assert r.headers["x-frame-options"] == "DENY" and r.headers["x-content-type-options"] == "nosniff"
+    signup(client, "a@b.com")
+    for url in ["/", "/panel", "/video/yeni", "/kredi", "/hesap", "/kanallar/yeni"]:
+        html = client.get(url).text
+        # yalnızca dosyadan yüklenen script ya da veri bloğu (JSON-LD) olabilir; satır içi olay yakalayıcı yok
+        tags = re.findall(r"<script[^>]*>", html)
+        assert all(" src=" in t or 'type="application/ld+json"' in t for t in tags), url
+        assert not re.search(r"\son(submit|error|click|load)=", html), url
+
+
+def test_health_robots_sitemap_manifest(client):
+    assert client.get("/saglik").json() == {"ok": True, "queue": 0}
+    robots = client.get("/robots.txt").text
+    assert "Disallow: /panel" in robots and "Sitemap: http://testserver/sitemap.xml" in robots
+    sm = client.get("/sitemap.xml")
+    assert sm.headers["content-type"].startswith("application/xml") and "<loc>http://testserver/kayit</loc>" in sm.text
+    m = client.get("/manifest.webmanifest").json()
+    assert m["start_url"] == "/panel" and all(client.get(i["src"]).status_code == 200 for i in m["icons"])
+    assert client.get("/favicon.ico").status_code == 200
+
+
+def test_index_has_structured_data(client):
+    import json
+
+    html = client.get("/").text
+    data = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.S).group(1))
+    faq = next(g for g in data["@graph"] if g["@type"] == "FAQPage")
+    assert len(faq["mainEntity"]) >= 5 and faq["mainEntity"][0]["acceptedAnswer"]["text"]
+
+
+def test_backup_creates_copy_and_rotates(tmp_path, monkeypatch):
+    import sqlite3
+
+    from saas import yedek
+
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    src = tmp_path / "site.db"
+    with sqlite3.connect(src) as c:
+        c.execute("create table t(x)")
+        c.execute("insert into t values (42)")
+    url = f"sqlite:///{src}"
+    for i in range(4):
+        out = yedek.backup(url, keep=3, stamp=f"20260101-00000{i}")
+    files = sorted((tmp_path / "yedekler").glob("site-*.db"))
+    assert len(files) == 3 and files[-1] == out
+    with sqlite3.connect(out) as c:
+        assert c.execute("select x from t").fetchone() == (42,)
+    assert yedek.backup("postgresql://x/y") is None

@@ -43,14 +43,14 @@
 {% if jobs %}
 <div class="vgrid">{% for j in jobs %}
   <a class="vcard" href="/video/{{ j.id }}"><div class="thumb">
-    {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" onerror="this.remove()"><span class="play">{{ icon('play', 18) }}</span>
+    {% if j.status == 'hazir' %}<img src="/video/{{ j.id }}/kapak" alt="" loading="lazy" data-hide-broken><span class="play">{{ icon('play', 18) }}</span>
     {% elif j.status == 'hata' %}<div class="state">{{ icon('alert', 22) }}Üretilemedi</div>{% else %}<div class="state"><span class="ring"></span>Üretiliyor…</div>{% endif %}</div>
   <div class="vmeta"><b>{{ j.title or 'Video' }}</b><div class="row"><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span><span class="tiny faint mono">{{ j.slot or '' }}</span></div></div></a>
 {% endfor %}</div>
 {% else %}<div class="card empty"><span class="icon-box">{{ icon('clock', 22) }}</span><p>Henüz video yok. İlk video bir sonraki saatte üretilecek.</p></div>{% endif %}
 <div class="card" style="margin-top:44px;border-color:rgba(248,113,113,.2)"><div class="row between">
   <div><h3>Kanalı sil</h3><p class="small faint">Kanal silinir; üretilmiş videoların panelinde kalır.</p></div>
-  <form method="post" action="/kanallar/{{ ch.id }}/sil" onsubmit="return confirm('Kanal silinsin mi? Üretilmiş videolar silinmez.')"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">{{ icon('trash', 14) }} Kanalı sil</button></form>
+  <form method="post" action="/kanallar/{{ ch.id }}/sil" data-confirm="Kanal silinsin mi? Üretilmiş videolar silinmez."><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">{{ icon('trash', 14) }} Kanalı sil</button></form>
 </div></div>
 {% endif %}
 {% endblock %}

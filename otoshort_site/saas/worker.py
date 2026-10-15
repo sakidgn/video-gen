@@ -194,6 +194,7 @@ class Worker:
 
     def tick(self) -> None:
         schedule_channels()
+        self.daily_backup()
         while True:
             with self.lock:
                 if self.running >= MAX_PARALLEL:
@@ -204,6 +205,19 @@ class Worker:
             with self.lock:
                 self.running += 1
             self.pool.submit(run_job, job_id, self.generator).add_done_callback(self._done)
+
+    def daily_backup(self) -> None:
+        from . import yedek
+
+        today = datetime.now().date()
+        if getattr(self, "_backup_day", None) == today:
+            return
+        self._backup_day = today
+        try:
+            if not yedek.backed_up_today():
+                yedek.backup()
+        except Exception:
+            log.exception("Günlük yedek alınamadı")
 
     def loop(self, every: float = 5.0) -> None:
         recover()
