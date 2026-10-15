@@ -320,6 +320,12 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:24px 0}
 .footer h4{color:var(--text);font-size:12px;margin-bottom:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .footer a{display:block;color:var(--text-3);padding:3px 0;transition:color .2s}.footer a.brand{display:inline-flex;color:var(--text);padding:0}.footer a:hover{color:var(--text)}
 .footer .legal{grid-column:1/-1;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-top:24px;border-top:1px solid var(--border);font-size:13px}
+.footer{overflow:hidden;padding-bottom:0}
+.footer-mark{font-family:var(--display);font-weight:500;font-size:clamp(84px,21vw,330px);line-height:.78;letter-spacing:-.01em;text-align:center;white-space:nowrap;
+  margin:48px 0 -.12em;user-select:none;pointer-events:none;color:transparent;background:linear-gradient(180deg,rgba(244,239,230,.16),rgba(244,239,230,0) 88%);-webkit-background-clip:text;background-clip:text}
+.nav-links a{position:relative}
+.nav-links a:after{content:"";position:absolute;left:14px;right:14px;bottom:5px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:right;transition:transform .45s var(--spring,var(--ease))}
+.nav-links a:hover{background:none}.nav-links a:hover:after{transform:scaleX(1);transform-origin:left}
 
 /* ============ Uygulama kabuğu ============ */
 .app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
@@ -528,6 +534,15 @@ a.ob:hover{border-color:rgba(216,185,138,0.3);transform:translateY(-2px)}
 /* kaydırınca belirme */
 .reveal{opacity:0;transform:translateY(18px);filter:blur(4px);transition:opacity .8s var(--ease),transform .8s var(--ease),filter .8s var(--ease)}
 .reveal.in{opacity:1;transform:none;filter:none}
+/* yumuşak kaydırma (Lenis) */
+html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.lenis-stopped{overflow:clip}
+/* başlıklar kelime kelime belirir */
+.wd{display:inline-block;opacity:0;transform:translateY(.4em);filter:blur(8px);
+  transition:opacity .9s var(--ease),transform 1.1s var(--spring,var(--ease)),filter .9s var(--ease);transition-delay:calc(var(--wi) * 65ms + 120ms)}
+.in .wd{opacity:1;transform:none;filter:none}
+/* kaydırınca geride kalan bölümler bulanıklaşır */
+[data-out]{transform-origin:50% 100%}
+.reveal.done{transition-property:transform,border-color,background,box-shadow,color;transition-delay:0s}
 
 /* animasyonlar */
 @keyframes spin{to{transform:rotate(360deg)}}

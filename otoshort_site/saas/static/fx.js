@@ -25,9 +25,9 @@
 
   // Kaydırınca belirme
   const io = !reduce && 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
-    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    if (e.isIntersecting) { const t = e.target; t.classList.add('in'); io.unobserve(t); setTimeout(() => { t.classList.add('done'); dispatchEvent(new Event('scroll')); }, 950 + (+t.dataset.delay || 0) * 90); }
   }), { threshold: .12, rootMargin: '0px 0px -40px 0px' }) : null;
-  $$('.reveal').forEach(el => { el.style.transitionDelay = `${(+el.dataset.delay || 0) * 90}ms`; io ? io.observe(el) : el.classList.add('in'); });
+  $$('.reveal').forEach(el => { el.style.transitionDelay = `${(+el.dataset.delay || 0) * 90}ms`; io ? io.observe(el) : el.classList.add('in', 'done'); });
 
   // Tanıtım filmi: telefonda dikey, masaüstünde yatay sürüm
   const hv = $('[data-hero-video]');
@@ -36,6 +36,45 @@
     if (mob) hv.poster = hv.dataset.posterM;
     if (!reduce) { hv.src = mob ? hv.dataset.srcM : hv.dataset.src; const p = hv.play(); if (p) p.catch(() => {}); }
   }
+
+  // Başlıkları kelimelere böl: bölüm göründüğünde kelime kelime belirsin
+  if (!reduce) $$('.home .sec-head h2, .home .auto-copy h2, .home .cta h2').forEach(h => {
+    let i = 0; const out = document.createDocumentFragment();
+    const word = node => { const w = document.createElement('span'); w.className = 'wd'; w.style.setProperty('--wi', i++); w.appendChild(node); return w; };
+    [...h.childNodes].forEach(n => {
+      if (n.nodeType === 3) n.textContent.split(/(\s+)/).forEach(t => { if (!t) return; out.appendChild(/^\s+$/.test(t) ? document.createTextNode(t) : word(document.createTextNode(t))); });
+      else out.appendChild(n.nodeName === 'BR' ? n : word(n));
+    });
+    h.textContent = ''; h.appendChild(out);
+  });
+
+  // Aşağı inerken geride kalan bölümler bulanıklaşıp geri çekilir
+  const outs = $$('.home main .reveal, .home main .marquee, .home [data-showcase]').filter(el => !el.parentElement.closest('.reveal'));
+  const hfc = $('.hf-copy'), hfv = $('.hf-video');
+  if (!reduce && (outs.length || hfc)) {
+    const maxB = fine ? 10 : 6; let raf = 0;
+    outs.forEach(el => el.setAttribute('data-out', ''));
+    const apply = (el, p) => {
+      if (p <= .002) { if (el._o) { el.style.filter = el.style.opacity = el.style.scale = ''; el._o = 0; } return; }
+      const e = Math.pow(p, 1.3); el._o = 1;
+      el.style.filter = `blur(${(e * maxB).toFixed(2)}px)`; el.style.opacity = (1 - e * .85).toFixed(3); el.style.scale = (1 - e * .05).toFixed(4);
+    };
+    const run = () => {
+      raf = 0; const vh = innerHeight;
+      // öğenin alt kenarı ekranın üst yarısına girince başlar, menünün altına varınca tamamlanır
+      outs.forEach(el => { if (el.classList.contains('reveal') && !el.classList.contains('done')) return;
+        const r = el.getBoundingClientRect(); apply(el, Math.min(1, Math.max(0, (vh * .5 + 70 - r.bottom) / (vh * .5)))); });
+      if (hfc) { const p = Math.min(1, Math.max(0, scrollY / (vh * .75))); apply(hfc, p);
+        if (hfv) { hfv.style.scale = (1 + p * .08).toFixed(4); hfv.style.filter = p > .005 ? `blur(${(p * p * 14).toFixed(1)}px) brightness(${(1 - p * .55).toFixed(3)})` : ''; } }
+    };
+    addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(run); }, { passive: true }); addEventListener('resize', run); run();
+  }
+
+  // Masaüstünde yumuşak, ataletli kaydırma
+  if (!reduce && fine) addEventListener('DOMContentLoaded', () => {
+    if (!window.Lenis || !document.body.classList.contains('home')) return;
+    try { new Lenis({ autoRaf: true, lerp: .09, anchors: true }); } catch (e) {}
+  });
 
   // Ürün vitrini: kaydırdıkça 3D açıdan düzleşir
   const sc = $('[data-showcase]');
