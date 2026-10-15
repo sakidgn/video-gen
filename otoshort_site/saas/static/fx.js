@@ -29,6 +29,14 @@
   }), { threshold: .12, rootMargin: '0px 0px -40px 0px' }) : null;
   $$('.reveal').forEach(el => { el.style.transitionDelay = `${(+el.dataset.delay || 0) * 90}ms`; io ? io.observe(el) : el.classList.add('in'); });
 
+  // Tanıtım filmi: telefonda dikey, masaüstünde yatay sürüm
+  const hv = $('[data-hero-video]');
+  if (hv) {
+    const mob = matchMedia('(max-width: 700px)').matches;
+    if (mob) hv.poster = hv.dataset.posterM;
+    if (!reduce) { hv.src = mob ? hv.dataset.srcM : hv.dataset.src; const p = hv.play(); if (p) p.catch(() => {}); }
+  }
+
   // Ürün vitrini: kaydırdıkça 3D açıdan düzleşir
   const sc = $('[data-showcase]');
   if (sc) {

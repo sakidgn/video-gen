@@ -147,9 +147,9 @@ class FakeAI:
         return out
 
 
-DEMO_PALETTES = [  # (arka plan üst, alt, karakter rengi) — sitenin neon renkleri
-    ("0xff6ad5", "0x5a1fb8", (255, 154, 46)), ("0x00e5ff", "0x2a1466", (79, 212, 134)),
-    ("0xb6ff3b", "0x0f7d75", (255, 92, 170)), ("0xffb800", "0xd61f9a", (90, 140, 255)),
+DEMO_PALETTES = [  # (arka plan üst, alt, karakter rengi) — sıcak, sinematik tonlar
+    ("0xe9c9a0", "0x6b4a2c", (255, 138, 31)), ("0xa9c4c9", "0x2f4248", (240, 196, 92)),
+    ("0xd9b8b0", "0x5a3438", (120, 196, 140)), ("0xc9c0a8", "0x3f3a2a", (232, 98, 74)),
 ]
 
 

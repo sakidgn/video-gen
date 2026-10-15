@@ -65,6 +65,6 @@ def icon(name: str, size: int = 18, cls: str = "") -> Markup:
 
 LOGO = Markup(
     '<span class="logo-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18">'
-    '<rect x="3.2" y="1.2" width="11.6" height="15.6" rx="3" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1.4"/>'
-    '<path d="m7.4 6.1 4.4 2.9-4.4 2.9z" fill="#fff"/></svg></span>'
+    '<rect x="3.2" y="1.2" width="11.6" height="15.6" rx="3" fill="none" stroke="#0c0b0a" stroke-opacity=".55" stroke-width="1.4"/>'
+    '<path d="m7.4 6.1 4.4 2.9-4.4 2.9z" fill="#0c0b0a"/></svg></span>'
 )

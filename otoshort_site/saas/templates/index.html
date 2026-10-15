@@ -1,30 +1,24 @@
 {% extends "base.html" %}
+{% block body_class %}home{% endblock %}
 {% block content %}
 {% set start = '/video/yeni' if user else '/kayit' %}
 
-<section class="hero" style="padding-top:28px"><div class="wrap">
-  <div class="hero-grid">
-    <div class="hero-copy">
-      <a class="chip reveal" href="#otomatik"><span class="new">YENİ</span> Otomatik kanallar yayında {{ icon('arrow-right', 14) }}</a>
-      <h1 class="reveal" data-delay="1">Kanalını bir kere kur. Videolar <span class="hl">kendiliğinden</span> gelsin.</h1>
-      <p class="lead reveal" data-delay="2">Yapay zekâ fikri bulur, senaryoyu yazar ve sesli, dikey videoyu üretir. Başlık, açıklama ve hashtag'ler hazır gelir — sen sadece paylaşırsın.</p>
-      <div class="row reveal" data-delay="3">
-        <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz başla' }} {{ icon('arrow-right', 17) }}</a>
-        <a class="btn btn-ghost btn-lg" href="#nasil">{{ icon('play', 15) }} Nasıl çalışır</a>
-      </div>
-      <div class="trust reveal" data-delay="4">
-        <span>{{ icon('check', 15) }} Abonelik yok</span><span>{{ icon('check', 15) }} Türkçe + 4 dil</span><span>{{ icon('check', 15) }} Başarısız videoda iade</span>
-      </div>
+<section class="hero-film">
+  <video class="hf-video" autoplay muted loop playsinline preload="auto" poster="/static/hero/hero.jpg" data-hero-video
+    data-src="/static/hero/hero.mp4" data-src-m="/static/hero/hero-m.mp4" data-poster-m="/static/hero/hero-m.jpg" aria-hidden="true"></video>
+  <div class="hf-shade" aria-hidden="true"></div>
+  <div class="wrap hf-copy">
+    <span class="eyebrow hf-in" style="--i:0">Yapay zekâ video stüdyosu</span>
+    <h1 class="hf-in" style="--i:1">Fikir senden,<br><span class="hl">video</span> bizden.</h1>
+    <p class="lead hf-in" style="--i:2">Yapay zekâ senaryoyu yazar, sesli ve dikey videoyu üretir; başlığı, açıklaması ve hashtag'leri hazır gelir. İstersen her gün kendiliğinden.</p>
+    <div class="row hf-in" style="--i:3">
+      <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz başla' }} {{ icon('arrow-right', 17) }}</a>
+      <a class="btn btn-ghost btn-lg" href="#nasil">Nasıl çalışır</a>
     </div>
-    <div class="stage reveal" data-delay="2">
-      <div id="hero3d" aria-hidden="true"></div>
-      <div class="stage-fallback" aria-hidden="true"><div class="ph"></div><div class="ph"></div><div class="ph"></div></div>
-      <div class="float-chip fc-1" data-depth="18"><span class="icon-box accent">{{ icon('check', 16) }}</span><div><b>Senaryo hazır</b><small>“Portakal markette olay çıkarıyor”</small></div></div>
-      <div class="float-chip fc-2" data-depth="28"><span class="icon-box">{{ icon('sparkles', 16) }}</span><div><b>Video üretiliyor</b><div class="bar"><i></i></div></div></div>
-      <div class="float-chip fc-3" data-depth="12"><span class="dot-live" style="margin:0 6px 0 4px"></span><div><b>Otomatik kanal aktif</b><small>Sıradaki video 18:30</small></div></div>
-    </div>
+    <div class="trust hf-in" style="--i:4"><span>Abonelik yok</span><span>Türkçe + 4 dil</span><span>Başarısız videoda iade</span></div>
   </div>
-</div></section>
+  <a class="hf-scroll" href="#vitrin" aria-label="Aşağı kaydır">{{ icon('chevron-down', 22) }}</a>
+</section>
 
 <div class="wrap"><div class="platforms reveal">
   <span class="eyebrow">Hazır format</span>
@@ -33,7 +27,7 @@
   <span class="pf">{{ icon('phone', 17) }} YouTube Shorts</span>
 </div></div>
 
-<section class="showcase-sec"><div class="wrap">
+<section class="showcase-sec" id="vitrin"><div class="wrap">
   <div class="sec-head reveal"><span class="eyebrow">Stüdyo</span><h2>Profesyonel stüdyo, <span class="hl">tek ekranda.</span></h2>
     <p class="lead">Karakterini seç, tarzını belirle, kaliteye karar ver. Her şeyi canlı önizlemeyle gör.</p></div>
   <div class="showcase" data-showcase>
@@ -182,8 +176,4 @@
     <a class="btn btn-primary btn-lg" href="{{ start }}">{{ 'Video üret' if user else 'Ücretsiz kayıt ol' }} {{ icon('arrow-right', 17) }}</a>
   </div>
 </div></section>
-{% endblock %}
-{% block scripts %}
-<script src="/static/vendor/three.min.js" defer></script>
-<script src="/static/hero3d.js" defer></script>
 {% endblock %}
