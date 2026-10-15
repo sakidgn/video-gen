@@ -25,6 +25,24 @@
     <div class="table-wrap"><table><tr><th>E-posta</th><th>Kredi</th><th>Kayıt</th></tr>
     {% for u in users %}<tr><td>{{ u.email }}{% if u.is_admin %} <span class="badge b-off">yönetici</span>{% endif %}</td><td class="mono">{{ u.credits }}</td><td class="mono small faint">{{ u.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>
 </div>
+<div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);align-items:start;margin-bottom:24px" id="admin-promo">
+  <form class="card reveal" method="post" action="/admin/kod"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="card-head"><h3>{{ icon('tag', 18) }} Yeni promosyon kodu</h3></div>
+    <div class="grid g2">
+      <div class="field"><label class="label">Kod <span class="opt">(boşsa üretilir)</span></label><input class="input mono" name="code" maxlength="32" placeholder="ACILIS100" style="text-transform:uppercase"></div>
+      <div class="field"><label class="label">Kredi</label><input class="input mono" name="amount" type="number" min="1" max="10000" value="50" required></div>
+      <div class="field"><label class="label">Kullanım hakkı <span class="opt">(0 = sınırsız)</span></label><input class="input mono" name="max_uses" type="number" min="0" value="100"></div>
+      <div class="field"><label class="label">Geçerlilik (gün) <span class="opt">(0 = süresiz)</span></label><input class="input mono" name="days" type="number" min="0" value="30"></div>
+    </div>
+    <div class="field"><label class="label">Not</label><input class="input" name="note" maxlength="200" placeholder="Ör: Instagram açılış kampanyası"></div>
+    <button class="btn btn-primary btn-block" type="submit" style="margin-top:20px">{{ icon('plus', 16) }} Kodu oluştur</button></form>
+  <div class="card reveal" data-delay="1"><div class="card-head"><h3>{{ icon('tag', 18) }} Kodlar</h3></div>
+    {% if promos %}<div class="table-wrap"><table><tr><th>Kod</th><th>Kredi</th><th>Kullanım</th><th>Bitiş</th><th></th></tr>
+    {% for p in promos %}<tr><td><b class="mono">{{ p.code }}</b>{% if p.note %}<div class="tiny faint">{{ p.note }}</div>{% endif %}</td><td class="mono">{{ p.credits }}</td>
+      <td class="mono">{{ p.uses }}{% if p.max_uses %} / {{ p.max_uses }}{% endif %}</td><td class="mono small faint">{{ p.expires_at|tarih or '—' }}</td>
+      <td><form method="post" action="/admin/kod/{{ p.id }}/durum"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-sm {{ 'btn-ghost' if p.active else 'btn-danger' }}">{{ 'Açık' if p.active else 'Kapalı' }}</button></form></td></tr>{% endfor %}
+    </table></div>{% else %}<p class="muted small">Henüz kod yok. Kampanyalarda dağıtmak için bir kod oluştur.</p>{% endif %}</div>
+</div>
 <div class="card reveal"><div class="card-head"><h3>{{ icon('video', 18) }} Son işler</h3></div>
   <div class="table-wrap"><table><tr><th>#</th><th>Kullanıcı</th><th>Durum</th><th>Kalite</th><th>Başlık / hata</th><th>Tarih</th></tr>
   {% for j in jobs %}<tr><td class="mono"><a href="/video/{{ j.id }}">{{ j.id }}</a></td><td class="mono">{{ j.user_id }}</td><td><span class="badge {{ status_badge[j.status] }}">{{ status_labels[j.status] }}</span></td><td>{{ qualities[j.quality].label }}</td><td class="small">{{ j.title or j.error }}</td><td class="mono small faint">{{ j.created_at|tarih }}</td></tr>{% endfor %}</table></div></div>

@@ -21,6 +21,32 @@ class User(Base):
     notify: Mapped[bool] = mapped_column(Boolean, default=True)  # bildirim e-postaları
     credits: Mapped[int] = mapped_column(Integer, default=0)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    ref_code: Mapped[str | None] = mapped_column(String(12), nullable=True)  # davet kodu (ilk gerektiğinde üretilir)
+    referred_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # davet eden kullanıcının id'si
+    ref_rewarded: Mapped[bool] = mapped_column(Boolean, default=False)  # davet ödülü verildi mi
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class PromoCode(Base):
+    """Promosyon kodu: yönetici oluşturur, her kullanıcı bir kez kullanır."""
+    __tablename__ = "promo_codes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    credits: Mapped[int] = mapped_column(Integer)
+    max_uses: Mapped[int] = mapped_column(Integer, default=0)  # 0 = sınırsız
+    uses: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    note: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class PromoUse(Base):
+    __tablename__ = "promo_uses"
+    __table_args__ = (UniqueConstraint("code_id", "user_id", name="uq_promo_user"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code_id: Mapped[int] = mapped_column(ForeignKey("promo_codes.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 

@@ -46,7 +46,14 @@ def _migrate() -> None:
             conn.execute(text("ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT 1"))
         if "notify" not in cols:
             conn.execute(text("ALTER TABLE users ADD COLUMN notify BOOLEAN NOT NULL DEFAULT 1"))
+        if "ref_code" not in cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN ref_code VARCHAR(12)"))
+        if "referred_by" not in cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN referred_by INTEGER"))
+        if "ref_rewarded" not in cols:
+            conn.execute(text("ALTER TABLE users ADD COLUMN ref_rewarded BOOLEAN NOT NULL DEFAULT 0"))
         conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_google_sub ON users (google_sub)"))
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_ref_code ON users (ref_code)"))
 
 
 @contextmanager

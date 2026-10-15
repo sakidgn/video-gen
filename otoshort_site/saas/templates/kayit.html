@@ -4,6 +4,7 @@
 <div class="auth"><div class="auth-card reveal">
   <h1>Hesabını oluştur</h1>
   <p class="sub">Bir dakikada kaydol, ilk videonu üret.</p>
+  {% if invited %}<div class="invite-note">{{ icon('gift', 16) }} Davetle geldin: ilk kredini yüklediğinde hesabına hediye kredi eklenecek.</div>{% endif %}
   <form class="card card-lg stack" method="post" action="/kayit" style="gap:0">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     {% include "_google.html" %}

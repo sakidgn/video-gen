@@ -24,6 +24,9 @@ SMTP_USER = _env("SMTP_KULLANICI")
 SMTP_PASSWORD = _env("SMTP_SIFRE")
 SMTP_FROM = _env("SMTP_GONDEREN")  # ör. bildirim@cutless.app
 SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
+# Davet programı: davet edilen kişinin ilk havalesi onaylanınca ikisine de kredi (sahte hesapla kredi toplanamasın diye)
+REFERRAL_BONUS = int(_env("DAVET_ODULU", "50") or 0)  # davet edene
+REFERRAL_FRIEND_BONUS = int(_env("DAVET_HEDIYE", "25") or 0)  # davetle gelene
 FAKE_AI = _env("SAHTE_AI") == "1"  # geliştirme/test: API'ye gitmeden sahte video üretir
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")
 TIMEZONE = _env("SAAT_DILIMI", "Europe/Istanbul")

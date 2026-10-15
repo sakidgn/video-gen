@@ -603,6 +603,19 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
   .footer .wrap{grid-template-columns:1fr}
   .page-head{align-items:flex-start}
 }
+/* ============ Davet, promosyon, uyarılar ============ */
+.steps3{display:grid;gap:14px;margin-top:26px;padding-top:22px;border-top:1px solid var(--border)}
+.s3{display:flex;gap:14px;align-items:flex-start}.s3 b{display:block;margin-bottom:2px}
+.s3 .n{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-style:italic;font-size:calc(17px * var(--fs));color:var(--accent);border:1px solid var(--border-2)}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.kpis>div{display:grid;gap:2px}.kpis .v{font-family:var(--display);font-weight:500;font-size:calc(38px * var(--fs));line-height:1.1}.kpis .k{font-size:calc(12.5px * var(--fs));color:var(--text-3)}
+.invite-cta{display:flex;align-items:center;gap:14px;transition:border-color .25s,transform .35s var(--spring,var(--ease))}
+.invite-cta:hover{border-color:var(--border-2);transform:translateY(-2px)}.invite-cta>div{flex:1;display:grid}.invite-cta>.ic{color:var(--text-3)}
+.invite-note{display:flex;gap:10px;align-items:center;justify-content:center;padding:10px 14px;margin-top:-6px;border-radius:12px;border:1px solid rgba(216,185,138,.3);background:rgba(216,185,138,.07);color:#ecdcc0;font-size:calc(13.5px * var(--fs));text-align:left}
+.low-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px 12px 16px;margin-bottom:22px;border-radius:16px;border:1px solid rgba(227,192,122,.3);background:rgba(227,192,122,.06);color:#f3e2bd}
+.low-bar>.ic{color:var(--warn)}
+@media(max-width:1080px){#davet-grid,#admin-promo{grid-template-columns:1fr!important}}
+
 /* ============ Ürün vitrini ============ */
 .showcase-sec{padding-bottom:40px}
 .showcase{--p:0;position:relative;perspective:1600px;max-width:1400px;margin:0 auto}

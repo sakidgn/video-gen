@@ -159,6 +159,13 @@
     setTimeout(() => { b.classList.remove('done'); b.innerHTML = old; }, 1600);
   }));
 
+  // Paylaş butonları: telefonda yerel paylaşım menüsü, yoksa bağlantıyı kopyalar
+  $$('[data-share-url]').forEach(b => b.addEventListener('click', async () => {
+    const url = b.dataset.shareUrl, text = b.dataset.shareText || '';
+    if (navigator.share) { try { await navigator.share({ title: document.title, text, url }); } catch (e) {} return; }
+    try { await navigator.clipboard.writeText(url); const old = b.innerHTML; b.textContent = 'Bağlantı kopyalandı'; setTimeout(() => { b.innerHTML = old; }, 1600); } catch (e) {}
+  }));
+
   // Stüdyo: canlı önizleme ve özet
   const studio = $('[data-studio]');
   if (studio) {

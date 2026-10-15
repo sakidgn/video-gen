@@ -278,7 +278,7 @@ def test_migration_adds_google_column_to_old_db(tmp_path, monkeypatch):
     db.init(f"sqlite:///{path}")
     with db.session() as s:
         u = s.scalar(select(User))
-        assert u.credits == 5 and u.google_sub is None
+        assert u.credits == 5 and u.google_sub is None and u.ref_code is None and u.ref_rewarded is False
 
 
 def test_signup_requires_email_verification_and_gives_bonus_once(client, tmp_path, monkeypatch):
@@ -421,3 +421,96 @@ def test_backup_creates_copy_and_rotates(tmp_path, monkeypatch):
     with sqlite3.connect(out) as c:
         assert c.execute("select x from t").fetchone() == (42,)
     assert yedek.backup("postgresql://x/y") is None
+
+
+def approve_topups(admin_client):
+    page = admin_client.get("/admin").text
+    for tid in re.findall(r"/admin/yukleme/(\d+)/onayla", page):
+        admin_client.post(f"/admin/yukleme/{tid}/onayla", data={"csrf": csrf(admin_client, "/admin")})
+
+
+def notify_topup(c):
+    c.post("/kredi/bildirim", data={"package": "0", "sender_name": "X Y", "accept": "1", "csrf": csrf(c, "/kredi")})
+
+
+def test_referral_rewards_both_once_after_first_topup(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "REFERRAL_BONUS", 50)
+    monkeypatch.setattr(config, "REFERRAL_FRIEND_BONUS", 25)
+    signup(client, "a@b.com")
+    page = client.get("/davet").text
+    code = re.search(r"/d/([A-Z0-9]+)", page).group(1)
+    friend = TestClient(client.app)
+    r = friend.get(f"/d/{code}", follow_redirects=False)
+    assert r.headers["location"] == "/kayit" and "Davetle geldin" in friend.get("/kayit").text
+    signup(friend, "f@b.com")
+    with db.session() as s:
+        a_id = s.scalar(select(User.id).where(User.email == "a@b.com"))
+        assert s.scalar(select(User.referred_by).where(User.email == "f@b.com")) == a_id
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    notify_topup(friend)
+    approve_topups(admin)
+    tl, cr = config.PACKAGES[0]
+    assert balance("a@b.com") == 50 and balance("f@b.com") == cr + 25
+    notify_topup(friend)
+    approve_topups(admin)  # ikinci yüklemede ödül tekrar verilmez
+    assert balance("a@b.com") == 50 and balance("f@b.com") == 2 * cr + 25
+    assert "Davet ödülü" in client.get("/kredi").text
+    page = client.get("/davet").text
+    assert re.search(r'data-count="1"', page) and re.search(r'data-count="50"', page)
+
+
+def test_invalid_or_own_invite_code(client):
+    signup(client, "a@b.com")
+    code = re.search(r"/d/([A-Z0-9]+)", client.get("/davet").text).group(1)
+    other = TestClient(client.app)
+    other.get("/d/YANLIS99")
+    assert "Davetle geldin" not in other.get("/kayit").text
+    with db.session() as s:  # kendini davet etmek bağlantı kurmaz
+        from saas import growth
+
+        me = s.scalar(select(User).where(User.email == "a@b.com"))
+        growth.attach_referrer(s, me, code)
+        assert me.referred_by is None
+
+
+def test_promo_codes(client):
+    from datetime import timedelta
+
+    from saas.models import PromoCode, now
+
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    admin.post("/admin/kod", data={"code": "acilis-100", "amount": "100", "max_uses": "1", "days": "7",
+                                   "csrf": csrf(admin, "/admin")})
+    assert "ACILIS100" in admin.get("/admin").text
+    signup(client, "a@b.com")
+    t = csrf(client, "/kredi")
+    assert "100 kredi yüklendi" in client.post("/kredi/kod", data={"code": "Acilis100", "csrf": t}).text
+    assert balance("a@b.com") == 100
+    assert "zaten kullandın" in client.post("/kredi/kod", data={"code": "ACILIS100", "csrf": t}).text
+    b = TestClient(client.app)
+    signup(b, "b@b.com")
+    assert "hakkı dolmuş" in b.post("/kredi/kod", data={"code": "ACILIS100", "csrf": csrf(b, "/kredi")}).text
+    with db.session() as s:
+        s.add(PromoCode(code="ESKI", credits=10, expires_at=now() - timedelta(days=1)))
+        s.add(PromoCode(code="KAPALI", credits=10, active=False))
+    tb = csrf(b, "/kredi")
+    assert "süresi dolmuş" in b.post("/kredi/kod", data={"code": "ESKI", "csrf": tb}).text
+    assert "geçersiz" in b.post("/kredi/kod", data={"code": "KAPALI", "csrf": tb}).text
+    assert "geçersiz" in b.post("/kredi/kod", data={"code": "YOKBOYLE", "csrf": tb}).text
+    assert balance("b@b.com") == 0
+    u = TestClient(client.app)
+    signup(u, "u@b.com", verify=False)  # doğrulanmamış hesap kod kullanamaz
+    admin.post("/admin/kod", data={"code": "SINIRSIZ", "amount": "5", "max_uses": "0", "days": "0",
+                                   "csrf": csrf(admin, "/admin")})
+    u.post("/kredi/kod", data={"code": "SINIRSIZ", "csrf": csrf(u, "/kredi")})
+    assert balance("u@b.com") == 0
+
+
+def test_low_credit_bar(client):
+    signup(client, "a@b.com")
+    assert "Kredin azaldı" in client.get("/panel").text
+    assert "Kredin azaldı" not in client.get("/kredi").text
+    give("a@b.com", 100)
+    assert "Kredin azaldı" not in client.get("/panel").text

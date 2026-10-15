@@ -11,9 +11,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import config, credits, db, mailer, oauth, tokens, worker
+from . import config, credits, db, growth, mailer, oauth, tokens, worker
 from .icons import LOGO, icon
-from .models import Channel, CreditTx, Job, TopUp, User, now
+from .models import Channel, CreditTx, Job, PromoCode, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
 
 log = logging.getLogger("saas")
@@ -104,6 +104,18 @@ def send_verification(request: Request, uid: int, email: str) -> None:
     send_email(request, email, f"{config.SITE_NAME}: e-postanı doğrula", html)
 
 
+def remember_ref(request: Request, code: str) -> bool:
+    """Davet bağlantısıyla gelen ziyaretçinin kodunu kayıt olana kadar oturumda tutar."""
+    code = growth.norm_code(code)
+    if not code:
+        return False
+    with db.session() as s:
+        if not growth.referrer_id(s, code):
+            return False
+    request.session["ref"] = code
+    return True
+
+
 def require_verified(request: Request, user: User):
     """Doğrulanmamış hesap video/kanal/kredi işlemi yapamaz; yönlendirme döndürür (yoksa None)."""
     if user.email_verified:
@@ -113,7 +125,7 @@ def require_verified(request: Request, user: User):
 
 
 def _active(path: str) -> str:
-    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap"):
+    for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar"):
         if path.startswith(prefix):
             return prefix
     return "/panel"
@@ -193,7 +205,8 @@ def _valid_choice(value: str, options: dict, default: str) -> str:
 
 def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.get("/", response_class=HTMLResponse)
-    def index(request: Request):
+    def index(request: Request, ref: str = ""):
+        remember_ref(request, ref)
         faqs_ld = [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in FAQS]
         return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld)
 
@@ -246,9 +259,16 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return render(request, f"yasal_{page}.html", current_user(request))
 
     # --- hesap ---
+    @app.get("/d/{code}")
+    def invite_link(request: Request, code: str):
+        if not remember_ref(request, code):
+            flash(request, "Davet bağlantısı geçersiz, yine de kayıt olabilirsin.", "warn")
+        return go("/kayit")
+
     @app.get("/kayit", response_class=HTMLResponse)
-    def register_page(request: Request):
-        return render(request, "kayit.html", current_user(request))
+    def register_page(request: Request, ref: str = ""):
+        remember_ref(request, ref)
+        return render(request, "kayit.html", current_user(request), invited=bool(request.session.get("ref")))
 
     @app.post("/kayit", dependencies=[Depends(check_csrf)])
     def register(request: Request, email: str = Form(...), name: str = Form(""), password: str = Form(...),
@@ -272,6 +292,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                         is_admin=email in config.ADMIN_EMAILS, email_verified=False)
             s.add(user)
             s.flush()
+            growth.attach_referrer(s, user, request.session.get("ref"))
             uid = user.id
         request.session.clear()
         request.session["uid"] = uid
@@ -363,7 +384,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         prof = request.session.get("g_pending")
         if not prof:
             return go("/kayit")
-        return render(request, "kayit_google.html", None, prof=prof)
+        return render(request, "kayit_google.html", None, prof=prof, invited=bool(request.session.get("ref")))
 
     @app.post("/kayit/google", dependencies=[Depends(check_csrf)])
     def google_signup(request: Request, accept: str = Form(""), consent: str = Form("")):
@@ -381,6 +402,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                         is_admin=prof["email"] in config.ADMIN_EMAILS, email_verified=True)
             s.add(user)
             s.flush()
+            growth.attach_referrer(s, user, request.session.get("ref"))
             if config.SIGNUP_BONUS:
                 credits.add(s, user.id, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
             uid = user.id
@@ -721,6 +743,33 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return render(request, "kredi.html", user, txs=txs, topups=topups, iban=config.IBAN,
                       iban_name=config.IBAN_NAME)
 
+    promo_limiter = RateLimiter(limit=8, window=600)
+
+    @app.post("/kredi/kod", dependencies=[Depends(check_csrf)])
+    def credit_code(request: Request, user: User = Depends(require_user), code: str = Form("")):
+        if (blocked := require_verified(request, user)) is not None:
+            return blocked
+        if not promo_limiter.allow(f"p:{user.id}"):
+            flash(request, "Çok fazla deneme yaptın. Biraz sonra tekrar dene.", "err")
+            return go("/kredi")
+        try:
+            with db.session() as s:
+                amount = growth.redeem(s, user.id, code)
+        except growth.PromoError as e:
+            flash(request, str(e), "err")
+            return go("/kredi")
+        flash(request, f"Kod kabul edildi, hesabına {amount} kredi yüklendi. 🎉")
+        return go("/kredi")
+
+    # --- davet ---
+    @app.get("/davet", response_class=HTMLResponse)
+    def invite_page(request: Request, user: User = Depends(require_user)):
+        with db.session() as s:
+            code = growth.ref_code_for(s, user.id)
+            stats = growth.referral_stats(s, user.id)
+        return render(request, "davet.html", user, link=f"{site_url(request)}/d/{code}", code=code, stats=stats,
+                      ref_bonus=config.REFERRAL_BONUS, friend_bonus=config.REFERRAL_FRIEND_BONUS)
+
     @app.post("/kredi/bildirim", dependencies=[Depends(check_csrf)])
     def credit_notify(request: Request, user: User = Depends(require_user), package: int = Form(...),
                       sender_name: str = Form(...), note: str = Form(""), accept: str = Form("")):
@@ -750,6 +799,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 _ = t.user.email
             users = s.scalars(select(User).order_by(User.id.desc()).limit(100)).all()
             jobs = s.scalars(select(Job).order_by(Job.id.desc()).limit(50)).all()
+            promos = s.scalars(select(PromoCode).order_by(PromoCode.id.desc()).limit(30)).all()
             stats = {
                 "users": s.scalar(select(func.count(User.id))),
                 "videos": s.scalar(select(func.count(Job.id)).where(Job.status == "hazir")),
@@ -757,7 +807,36 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 "tl": s.scalar(select(func.coalesce(func.sum(TopUp.amount_tl), 0))
                                .where(TopUp.status == "onaylandi")),
             }
-        return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats)
+        return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats, promos=promos)
+
+    @app.post("/admin/kod", dependencies=[Depends(check_csrf)])
+    def admin_promo_create(request: Request, user: User = Depends(require_admin), code: str = Form(""),
+                           amount: int = Form(...), max_uses: int = Form(0), days: int = Form(0), note: str = Form("")):
+        from datetime import timedelta
+
+        code = growth.norm_code(code) or growth.random_code(8)
+        if not 0 < amount <= 10000 or max_uses < 0 or days < 0:
+            flash(request, "Kredi 1–10000 arası, kullanım ve gün 0 ya da pozitif olmalı.", "err")
+            return go("/admin")
+        with db.session() as s:
+            if s.scalar(select(PromoCode.id).where(PromoCode.code == code)):
+                flash(request, f"{code} kodu zaten var.", "err")
+                return go("/admin")
+            s.add(PromoCode(code=code, credits=amount, max_uses=max_uses, note=clean(note, 200),
+                            expires_at=now() + timedelta(days=days) if days else None))
+        flash(request, f"{code} kodu oluşturuldu: {amount} kredi" + (f", {max_uses} kişilik" if max_uses else ""))
+        return go("/admin")
+
+    @app.post("/admin/kod/{pid}/durum", dependencies=[Depends(check_csrf)])
+    def admin_promo_toggle(request: Request, pid: int, user: User = Depends(require_admin)):
+        with db.session() as s:
+            promo = s.get(PromoCode, pid)
+            if not promo:
+                raise HTTPException(404)
+            promo.active = not promo.active
+            msg = f"{promo.code} kodu {'açıldı' if promo.active else 'kapatıldı'}."
+        flash(request, msg)
+        return go("/admin")
 
     @app.post("/admin/yukleme/{tid}/{action}", dependencies=[Depends(check_csrf)])
     def admin_topup(request: Request, tid: int, action: str, user: User = Depends(require_admin)):
@@ -770,13 +849,19 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 return go("/admin")
             t.status = "onaylandi" if action == "onayla" else "reddedildi"
             t.decided_at = now()
+            referrer = None
             if action == "onayla":
                 credits.add(s, t.user_id, t.credits, f"Havale ile yükleme ({t.amount_tl} TL)")
+                referrer = growth.reward_referral(s, t.user_id)
             uid, amount_tl, cr = t.user_id, t.amount_tl, t.credits
         if action == "onayla":
             worker.notify(uid, f"{config.SITE_NAME}: kredin yüklendi 💎", "Kredin yüklendi!",
                           f"{amount_tl} ₺ havalen onaylandı ve hesabına <b>{cr} kredi</b> yüklendi. Üretmeye başlayabilirsin.",
                           ("Video üret", f"{site_url(request)}/video/yeni"))
+        if referrer and config.REFERRAL_BONUS:
+            worker.notify(referrer, f"{config.SITE_NAME}: davet ödülün geldi 🎁", "Davet ödülün yüklendi!",
+                          f"Davet ettiğin bir arkadaşın ilk kredisini yükledi; hesabına <b>{config.REFERRAL_BONUS} kredi</b> "
+                          "hediye edildi. Teşekkürler!", ("Davet sayfam", f"{site_url(request)}/davet"))
         flash(request, "Yükleme onaylandı, kredi eklendi." if action == "onayla" else "Bildirim reddedildi.")
         return go("/admin")
 
