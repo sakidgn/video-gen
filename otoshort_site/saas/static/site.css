@@ -814,4 +814,17 @@ a.pub-t:hover{color:var(--accent)}
 .lang-note p{margin:0}.lang-note .ic{flex:none;margin-top:3px;color:var(--accent)}
 .seg a.lang-opt.on .opt-body{border-color:var(--accent);background:var(--accent-soft)}
 
+/* yönetim: yayına hazırlık */
+.ready-cta{display:flex;align-items:center;gap:14px;border-color:rgba(227,138,124,.35)}
+.ready-cta.ok{border-color:rgba(159,197,159,.35)}
+.ready-cta>div{flex:1;display:grid;gap:2px}
+.checklist{display:grid}
+.ck{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--border)}
+.ck:first-child{border-top:0;padding-top:4px}
+.ck b{font-weight:600}.ck p{margin-top:3px}
+.ck-ic{width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;border:1px solid var(--border-2);color:var(--text-3)}
+.ck.ok .ck-ic{color:var(--ok);border-color:rgba(159,197,159,.4);background:rgba(159,197,159,.08)}
+.ck.zorunlu .ck-ic{color:var(--err);border-color:rgba(227,138,124,.45);background:rgba(227,138,124,.08)}
+.ck.onerilen .ck-ic{color:var(--warn);border-color:rgba(227,192,122,.4)}
+
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none;filter:none}}

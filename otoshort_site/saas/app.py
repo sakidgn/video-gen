@@ -69,6 +69,12 @@ def create_app(*, start_worker: bool | None = None, generator=None, database_url
     app.mount("/static", StaticFiles(directory=str(config.ROOT / "static")), name="static")
     app.state.generator = generator
     _routes(app)
+    if not config.FAKE_AI:  # canlı kurulumda eksik zorunlu ayarları açılışta söyle
+        from . import hazirlik
+
+        for c in hazirlik.checks():
+            if c.level == "zorunlu" and not c.ok:
+                log.warning("Yayına hazırlık eksiği: %s — %s", c.title, c.detail)
     if start_worker if start_worker is not None else config.WORKER_ENABLED:
         app.state.worker = worker.Worker(generator)
         app.state.worker.start()
@@ -172,7 +178,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
         languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
         google_button=oauth.enabled() or config.FAKE_AI, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
-        quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS,
+        quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS, legal=config.LEGAL,
         ref_qualities=[k for k in config.QUALITIES if config.supports_refs(k)],
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
@@ -389,7 +395,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def legal(request: Request, page: str):
         if page not in ("kullanim", "kvkk", "mesafeli"):
             raise HTTPException(404)
-        return render(request, f"yasal_{page}.html", current_user(request))
+        return render(request, f"yasal_{page}.html", current_user(request), ai_vendors=config.ai_vendors())
 
     # --- hesap ---
     @app.get("/d/{code}")
@@ -1232,8 +1238,16 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                                .where(TopUp.status == "onaylandi")),
             }
             daily = _daily_stats(s)
+        from . import hazirlik
+
         return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats, promos=promos,
-                      daily=daily, usd_try=config.USD_TRY, public_jobs=public_jobs)
+                      daily=daily, usd_try=config.USD_TRY, public_jobs=public_jobs, ready=hazirlik.summary())
+
+    @app.get("/admin/hazirlik", response_class=HTMLResponse)
+    def admin_readiness(request: Request, user: User = Depends(require_admin)):
+        from . import hazirlik
+
+        return render(request, "admin_hazirlik.html", user, **hazirlik.summary())
 
     @app.post("/admin/kesfet/{job_id}/{action}", dependencies=[Depends(check_csrf)])
     def admin_explore(request: Request, job_id: int, action: str, user: User = Depends(require_admin)):

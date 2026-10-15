@@ -4,9 +4,9 @@
 <div class="wrap"><div class="prose" lang="tr">
 {% if lang == 'en' %}<div class="lang-note" lang="en">{{ icon('globe', 16) }}<p>{{ _('Bu metin, sözleşmenin geçerli dili olan Türkçe ile yayımlanır. Resmi olmayan bir çeviri için tarayıcının çeviri özelliğini kullanabilirsin.') }}</p></div>{% endif %}
 <h1>Mesafeli Satış Sözleşmesi</h1>
-<p class="muted">Son güncelleme: [TARİH]</p>
+<p class="muted">Son güncelleme: {{ legal.date or '[TARİH]' }}</p>
 <h2>1. Taraflar</h2>
-<p><b>Satıcı:</b> [ŞİRKET UNVANI / AD SOYAD] · Vergi dairesi/no: [VERGİ DAİRESİ / NO] · Adres: [ADRES] · E-posta: [E-POSTA]<br>
+<p><b>Satıcı:</b> {{ legal.name or '[ŞİRKET UNVANI / AD SOYAD]' }} · Vergi dairesi/no: {{ legal.tax or '[VERGİ DAİRESİ / NO]' }} · Adres: {{ legal.address or '[ADRES]' }} · E-posta: {{ legal.email or '[E-POSTA]' }}<br>
 <b>Alıcı:</b> {{ site }} üzerinde hesap oluşturup kredi satın alan kullanıcı.</p>
 <h2>2. Konu</h2>
 <p>Bu sözleşmenin konusu, Alıcı'nın {{ site }} üzerinden satın aldığı dijital kredilerin satışı ve bu kredilerle yapay zekâ destekli video üretim hizmetinin sunulmasıdır. Sözleşme, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği'ne tabidir.</p>

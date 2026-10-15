@@ -1309,3 +1309,26 @@ def test_emails_follow_account_language(client, tmp_path):
     r = c2.post("/giris", data={"email": "en@b.com", "password": "sifre1234", "csrf": csrf(c2, "/giris")},
                 follow_redirects=False)
     assert "dil=en" in r.headers.get("set-cookie", "")
+
+
+def test_readiness_page_and_legal_info(client, monkeypatch):
+    signup(client, "admin@x.com")
+    page = client.get("/admin").text
+    assert "zorunlu eksik" in page
+    r = client.get("/admin/hazirlik").text
+    assert "Gizli anahtar" in r and "Yasal sayfalardaki satıcı bilgileri" in r and "SIRKET_UNVANI" in r
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    assert other.get("/admin/hazirlik").status_code == 404
+    assert "[ŞİRKET UNVANI / AD SOYAD]" in client.get("/yasal/mesafeli").text  # boşken yer tutucu görünür
+    monkeypatch.setitem(config.LEGAL, "name", "Deneme Yazılım Ltd. Şti.")
+    monkeypatch.setitem(config.LEGAL, "email", "destek@cutless.app")
+    monkeypatch.setitem(config.LEGAL, "host", "Hetzner Online GmbH, Almanya")
+    satis = client.get("/yasal/mesafeli").text
+    assert "Deneme Yazılım Ltd. Şti." in satis and "destek@cutless.app" in satis
+    assert "Hetzner Online GmbH, Almanya" in client.get("/yasal/kvkk").text
+    assert 'href="mailto:destek@cutless.app"' in client.get("/").text
+    from saas import hazirlik
+
+    monkeypatch.setattr(config, "SECRET_KEY", "x" * 40)
+    assert next(c for c in hazirlik.checks() if c.title == "Gizli anahtar").ok

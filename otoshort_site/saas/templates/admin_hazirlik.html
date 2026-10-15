@@ -1,0 +1,21 @@
+{% extends "app_base.html" %}
+{% block title %}Yayına hazırlık · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="t"><a class="faint small row" href="/admin" style="gap:6px">{{ icon('arrow-left', 15) }} Yönetim paneli</a><h1>Yayına hazırlık</h1>
+    <p class="muted">Ayarlar sunucudaki <span class="mono">.env</span> dosyasından okunur; değiştirince siteyi yeniden başlat.</p></div>
+  <span class="badge {{ 'b-err' if blockers else 'b-ok' }}">{% if blockers %}{{ blockers }} zorunlu eksik{% else %}Yayına hazır{% endif %}</span>
+</div>
+{% for level, title, note in [('zorunlu', 'Zorunlu', 'Bunlar olmadan satışa açma.'), ('onerilen', 'Önerilen', 'Sorun çıkmasın diye.'), ('istege', 'İsteğe bağlı', 'Sonra da eklenebilir.')] %}
+<div class="card reveal" style="margin-bottom:18px">
+  <div class="card-head"><h3>{{ title }}</h3><span class="tiny faint">{{ note }}</span></div>
+  <div class="checklist">
+  {% for c in checks if c.level == level %}
+    <div class="ck {{ 'ok' if c.ok else level }}"><span class="ck-ic">{{ icon('check' if c.ok else ('alert' if level == 'zorunlu' else 'info'), 15) }}</span>
+      <div><b>{{ c.title }}</b><p class="small muted">{{ c.detail }}</p></div></div>
+  {% endfor %}
+  </div>
+</div>
+{% endfor %}
+<p class="hint">{{ icon('info', 14) }} Aynı listeyi sunucuda <span class="mono">python -m saas.hazirlik</span> komutuyla da görebilirsin.</p>
+{% endblock %}

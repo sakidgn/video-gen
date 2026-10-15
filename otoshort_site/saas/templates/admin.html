@@ -2,6 +2,11 @@
 {% block title %}Yönetim · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head"><div class="t"><span class="eyebrow">Yönetim</span><h1>Yönetim paneli</h1></div></div>
+<a class="card ready-cta reveal {{ 'ok' if not ready.blockers }}" href="/admin/hazirlik" style="margin-bottom:24px">
+  <span class="icon-box {{ 'accent' if ready.blockers else '' }}">{{ icon('check' if not ready.blockers else 'alert', 18) }}</span>
+  <div><b>{% if ready.blockers %}Yayına hazırlık: {{ ready.blockers }} zorunlu eksik{% else %}Yayına hazır{% endif %}</b>
+    <span class="small muted">{{ ready.ok }} / {{ ready.total }} kontrol tamam · anahtarlar, e-posta, https, yasal bilgiler, fiyat/maliyet</span></div>
+  {{ icon('arrow-right', 16) }}</a>
 <div class="grid g4" style="margin-bottom:24px">
   {% for ic, k, v in [('users','Kullanıcı',stats.users),('video','Üretilen video',stats.videos),('clock','Sırada / üretiliyor',stats.queue),('repeat','Aktif kanal',daily.channels)] %}
   <div class="card stat reveal" data-delay="{{ loop.index0 }}"><div class="k">{{ icon(ic, 16) }} {{ k }}</div><div class="v" data-count="{{ v }}">{{ v }}</div></div>{% endfor %}

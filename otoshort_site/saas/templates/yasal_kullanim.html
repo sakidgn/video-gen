@@ -4,8 +4,8 @@
 <div class="wrap"><div class="prose" lang="tr">
 {% if lang == 'en' %}<div class="lang-note" lang="en">{{ icon('globe', 16) }}<p>{{ _('Bu metin, sözleşmenin geçerli dili olan Türkçe ile yayımlanır. Resmi olmayan bir çeviri için tarayıcının çeviri özelliğini kullanabilirsin.') }}</p></div>{% endif %}
 <h1>Kullanım Şartları</h1>
-<p class="muted">Son güncelleme: [TARİH]</p>
-<p>Bu şartlar, {{ site }} ("Hizmet") web sitesini kullanan herkes ("Kullanıcı") için geçerlidir. Hizmet, [ŞİRKET UNVANI / AD SOYAD] ("Sağlayıcı") tarafından sunulur. Hesap oluşturarak bu şartları kabul etmiş olursun.</p>
+<p class="muted">Son güncelleme: {{ legal.date or '[TARİH]' }}</p>
+<p>Bu şartlar, {{ site }} ("Hizmet") web sitesini kullanan herkes ("Kullanıcı") için geçerlidir. Hizmet, {{ legal.name or '[ŞİRKET UNVANI / AD SOYAD]' }} ("Sağlayıcı") tarafından sunulur. Hesap oluşturarak bu şartları kabul etmiş olursun.</p>
 <h2>1. Hizmet</h2>
 <p>{{ site }}, kullanıcının verdiği bilgilerle yapay zekâ kullanarak kısa videolar, başlıklar, açıklamalar ve hashtag'ler üretir. Otomatik kanal özelliği, kullanıcının seçtiği saatlerde kendiliğinden video üretir. Videolar üçüncü taraf yapay zekâ servisleri (ör. Google) kullanılarak üretilir.</p>
 <h2>2. Hesap</h2>
@@ -28,6 +28,6 @@
 <h2>8. Uyuşmazlık</h2>
 <p>Bu şartlara Türkiye Cumhuriyeti hukuku uygulanır. Tüketici uyuşmazlıklarında Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri yetkilidir.</p>
 <h2>9. İletişim</h2>
-<p>[E-POSTA] · [ADRES]</p>
+<p>{{ legal.email or '[E-POSTA]' }} · {{ legal.address or '[ADRES]' }}</p>
 </div></div>
 {% endblock %}

@@ -23,6 +23,15 @@ SMTP_PORT = int(_env("SMTP_PORT", "587") or 587)
 SMTP_USER = _env("SMTP_KULLANICI")
 SMTP_PASSWORD = _env("SMTP_SIFRE")
 SMTP_FROM = _env("SMTP_GONDEREN")  # ör. bildirim@cutless.app
+# Yasal sayfalarda (kullanım şartları, KVKK, mesafeli satış) görünen satıcı bilgileri
+LEGAL = {
+    "name": _env("SIRKET_UNVANI"),  # şirket unvanı ya da şahıs şirketi için ad soyad
+    "address": _env("SIRKET_ADRESI"),
+    "tax": _env("VERGI_BILGISI"),  # ör. "Kadıköy VD · 1234567890"
+    "email": _env("ILETISIM_EPOSTA"),
+    "date": _env("YASAL_TARIH"),  # metinlerin son güncellenme tarihi, ör. 01.11.2026
+    "host": _env("SUNUCU_SAGLAYICI"),  # ör. "Hetzner Online GmbH, Almanya"
+}
 SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
 # Davet programı: davet edilen kişinin ilk havalesi onaylanınca ikisine de kredi (sahte hesapla kredi toplanamasın diye)
 REFERRAL_BONUS = int(_env("DAVET_ODULU", "50") or 0)  # davet edene
@@ -61,6 +70,14 @@ def provider(quality: str) -> tuple[str, str]:
     spec = QUALITIES[quality]["model"]
     name, _, rest = spec.partition(":")
     return (name, rest) if rest and name in ("google", "fal") else ("google", spec)
+
+
+def ai_vendors() -> str:
+    """KVKK metni için: verinin aktarıldığı yapay zekâ sağlayıcıları (metin yazımı her zaman Google Gemini)."""
+    names = ["Google LLC"]
+    if any(provider(q)[0] == "fal" for q in QUALITIES):
+        names.append("Features & Labels, Inc. (fal.ai)")
+    return ", ".join(names)
 
 
 def supports_refs(quality: str) -> bool:
