@@ -11,8 +11,9 @@
 {% block content %}
 {% set start = '/video/yeni' if user else L('/kayit') %}
 
-<section class="hero-film">
-  <video class="hf-video" autoplay muted loop playsinline preload="auto" poster="{{ S('/static/hero/hero.jpg') }}" data-hero-video
+{# kapak resmi CSS'te: telefon yalnızca dikey, masaüstü yalnızca yatay kapağı indirir #}
+<section class="hero-film" style="--poster:url('{{ S('/static/hero/hero.jpg') }}');--poster-m:url('{{ S('/static/hero/hero-m.jpg') }}')">
+  <video class="hf-video" autoplay muted loop playsinline preload="auto" data-hero-video
     data-poster="{{ S('/static/hero/hero.jpg') }}" data-src="{{ S('/static/hero/hero.mp4') }}" data-src-m="{{ S('/static/hero/hero-m.mp4') }}" data-poster-m="{{ S('/static/hero/hero-m.jpg') }}" aria-hidden="true"></video>
   <div class="hf-shade" aria-hidden="true"></div>
   <div class="wrap hf-copy">
@@ -45,7 +46,11 @@
     <div class="sc-glow" aria-hidden="true"></div>
     <div class="sc-frame">
       <div class="sc-bar"><i></i><i></i><i></i><span class="sc-url">{{ icon('lock', 12) }} cutless.app/video/yeni</span></div>
-      <img src="{{ S('/static/shots/studio.jpg') }}" width="1360" height="850" alt="{{ _('{site} video stüdyosu ekranı', site=site) }}" loading="lazy" decoding="async">
+      <picture>
+        <source type="image/webp" sizes="(max-width: 1400px) 92vw, 1360px"
+          srcset="{{ S('/static/shots/studio-800.webp') }} 800w, {{ S('/static/shots/studio-1360.webp') }} 1360w, {{ S('/static/shots/studio.webp') }} 2720w">
+        <img src="{{ S('/static/shots/studio.jpg') }}" width="1360" height="850" alt="{{ _('{site} video stüdyosu ekranı', site=site) }}" loading="lazy" decoding="async">
+      </picture>
     </div>
   </div>
 </div></section>

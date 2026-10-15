@@ -34,9 +34,11 @@
   if (hv) {
     const mq = matchMedia('(max-width: 700px), (max-aspect-ratio: 4/5)');  // telefon ya da dikey tablet
     const go = () => { const p = hv.play(); if (p) p.catch(() => {}); };
+    // veri tasarrufu açık ya da bağlantı yavaşsa film indirilmez, kapak resmi kalır
+    const conn = navigator.connection || {}, slow = conn.saveData || /(^|-)2g|3g/.test(conn.effectiveType || '');
     const pick = () => {
       const mob = mq.matches; hv.poster = mob ? hv.dataset.posterM : hv.dataset.poster;
-      if (reduce) return;
+      if (reduce || slow) return;
       const src = mob ? hv.dataset.srcM : hv.dataset.src;
       if (hv.getAttribute('src') !== src) { hv.muted = true; hv.playsInline = true; hv.src = src; go(); }
     };

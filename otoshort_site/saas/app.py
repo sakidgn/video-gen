@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import selectinload
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
@@ -51,6 +52,24 @@ FAQS = [
 PUBLIC_PAGES = ["/", "/kesfet", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
 
 
+class CachedStatic(StaticFiles):
+    """Tarayıcı önbelleği: sürümlü (?v=) dosyalar 1 yıl, yazı tipleri 30 gün, film/görseller 7 gün, gerisi 1 saat."""
+
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        if resp.status_code in (200, 206, 304):
+            if b"v=" in scope.get("query_string", b""):
+                cc = "public, max-age=31536000, immutable"
+            elif path.startswith("fonts/"):
+                cc = "public, max-age=2592000"
+            elif path.startswith(("hero/", "shots/", "icons/")) or path.endswith((".png", ".svg", ".jpg", ".webp")):
+                cc = "public, max-age=604800"
+            else:
+                cc = "public, max-age=3600"
+            resp.headers["Cache-Control"] = cc
+        return resp
+
+
 def create_app(*, start_worker: bool | None = None, generator=None, database_url: str | None = None) -> FastAPI:
     if config.SHOWCASE and len(config.SECRET_KEY) < 32:  # herkese açık yayında bilinen anahtar oturum taklidine açar
         raise RuntimeError("Vitrin modu için uzun ve rastgele GIZLI_ANAHTAR gerekli (Canliya_Al.bat kendisi üretir).")
@@ -70,8 +89,10 @@ def create_app(*, start_worker: bool | None = None, generator=None, database_url
             resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
         return resp
 
+    # metin yanıtları (HTML/CSS/JS/JSON) sıkıştırılır; video, resim ve yazı tipleri zaten sıkıştırılmış olduğu için hariç
+    app.add_middleware(GZipMiddleware, minimum_size=800, compresslevel=6)
     app.add_middleware(i18n.LangMiddleware)  # en dışta: /en/... önekini diğer katmanlardan önce çözer
-    app.mount("/static", StaticFiles(directory=str(config.ROOT / "static")), name="static")
+    app.mount("/static", CachedStatic(directory=str(config.ROOT / "static")), name="static")
     app.state.generator = generator
     _routes(app)
     if not config.FAKE_AI:  # canlı kurulumda eksik zorunlu ayarları açılışta söyle
