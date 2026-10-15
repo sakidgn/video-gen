@@ -28,6 +28,17 @@ bağlantısı alır; o bağlantıyla gelen biri açılışta kaydolup doğrulay�
 en fazla `ERKEN_DAVET_SINIRI` (200). Davet eden henüz kaydolmadıysa kredi birikir, kaydolunca yüklenir. Ana sayfadaki **Fikir makinesi** (`saas/fikirler.py`) ziyaretçiye
 rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle açar.
 
+## Ziyaretçiyi kazanan özellikler
+- **Kayıt olmadan senaryo denemesi:** ana sayfada fikir yazılır, yapay zekâ (yalnızca ucuz metin modeli) 8 saniyelik
+  senaryoyu yazar; altında "videoya dönüştür" butonu kayda götürür. Kişi başı saatte 6 deneme, günlük toplam
+  `DENEME_GUNLUK_SINIR` (varsayılan 300; maliyet tavanı).
+- **Karakter kütüphanesi** (/karakterler): görünüş + ses + isteğe bağlı görsel bir kez kaydedilir, stüdyoda ve kanallarda
+  tek tıkla seçilir (en fazla 3).
+- **Viral altyazı:** altyazı açıkken "Viral" stil kelime kelime renklenen, büyük harfli Shorts altyazısı basar; "Klasik"
+  sade cümle altyazısıdır.
+- **Onaylı paylaşım:** otomatik kanalda "Onaylı paylaşım" seçilirse video hazır olunca e-posta gelir, video sayfasında
+  "Onayla ve paylaş" denince yüklenir; "Paylaşma" denirse hiçbir yere gitmez.
+
 ## Gerçek API denemesi (satıştan önce)
 1. `.env.ornek` dosyasını `.env` adıyla kopyala, `GEMINI_API_KEY=` satırına Google AI Studio anahtarını yaz
    (fal.ai modeli seçtiysen `FAL_KEY` de). Anahtarı kimseyle paylaşma.

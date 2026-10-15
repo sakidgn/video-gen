@@ -162,7 +162,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:24px 0}
 
 /* seçim kartları */
 .opts{display:grid;gap:10px;perspective:1000px}
-.opts-3{grid-template-columns:repeat(3,minmax(0,1fr))}.opts-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.opts-2{grid-template-columns:repeat(2,minmax(0,1fr))}.opts-3{grid-template-columns:repeat(3,minmax(0,1fr))}.opts-5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .opt{position:relative;display:block;cursor:pointer}
 .opt input{position:absolute;opacity:0;pointer-events:none}
 .opt-body{position:relative;display:flex;flex-direction:column;gap:6px;height:100%;padding:14px;border-radius:14px;border:1px solid var(--border-2);
@@ -603,7 +603,7 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
 @media(max-width:640px){
   .wrap{padding:0 18px}
   h1{font-size:calc(30px * var(--fs))}
-  .opts-3{grid-template-columns:1fr}.opts-5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .opts-2,.opts-3{grid-template-columns:1fr}.opts-5{grid-template-columns:repeat(2,minmax(0,1fr))}
   .nav-right .btn-text{display:none}
   .days{grid-template-columns:repeat(4,minmax(0,1fr))}.day:nth-child(5){display:none}
   .copy-box{padding-right:16px;padding-bottom:56px}.copy-box .btn{top:auto;bottom:8px}
@@ -655,6 +655,13 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
 
 .toggle-row{position:relative;display:flex;gap:14px;align-items:flex-start;margin-top:26px;padding:16px;border-radius:14px;border:1px solid var(--border-2);cursor:pointer;transition:border-color .2s,background .2s}
 .toggle-row:hover{border-color:var(--border-3)}
+.ticks .tick-hl{padding:10px 12px;margin-top:4px;border-radius:12px;border:1px solid rgba(216,185,138,.3);background:rgba(216,185,138,.06);color:var(--text-2)}
+.ticks .tick-hl b{color:var(--text)}
+.mode-pick{margin-top:12px}
+.approve-box{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:16px;padding:14px 16px;border-radius:14px;border:1px solid rgba(227,192,122,.45);background:rgba(227,192,122,.08)}
+.approve-box>div:first-child{display:grid;gap:4px;flex:1;min-width:220px}.approve-box b{display:flex;gap:8px;align-items:center}.approve-box small{color:var(--text-2);line-height:1.45}
+.approve-cta{border-color:rgba(227,192,122,.45)}
+.approve-top{margin:0 0 18px}
 .subs-style{margin-top:10px}
 .subs-style .opt-body{height:auto;min-height:48px;padding:8px 14px;gap:10px}
 .subs-box:has(input[name=subtitles]:not(:checked)) .subs-style{display:none}

@@ -17,8 +17,9 @@ def accounts(s, user_id: int) -> dict[str, SocialAccount]:
     return {a.platform: a for a in s.scalars(select(SocialAccount).where(SocialAccount.user_id == user_id))}
 
 
-def queue(s, job: Job, platforms: list[str]) -> list[str]:
-    """Video için paylaşım kayıtları açar (bağlı olmayan ve zaten sırada olan platformlar atlanır)."""
+def queue(s, job: Job, platforms: list[str], status: str = "bekliyor") -> list[str]:
+    """Video için paylaşım kayıtları açar (bağlı olmayan ve zaten sırada olan platformlar atlanır).
+    status="onay": kullanıcı onaylayana kadar yüklenmez (onaylı paylaşım modu)."""
     linked = accounts(s, job.user_id)
     added = []
     for p in platforms:
@@ -28,20 +29,37 @@ def queue(s, job: Job, platforms: list[str]) -> list[str]:
             continue
         try:
             with s.begin_nested():
-                s.add(Publication(job_id=job.id, user_id=job.user_id, platform=p))
+                s.add(Publication(job_id=job.id, user_id=job.user_id, platform=p, status=status))
             added.append(p)
         except IntegrityError:
             pass
     return added
 
 
-def queue_for_channel_job(job_id: int) -> None:
-    """Otomatik kanal videosu hazır olunca kanalın seçtiği platformlara sıraya koyar."""
+def queue_for_channel_job(job_id: int) -> tuple[list[str], bool]:
+    """Otomatik kanal videosu hazır olunca kanalın seçtiği platformlara sıraya koyar.
+    Kanal onaylı moddaysa kayıtlar "onay" durumunda açılır. (platformlar, onay bekliyor mu) döner."""
     with db.session() as s:
         job = s.get(Job, job_id)
         ch = s.get(Channel, job.channel_id) if job and job.channel_id else None
         if ch and ch.publish_to:
-            queue(s, job, ch.publish_to.split())
+            added = queue(s, job, ch.publish_to.split(), "onay" if ch.approval else "bekliyor")
+            return added, bool(added and ch.approval)
+    return [], False
+
+
+def approve(s, job_id: int) -> int:
+    """Onay bekleyen paylaşımları yükleme sırasına alır; kaç kayıt onaylandığını döner."""
+    return s.execute(update(Publication).where(Publication.job_id == job_id, Publication.status == "onay")
+                     .values(status="bekliyor", attempts=0, error="", updated_at=None)).rowcount
+
+
+def reject(s, job_id: int) -> int:
+    """Onay bekleyen paylaşımları iptal eder (video hiçbir yere yüklenmez)."""
+    rows = s.scalars(select(Publication).where(Publication.job_id == job_id, Publication.status == "onay")).all()
+    for r in rows:
+        s.delete(r)
+    return len(rows)
 
 
 def claim() -> int | None:

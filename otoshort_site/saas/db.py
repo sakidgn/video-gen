@@ -55,6 +55,7 @@ NEW_COLUMNS = [
     ("channels", "cast_ids", "VARCHAR(60) NOT NULL DEFAULT ''"),
     ("channels", "subtitle_style", "VARCHAR(10) NOT NULL DEFAULT ''"),  # eski kanallar klasik kalır
     ("jobs", "subtitle_style", "VARCHAR(10) NOT NULL DEFAULT ''"),
+    ("channels", "approval", "BOOLEAN NOT NULL DEFAULT 0"),
 ]
 
 

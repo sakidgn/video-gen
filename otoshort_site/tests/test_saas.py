@@ -1266,6 +1266,12 @@ def test_english_site_has_no_turkish_left(client, monkeypatch):
         r = c.get(url)
         assert r.status_code in (200, 404), url
         _assert_english(r.text, url)
+    from saas.models import Publication
+
+    with db.session() as s:  # onay bekleyen paylaşım ekranları da İngilizce
+        s.scalar(select(Publication)).status = "onay"
+    for url in ["/panel", f"/video/{jid}", "/baglantilar"]:
+        _assert_english(c.get(url).text, url + " (onay)")
     import html
 
     assert "wasn't made because you ran out of credits" in html.unescape(c.get("/kanallar").text)
@@ -1849,3 +1855,68 @@ def test_viral_subtitle_style_flows_to_jobs_and_channels(client):
         ch = s.scalar(select(Channel))
         cj = s.scalar(select(Job).where(Job.channel_id == ch.id))
     assert ch.subtitle_style == "viral" and cj.subtitles and cj.subtitle_style == "viral"
+
+
+def test_approval_mode_waits_for_owner_before_posting(client, tmp_path, monkeypatch):
+    from saas import publisher
+    from saas.models import Publication
+
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    _demo_connect(client, "youtube")
+    t = csrf(client, "/kanallar/yeni")
+    form = client.get("/kanallar/yeni").text
+    assert re.search(r'name="approval" value="0"\s+checked', form)  # varsayılan: tam otomatik
+    client.post("/kanallar/yeni", data={"name": "Meyveler", "quality": "lite", "times": "10:00", "pub_youtube": "1",
+                                        "approval": "1", "csrf": t})
+    with db.session() as s:
+        ch = s.scalar(select(Channel))
+    assert ch.approval and re.search(r'name="approval" value="1"\s+checked', client.get(f"/kanallar/{ch.id}").text)
+    assert "onaylı" in client.get("/kanallar").text
+
+    client.post(f"/kanallar/{ch.id}/simdi", data={"csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        pub = s.scalar(select(Publication))
+        jid = pub.job_id
+    assert pub.status == "onay" and publisher.claim() is None  # onaysız yüklenmez
+    mail = last_mail(tmp_path)
+    assert "onayını bekliyor" in mail and f"/video/{jid}" in mail and "YouTube" in mail
+    assert "1 video onayını bekliyor" in client.get("/panel").text
+    page = client.get(f"/video/{jid}").text
+    assert "Onayla ve paylaş" in page and "Onay bekliyor" in page
+
+    # başkası (yönetici bile) onaylayamaz
+    other = TestClient(client.app)
+    signup(other, "admin@x.com")
+    assert other.post(f"/video/{jid}/onayla", data={"csrf": csrf(other, "/panel")}).status_code == 404
+    assert publisher.claim() is None
+
+    client.post(f"/video/{jid}/onayla", data={"csrf": t})
+    pid = publisher.claim()
+    assert pid and publisher.claim() is None
+    publisher.run(pid)
+    with db.session() as s:
+        assert s.get(Publication, pid).status == "yayinda"
+    assert "onayını bekliyor" not in client.get("/panel").text
+
+    # "Paylaşma": kayıt silinir, hiçbir yere yüklenmez
+    client.post(f"/kanallar/{ch.id}/simdi", data={"csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jid2 = s.scalar(select(Job.id).order_by(Job.id.desc()))
+    r = client.post(f"/video/{jid2}/paylasma", data={"csrf": t})
+    assert "hiçbir yere yüklenmeyecek" in r.text
+    with db.session() as s:
+        assert s.scalar(select(Publication).where(Publication.job_id == jid2)) is None
+    assert publisher.claim() is None
+
+    # tam otomatik moda geçince sıradaki video doğrudan sıraya girer
+    client.post(f"/kanallar/{ch.id}", data={"name": "Meyveler", "quality": "lite", "times": "10:00",
+                                            "pub_youtube": "1", "approval": "0", "csrf": t})
+    client.post(f"/kanallar/{ch.id}/simdi", data={"csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        last = s.scalar(select(Publication).order_by(Publication.id.desc()))
+    assert last.status == "bekliyor" and "yeni videon hazır" in last_mail(tmp_path)

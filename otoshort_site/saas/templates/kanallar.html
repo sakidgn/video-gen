@@ -21,7 +21,7 @@
         <button class="switch {{ 'on' if ch.active }}" title="{{ _('Durdur') if ch.active else _('Başlat') }}" aria-label="{{ _('Durdur') if ch.active else _('Başlat') }}"></button></form>
     </div>
     {% if ch.topic %}<p class="muted small" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ ch.topic }}</p>{% endif %}
-    <div class="chan-meta"><span>{{ icon('palette', 14) }} {{ _(styles.get(ch.style, '')) }}</span><span>{{ icon('globe', 14) }} {{ languages.get(ch.language) }}</span><span>{{ icon('zap', 14) }} {{ _(q.label) }}</span>{% if ch.publish_to %}<span>{{ icon('share', 14) }} {{ ch.publish_to.split()|map('capitalize')|join(', ') }}</span>{% endif %}</div>
+    <div class="chan-meta"><span>{{ icon('palette', 14) }} {{ _(styles.get(ch.style, '')) }}</span><span>{{ icon('globe', 14) }} {{ languages.get(ch.language) }}</span><span>{{ icon('zap', 14) }} {{ _(q.label) }}</span>{% if ch.publish_to %}<span>{{ icon('share', 14) }} {{ ch.publish_to.split()|map('capitalize')|join(', ') }}{% if ch.approval %} · {{ _('onaylı') }}{% endif %}</span>{% endif %}</div>
     <div class="row" style="gap:6px">{% for t in ch.time_list() %}<span class="pill time">{{ t }}</span>{% endfor %}</div>
     {% if ch.notice %}<div class="flash warn" style="margin:0">{{ icon('alert', 16) }}<div>{{ _db(ch.notice) }} <a href="/kredi">{{ _('Kredi yükle') }}</a></div></div>{% endif %}
     <hr class="sep" style="margin:4px 0">

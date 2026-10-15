@@ -1,13 +1,27 @@
 {% extends "app_base.html" %}
 {% block title %}{{ job.title or _('Video') }} · {{ site }}{% endblock %}
-{% set pub_labels = {'bekliyor': _('Sırada'), 'yukleniyor': _('Yükleniyor'), 'yayinda': _('Yayında'), 'hata': _('Hata')} %}
-{% set pub_badge = {'bekliyor': 'b-wait', 'yukleniyor': 'b-wait', 'yayinda': 'b-ok', 'hata': 'b-err'} %}
+{% set pub_labels = {'onay': _('Onay bekliyor'), 'bekliyor': _('Sırada'), 'yukleniyor': _('Yükleniyor'), 'yayinda': _('Yayında'), 'hata': _('Hata')} %}
+{% set pub_badge = {'onay': 'b-wait', 'bekliyor': 'b-wait', 'yukleniyor': 'b-wait', 'yayinda': 'b-ok', 'hata': 'b-err'} %}
 {% block content %}
 <div class="page-head">
   <div class="t"><a class="faint small row" href="{{ '/kanallar/%d' % job.channel_id if job.channel_id else '/panel' }}" style="gap:6px">{{ icon('arrow-left', 15) }} {{ job.channel.name if job.channel else _('Panel') }}</a>
     <h1 style="view-transition-name:jobtitle">{{ job.title or (_('Videon hazırlanıyor') if job.status in ('sirada','uretiliyor') else _('Video')) }}</h1></div>
   <span class="badge {{ status_badge[job.status] }}" id="st"{% if job.status in ('sirada','uretiliyor') %} data-poll="/video/{{ job.id }}/durum" data-stage="{{ job.status }}:{{ job.prompt != '' }}"{% endif %}>{{ _(status_labels[job.status]) }}</span>
 </div>
+{% if job.user_id == user.id %}
+  {% set waiting = pubs.values()|selectattr('status', 'equalto', 'onay')|list %}
+  {% set wnames = [] %}{% for w in waiting %}{% set _x = wnames.append(platforms[w.platform].short) %}{% endfor %}
+  {% if waiting %}
+  <div class="approve-box approve-top reveal">
+    <div><b>{{ icon('eye', 16) }} {{ _('Bu video onayını bekliyor') }}</b>
+      <small>{{ _('Onaylarsan {platforms} hesabına yüklenir. Paylaşmazsan hiçbir yere gitmez; video yine de sende kalır.', platforms=wnames|join(', ')) }}</small></div>
+    <div class="row" style="gap:8px">
+      <form method="post" action="/video/{{ job.id }}/onayla"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-accent btn-sm" type="submit">{{ icon('check', 14) }} {{ _('Onayla ve paylaş') }}</button></form>
+      <form method="post" action="/video/{{ job.id }}/paylasma" data-confirm="{{ _('Bu video paylaşılmasın mı?') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('x', 14) }} {{ _('Paylaşma') }}</button></form>
+    </div>
+  </div>
+  {% endif %}
+{% endif %}
 <div class="watch">
   <div class="device reveal"><div class="scr">
     {% if job.status == 'hazir' %}

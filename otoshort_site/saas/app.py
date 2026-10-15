@@ -47,6 +47,8 @@ FAQS = [
      "Teknik bir hata ya da güvenlik filtresi yüzünden video üretilemezse kredin otomatik iade edilir. Üretilen videolar için iade yapılmaz; önce Ekonomik kaliteyle deneyip beğenince üst kaliteye geçebilirsin."),
     ("Arkadaşımı davet edersem ne kazanırım?",
      "Panelindeki “Davet et” sayfasından bağlantını paylaş. Davet ettiğin kişi ilk kredisini yüklediğinde ikinize de hediye kredi tanımlanır."),
+    ("Yapay zekâ saçma bir şey üretirse hesabımda doğrudan paylaşılır mı?",
+     "İstemezsen hayır. Otomatik kanalda “Onaylı paylaşım” modunu seç: video hazır olunca sana bildirim gelir, izleyip tek tıkla onayladığında paylaşılır. Beğenmezsen paylaşma; hiçbir yere gitmez."),
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
@@ -850,8 +852,11 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             n_videos = s.scalar(select(func.count(Job.id)).where(Job.user_id == user.id, Job.status == "hazir"))
             has_credit_tx = bool(s.scalar(select(func.count(CreditTx.id)).where(CreditTx.user_id == user.id,
                                                                                CreditTx.amount > 0)))
+            awaiting = list(dict.fromkeys(s.scalars(  # onaylı kanallardan onay bekleyen videolar
+                select(Publication.job_id).where(Publication.user_id == user.id, Publication.status == "onay")
+                .order_by(Publication.job_id))))
         return render(request, "panel.html", user, jobs=jobs, n_channels=n_channels, notices=notices, n_videos=n_videos,
-                      has_credit_tx=has_credit_tx)
+                      has_credit_tx=has_credit_tx, awaiting=awaiting)
 
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)
@@ -1308,6 +1313,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             subtitles=bool(form.get("subtitles")),
             subtitle_style=_valid_choice(str(form.get("subtitle_style", "")), media.SUB_STYLES, ""),
             publish_to=" ".join(p for p in social.PLATFORMS if form.get(f"pub_{p}")),
+            approval=form.get("approval") == "1",
         )
 
     @app.get("/kanallar", response_class=HTMLResponse)
@@ -1460,6 +1466,29 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             added = publisher.queue(s, job, [platform])
         flash(request, "Paylaşım sıraya alındı; birkaç dakika içinde yüklenecek." if added else
               "Bu platform bağlı değil ya da video zaten gönderildi.", "ok" if added else "warn")
+        return go(f"/video/{job_id}")
+
+    @app.post("/video/{job_id}/onayla", dependencies=[Depends(check_csrf)])
+    def publish_approve(request: Request, job_id: int, user: User = Depends(require_user)):
+        """Onaylı kanal videosu: kullanıcı izleyip onaylayınca bağlı hesaplara yüklenir."""
+        with db.session() as s:
+            job = _own_job(s, user, job_id)
+            if job.user_id != user.id:  # yönetici başkası adına onaylayamaz
+                raise HTTPException(404)
+            n = publisher.approve(s, job.id) if job.status == "hazir" else 0
+        flash(request, "Onaylandı; video birkaç dakika içinde yüklenecek. 🚀" if n else
+              "Onay bekleyen paylaşım yok.", "ok" if n else "warn")
+        return go(f"/video/{job_id}")
+
+    @app.post("/video/{job_id}/paylasma", dependencies=[Depends(check_csrf)])
+    def publish_reject(request: Request, job_id: int, user: User = Depends(require_user)):
+        with db.session() as s:
+            job = _own_job(s, user, job_id)
+            if job.user_id != user.id:
+                raise HTTPException(404)
+            n = publisher.reject(s, job.id)
+        flash(request, "Tamam, bu video hiçbir yere yüklenmeyecek." if n else "Onay bekleyen paylaşım yok.",
+              "ok" if n else "warn")
         return go(f"/video/{job_id}")
 
     @app.post("/yayin/{pid}/tekrar", dependencies=[Depends(check_csrf)])

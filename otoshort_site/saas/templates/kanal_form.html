@@ -37,7 +37,15 @@
         {% endif %}
         {% endfor %}
       </div>
-      <p class="hint" style="margin-top:8px">{{ _("Seçtiğin platformlara her video hazır olur olmaz başlığı ve hashtag'leriyle yüklenir.") }}</p>
+      {% set appr = ch.approval if ch and ch.approval is defined else false %}
+      <div class="opts opts-2 mode-pick">
+        <label class="opt"><input type="radio" name="approval" value="0" {% if not appr %}checked{% endif %}>
+          <span class="opt-body"><span class="opt-tick"></span><span class="icon-box">{{ icon('zap', 17) }}</span><span class="opt-title">{{ _('Tam otomatik') }}</span>
+            <span class="opt-sub">{{ _("Video hazır olur olmaz başlığı ve hashtag'leriyle doğrudan yüklenir.") }}</span></span></label>
+        <label class="opt"><input type="radio" name="approval" value="1" {% if appr %}checked{% endif %}>
+          <span class="opt-body"><span class="opt-tick"></span><span class="icon-box">{{ icon('eye', 17) }}</span><span class="opt-title">{{ _('Onaylı paylaşım') }}</span>
+            <span class="opt-sub">{{ _('Video hazır olunca sana bildirim gelir; izleyip tek tıkla onayladığında paylaşılır.') }}</span></span></label>
+      </div>
     </div>
     <aside class="aside reveal" data-delay="1">
       {% include "_preview.html" %}

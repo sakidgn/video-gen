@@ -5,6 +5,7 @@
   <div class="t"><span class="eyebrow">{{ _('Panel') }}</span><h1>{{ _('Merhaba') }}{% if user.name %}, {{ user.name }}{% endif %}</h1></div>
   <div class="row"><a class="btn btn-ghost" href="/kanallar/yeni">{{ icon('repeat', 16) }} {{ _('Otomatik kanal') }}</a><a class="btn btn-accent" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a></div>
 </div>
+{% if awaiting %}<a class="card invite-cta approve-cta reveal" href="/video/{{ awaiting[0] }}" style="margin-bottom:14px"><span class="icon-box accent">{{ icon('eye', 18) }}</span><div><b>{{ _('{n} video onayını bekliyor', n=awaiting|length) }}</b><span class="small muted">{{ _('İzle; beğenirsen tek tıkla onayla, paylaşılsın.') }}</span></div>{{ icon('arrow-right', 16) }}</a>{% endif %}
 {% for ch in notices %}<div class="flash warn" style="margin-bottom:12px">{{ icon('alert', 16) }}<div><b>{{ ch.name }}:</b> {{ _db(ch.notice) }} <a href="/kredi">{{ _('Kredi yükle') }}</a></div></div>{% endfor %}
 
 {% if n_videos == 0 %}

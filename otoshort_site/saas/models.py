@@ -97,6 +97,7 @@ class Channel(Base):
     subtitle_style: Mapped[str] = mapped_column(String(10), default="viral")  # "viral" kelime kelime, "" klasik
     publish_to: Mapped[str] = mapped_column(String(60), default="")  # otomatik paylaşım: "youtube tiktok instagram"
     cast_ids: Mapped[str] = mapped_column(String(60), default="")  # kayıtlı karakterler: "3 7"
+    approval: Mapped[bool] = mapped_column(Boolean, default=False)  # onaylı paylaşım: kullanıcı onaylayınca yüklenir
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
     def time_list(self) -> list[str]:

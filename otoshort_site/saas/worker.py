@@ -121,10 +121,16 @@ def run_job(job_id: int, generator) -> None:
             ch_name = job.channel.name if job.channel else None
             uid = job.user_id
         log.info("İş %s hazır", job_id)
-        from . import publisher
+        from . import publisher, social
 
-        publisher.queue_for_channel_job(job_id)
-        if ch_name:  # otomatik kanal videosu: kullanıcı başında değil, haber ver
+        platforms, needs_ok = publisher.queue_for_channel_job(job_id)
+        if needs_ok:  # onaylı paylaşım: izleyip tek tıkla onaylasın
+            notify(uid, "{channel}: yeni video onayını bekliyor 👀", "Paylaşmadan önce bir bak",
+                   "<b>{channel}</b> kanalın için yeni video hazır: “{title}”. İzle; beğenirsen tek tıkla onayla, "
+                   "{platforms} hesabına yüklensin. Beğenmezsen paylaşma, hiçbir yere gitmez.",
+                   ("İzle ve onayla", f"{_site()}/video/{job_id}"), channel=ch_name, title=script.title,
+                   platforms=", ".join(social.PLATFORMS[p]["short"] for p in platforms))
+        elif ch_name:  # otomatik kanal videosu: kullanıcı başında değil, haber ver
             notify(uid, "{channel}: yeni videon hazır 🎬", "Yeni videon hazır!",
                    "<b>{channel}</b> kanalın için yeni video üretildi: “{title}”. "
                    "Başlığı, açıklaması ve hashtag'leriyle birlikte paylaşmaya hazır.",

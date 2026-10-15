@@ -87,6 +87,11 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   (`saas/waitlist.py`, davet kodlu, /liste/KOD), fikir makinesi (`saas/fikirler.py`), hazır şablonlar (`saas/sablonlar.py`,
   /sablonlar herkese açık), içerik takvimi (/takvim), paylaşım metni düzenleme, hız optimizasyonu (gzip, önbellek, WebP).
   Kullanıcı kredi/bütçe ayarlarını şimdilik sormamamı istedi.
+- Dönüşüm özellikleri (Ekim 2026): ana sayfada kayıt olmadan senaryo denemesi (`/api/deneme-senaryo`, sadece metin,
+  IP başına saatte 6 + `DENEME_GUNLUK_SINIR`), karakter/maskot kütüphanesi (`saas/karakter.py`, /karakterler; kanal
+  `cast_ids` ile tutar, düzenleme sonraki videolara yansır), viral karaoke altyazı (`media.build_ass(style="viral")`,
+  kelime kelime renkli; Job/Channel.subtitle_style), onaylı paylaşım (Channel.approval → Publication "onay" durumu,
+  e-posta + /video/ID'de "Onayla ve paylaş"). Altyazı fontu aile adı "Plus Jakarta Sans ExtraBold" olmalı (libass).
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

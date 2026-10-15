@@ -1,7 +1,7 @@
 {% extends "app_base.html" %}
 {% block title %}{{ _('Bağlantılar') }} · {{ site }}{% endblock %}
-{% set pub_labels = {'bekliyor': _('Sırada'), 'yukleniyor': _('Yükleniyor'), 'yayinda': _('Yayında'), 'hata': _('Hata')} %}
-{% set pub_badge = {'bekliyor': 'b-wait', 'yukleniyor': 'b-wait', 'yayinda': 'b-ok', 'hata': 'b-err'} %}
+{% set pub_labels = {'onay': _('Onay bekliyor'), 'bekliyor': _('Sırada'), 'yukleniyor': _('Yükleniyor'), 'yayinda': _('Yayında'), 'hata': _('Hata')} %}
+{% set pub_badge = {'onay': 'b-wait', 'bekliyor': 'b-wait', 'yukleniyor': 'b-wait', 'yayinda': 'b-ok', 'hata': 'b-err'} %}
 {% block content %}
 <div class="page-head">
   <div class="t"><span class="eyebrow">{{ _('Otomatik paylaşım') }}</span><h1>{{ _h('Videoların kendiliğinden <span class="hl">yayında.</span>') }}</h1>
