@@ -159,6 +159,21 @@
     setTimeout(() => { b.classList.remove('done'); b.innerHTML = old; }, 1600);
   }));
 
+  // Video dosyasını paylaş (telefonda TikTok/Instagram uygulamasına doğrudan gönderir). Destek yoksa buton gizli kalır.
+  const sf = $('[data-share-file]');
+  if (sf && navigator.canShare) {
+    let file = null;
+    try { if (navigator.canShare({ files: [new File([''], 'x.mp4', { type: 'video/mp4' })] })) sf.hidden = false; } catch (e) {}
+    if (!sf.hidden) {
+      // dosya önceden indirilir: tarayıcı paylaşımı ancak dokunuştan hemen sonra açar
+      fetch(sf.dataset.shareFile).then(r => r.blob()).then(b => { file = new File([b], sf.dataset.shareName || 'video.mp4', { type: 'video/mp4' }); }).catch(() => {});
+      sf.addEventListener('click', async () => {
+        if (!file) { location.href = sf.dataset.shareFile + '?indir=1'; return; }
+        try { await navigator.share({ files: [file], text: sf.dataset.shareText || '' }); } catch (e) {}
+      });
+    }
+  }
+
   // Paylaş butonları: telefonda yerel paylaşım menüsü, yoksa bağlantıyı kopyalar
   $$('[data-share-url]').forEach(b => b.addEventListener('click', async () => {
     const url = b.dataset.shareUrl, text = b.dataset.shareText || '';
@@ -184,9 +199,25 @@
         per.textContent = `${n} video × ${q.dataset.credits} = ${n * q.dataset.credits} kredi / gün`; }
     };
     studio.addEventListener('change', upd); studio.addEventListener('input', upd); upd();
-    // Fikir önerileri
-    $$('[data-idea]', studio).forEach(b => b.addEventListener('click', () => { const ta = $('textarea[name=idea],textarea[name=topic]', studio);
-      if (ta) { ta.value = b.dataset.idea; ta.focus(); upd(); } }));
+    // Fikir önerileri (yapay zekânın getirdikleri de dahil: olay yakalama kapsayıcıda)
+    studio.addEventListener('click', e => { const b = e.target.closest('[data-idea]'); if (!b) return;
+      const ta = $('textarea[name=idea],textarea[name=topic]', studio); if (ta) { ta.value = b.dataset.idea; ta.focus(); upd(); } });
+    const aiBtn = $('[data-ai-ideas]', studio), box = $('[data-ideas]', studio);
+    if (aiBtn && box) aiBtn.addEventListener('click', async () => {
+      if (aiBtn.classList.contains('is-loading')) return;
+      aiBtn.classList.add('is-loading');
+      const fd = new FormData(); fd.append('csrf', $('input[name=csrf]', studio).value);
+      const ta = $('textarea[name=idea]', studio), lg = $('input[name=language]:checked', studio);
+      fd.append('topic', ta ? ta.value : ''); fd.append('language', lg ? lg.value : 'tr');
+      try {
+        const r = await fetch('/api/fikirler', { method: 'POST', body: fd }), d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Fikir üretilemedi');
+        $$('[data-idea]', box).forEach(x => x.remove());
+        d.ideas.forEach((idea, i) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.idea = idea;
+          b.className = 'idea-new'; b.style.animationDelay = (i * 70) + 'ms'; b.textContent = idea; box.appendChild(b); });
+      } catch (e) { aiBtn.dataset.err = e.message; aiBtn.title = e.message; }
+      aiBtn.classList.remove('is-loading');
+    });
     // Saat çipleri
     const timesIn = $('input[name=times]', studio);
     if (timesIn) {

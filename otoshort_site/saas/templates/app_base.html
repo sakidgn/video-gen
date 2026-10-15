@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block body %}
 {% set nav = [('/panel','grid','Panel'),('/video/yeni','sparkles','Video üret'),('/kanallar','repeat','Otomatik kanallar'),('/kredi','gem','Kredi')] %}
+{% set side_nav = nav[:2] + [('/videolar','film','Videolarım')] + nav[2:] %}
 <div class="app">
   <aside class="side">
     <a class="brand" href="/">{{ LOGO }}{{ site }}</a>
     <a class="btn btn-accent btn-block side-new" href="/video/yeni">{{ icon('plus', 16) }} Yeni video</a>
     <div class="side-label">Menü</div>
-    {% for href, ic, label in nav %}
+    {% for href, ic, label in side_nav %}
       <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
     {% endfor %}
     <a class="side-link {{ 'on' if active == '/davet' }}" href="/davet">{% if active == '/davet' %}<span class="side-pill"></span>{% endif %}{{ icon('gift', 18) }} Davet et</a>

@@ -19,6 +19,7 @@
   --shadow:0 1px 0 rgba(255,255,255,.04) inset,0 24px 50px -30px rgba(0,0,0,.9);
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;font-variant-numeric:lining-nums}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:calc(16px * var(--fs));line-height:1.65;letter-spacing:.006em;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
@@ -615,6 +616,23 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
 .low-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px 12px 16px;margin-bottom:22px;border-radius:16px;border:1px solid rgba(227,192,122,.3);background:rgba(227,192,122,.06);color:#f3e2bd}
 .low-bar>.ic{color:var(--warn)}
 @media(max-width:1080px){#davet-grid,#admin-promo{grid-template-columns:1fr!important}}
+
+/* ============ Videolarım, fikirler, tekrar üret ============ */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.tabs{display:flex;gap:4px;padding:4px;border-radius:999px;border:1px solid var(--border);background:var(--surface);overflow-x:auto}
+.tab{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:999px;color:var(--text-2);font-size:calc(14px * var(--fs));white-space:nowrap;transition:background .2s,color .2s}
+.tab .mono{font-size:calc(12px * var(--fs));color:var(--text-3)}.tab:hover{color:var(--text)}
+.tab.on{background:var(--text);color:#0c0b0a}.tab.on .mono{color:rgba(12,11,10,.6)}
+.search{position:relative;flex:1;max-width:340px;min-width:200px}.search>.ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+.search .input{padding-left:40px;height:44px;border-radius:999px}
+.pager{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:28px}
+.again{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.ideas .idea-ai{border-color:rgba(216,185,138,.45);color:#ecdcc0;background:rgba(216,185,138,.08)}
+.ideas .idea-ai:hover{background:rgba(216,185,138,.14);color:var(--text)}
+.ideas .idea-ai.is-loading{pointer-events:none;opacity:.7}.ideas .idea-ai.is-loading .ic{animation:spin 1s linear infinite}
+.ideas .idea-new{animation:ideain .6s var(--spring,var(--ease)) both}
+@keyframes ideain{from{opacity:0;transform:translateY(8px) scale(.96);filter:blur(4px)}}
+@media(max-width:640px){.toolbar{flex-direction:column;align-items:stretch}.search{max-width:none}}
 
 /* ============ Ürün vitrini ============ */
 .showcase-sec{padding-bottom:40px}

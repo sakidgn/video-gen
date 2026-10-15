@@ -50,6 +50,26 @@ def build_script_request(*, idea: str, characters: str, style: str, language: st
     return "\n".join(parts)
 
 
+IDEA_POOL = [
+    "Kedi, sahibinin online toplantısına gizlice katılıp patronu yönetmeye çalışıyor",
+    "Dinozor ilk kez metrobüse biniyor ve kuyruğu kapıya sıkışıyor",
+    "Robot, Türk düğününde halaya kalkıp halayın başını kapıyor",
+    "Penguen, plajda güneş kremi satmaya çalışıyor ama kimse almıyor",
+    "Portakal ve muz markette son indirimli ürün için kavga ediyor",
+    "Kaplumbağa, kargo kuryesi olarak ilk gününde rekor kırmaya çalışıyor",
+    "Uzaylı, Kapalıçarşı'da halı için pazarlık yapıyor",
+    "Pizza dilimi diyete başlamaya karar veriyor, salata ona koçluk yapıyor",
+    "Kurbağa, bilgi yarışmasında son soruda jokerini annesine harcıyor",
+    "Ayı, kış uykusundan erken uyanıp alarmı kimin kurduğunu arıyor",
+    "Simit, çayla ilk buluşmasında heyecandan susamlarını döküyor",
+    "Kar tanesi, yaz tatiline çıkmak için çanta hazırlıyor",
+    "Baykuş, gece vardiyasından sonra sabah kahvesini bulamıyor",
+    "Patates, spor salonunda kızartma olmamak için mekik çekiyor",
+    "Çaydanlık, misafir gelmeden önce panikle demleniyor",
+    "Martı, vapurda simit çalmak için ustalık sınıfı açıyor",
+]
+
+
 class RealAI:
     def __init__(self, client=None):
         if client is None:
@@ -84,6 +104,25 @@ class RealAI:
             caption=data["caption"].strip(), summary=data["summary"].strip(),
             hashtags=[h.strip().lstrip("#") for h in data.get("hashtags", []) if h.strip()][:8],
         )
+
+    def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
+        """Kullanıcıya fikir önerir (ucuz metin modeli; video üretmez)."""
+        from google.genai import types
+
+        lang = config.LANGUAGES.get(language, language)
+        prompt = (f"Suggest {n} short, funny, original ideas for {config.DURATION_SECONDS}-second vertical comedy videos "
+                  f"(TikTok/Reels/Shorts). Write each idea as one sentence in {lang}, max 90 characters, no hashtags, "
+                  "no emojis. " + (f"Theme from the user: {topic.strip()}. " if topic.strip() else
+                                   "Pick varied everyday-life themes. ") + RULES)
+        if past:
+            prompt += "\nAvoid these earlier ideas:\n- " + "\n- ".join(past[-20:])
+        schema = {"type": "object", "properties": {"ideas": {"type": "array", "items": {"type": "string"}}},
+                  "required": ["ideas"]}
+        resp = self.client.models.generate_content(
+            model=config.TEXT_MODEL, contents=prompt,
+            config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
+                                               temperature=1.2))
+        return [i.strip() for i in json.loads(resp.text).get("ideas", []) if i.strip()][:n]
 
     def make_video(self, *, prompt: str, quality: str, out: Path, poll_s: int = 10, timeout_s: int = 900) -> Path:
         from google.genai import types
@@ -130,6 +169,11 @@ class FakeAI:
         n = len(past) + 1
         return Script(video_prompt=f"[sahte] {idea or 'rastgele fikir'} #{n}", title=f"Deneme videosu {n} 😂",
                       caption="Bu bir deneme 💀", hashtags=["deneme", "shorts"], summary=f"fake idea {n}")
+
+    def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
+        import random
+
+        return random.sample(IDEA_POOL, n)
 
     def make_video(self, *, prompt: str, quality: str, out: Path, **_) -> Path:
         if self.fail_with:

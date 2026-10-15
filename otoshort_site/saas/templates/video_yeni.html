@@ -6,10 +6,12 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="studio">
     <div class="card card-lg reveal">
-      {% set ch = None %}{% set n0 = 1 %}
+      {% set ch = pre %}{% set n0 = 1 %}
+      {% if pre %}<div class="invite-note" style="margin:0 0 18px">{{ icon('repeat', 15) }} “{{ pre.title or pre.idea or 'Önceki video' }}” videosunun ayarlarıyla dolduruldu. İstediğini değiştir.</div>{% endif %}
       <div class="step-title"><span class="n">1</span><h3>Fikir</h3><span class="faint">Boş bırakabilirsin</span></div>
       <textarea class="textarea" name="idea" maxlength="600" placeholder="Örn: Portakal ve muz markette son indirimli ürün için kavga ediyor, kasiyer de aslında bir karpuz.">{{ idea }}</textarea>
-      <div class="ideas">
+      <div class="ideas" data-ideas>
+        <button type="button" class="idea-ai" data-ai-ideas>{{ icon('wand', 13) }} Yapay zekâ fikir versin</button>
         {% for i in ['Dinozor ilk kez metrobüse biniyor','Kedi, sahibinin toplantısına gizlice katılıyor','Robot, Türk düğününde halaya kalkıyor','Penguen, plajda güneş kremi satmaya çalışıyor'] %}
         <button type="button" data-idea="{{ i }}">{{ icon('sparkles', 13) }} {{ i }}</button>{% endfor %}
       </div>

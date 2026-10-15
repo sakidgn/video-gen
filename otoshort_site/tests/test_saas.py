@@ -514,3 +514,97 @@ def test_low_credit_bar(client):
     assert "Kredin azaldı" not in client.get("/kredi").text
     give("a@b.com", 100)
     assert "Kredin azaldı" not in client.get("/panel").text
+
+
+def test_videos_page_filters_search_and_pages(client):
+    signup(client, "a@b.com")
+    give("a@b.com", 2000)
+    with db.session() as s:
+        uid = s.scalar(select(User.id).where(User.email == "a@b.com"))
+        for i in range(30):
+            s.add(Job(user_id=uid, idea=f"fikir {i}", title=("Kedi videosu" if i == 3 else f"Video {i}"),
+                      status="hazir" if i % 3 else "hata"))
+    page = client.get("/videolar").text
+    assert "Videolarım" in page and "1 / 2" in page
+    assert len(re.findall(r'class="vcard', page)) == 24
+    assert len(re.findall(r'class="vcard', client.get("/videolar?sayfa=2").text)) == 6
+    hata = client.get("/videolar?durum=hata").text
+    assert len(re.findall(r'class="vcard', hata)) == 10
+    found = client.get("/videolar?q=kedi").text
+    assert "Kedi videosu" in found and len(re.findall(r'class="vcard', found)) == 1
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    assert "Kedi videosu" not in other.get("/videolar?q=kedi").text  # başkasının videoları görünmez
+
+
+def test_regenerate_same_settings_and_prefill(client):
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    r = client.post("/video/yeni", data={"idea": "Kedi toplantıda", "characters": "turuncu kedi", "style": "anime",
+                                         "language": "en", "quality": "lite", "csrf": t}, follow_redirects=False)
+    jid = int(r.headers["location"].rsplit("/", 1)[1])
+    r = client.post(f"/video/{jid}/tekrar", data={"csrf": t}, follow_redirects=False)
+    new_id = int(r.headers["location"].rsplit("/", 1)[1])
+    with db.session() as s:
+        new = s.get(Job, new_id)
+        assert new_id != jid and (new.idea, new.style, new.language, new.quality) == ("Kedi toplantıda", "anime", "en", "lite")
+    assert balance("a@b.com") == 500 - 2 * config.QUALITIES["lite"]["credits"]
+    pre = client.get(f"/video/yeni?from={jid}").text
+    assert "turuncu kedi" in pre and 'value="anime" data-label="Anime" checked' in pre and "ayarlarıyla dolduruldu" in pre
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    give("o@b.com", 500)
+    assert other.post(f"/video/{jid}/tekrar", data={"csrf": csrf(other, "/panel")}).status_code == 404
+    assert "turuncu kedi" not in other.get(f"/video/yeni?from={jid}").text
+
+
+def test_channel_make_now(client):
+    signup(client, "a@b.com")
+    give("a@b.com", 200)
+    t = csrf(client, "/kanallar/yeni")
+    client.post("/kanallar/yeni", data={"name": "Meyveler", "topic": "konuşan meyveler", "style": "cartoon",
+                                        "language": "tr", "quality": "fast", "times": "09:00", "csrf": t})
+    with db.session() as s:
+        cid = s.scalar(select(Channel.id))
+    for _ in range(2):  # art arda iki kez basılsa da çakışmaz
+        r = client.post(f"/kanallar/{cid}/simdi", data={"csrf": t}, follow_redirects=False)
+        assert r.headers["location"].startswith("/video/")
+    with db.session() as s:
+        jobs = s.scalars(select(Job).where(Job.channel_id == cid)).all()
+        assert len(jobs) == 2 and all(j.slot.startswith("elle ") and j.idea == "konuşan meyveler" for j in jobs)
+    assert "· elle" in client.get(f"/kanallar/{cid}").text
+    assert balance("a@b.com") == 200 - 2 * config.QUALITIES["fast"]["credits"]
+
+
+def test_ai_ideas_endpoint(client):
+    signup(client, "a@b.com")
+    client.app.state.generator = ai.FakeAI()
+    t = csrf(client, "/video/yeni")
+    d = client.post("/api/fikirler", data={"topic": "", "language": "tr", "csrf": t}).json()
+    assert len(d["ideas"]) == 4 and all(isinstance(i, str) and i for i in d["ideas"])
+    for _ in range(12):
+        r = client.post("/api/fikirler", data={"csrf": t})
+    assert r.status_code == 429 and "error" in r.json()
+
+    class Broken(ai.FakeAI):
+        def ideas(self, **_):
+            raise RuntimeError("api kapalı")
+
+    other = TestClient(client.app)
+    signup(other, "o@b.com")
+    client.app.state.generator = Broken()
+    r = other.post("/api/fikirler", data={"csrf": csrf(other, "/video/yeni")})
+    assert r.status_code == 503
+
+
+def test_real_ai_ideas_parses_json():
+    from types import SimpleNamespace
+
+    class Models:
+        def generate_content(self, **kw):
+            assert "Theme from the user: uzay" in kw["contents"] and "Avoid these earlier ideas" in kw["contents"]
+            return SimpleNamespace(text='{"ideas": [" Bir ", "", "İki", "Üç", "Dört", "Beş"]}')
+
+    real = ai.RealAI(client=SimpleNamespace(models=Models()))
+    assert real.ideas(topic="uzay", language="tr", past=["eski"]) == ["Bir", "İki", "Üç", "Dört"]

@@ -4,13 +4,14 @@ import secrets
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from starlette.middleware.sessions import SessionMiddleware
 
+from . import ai as ai_mod
 from . import config, credits, db, growth, mailer, oauth, tokens, worker
 from .icons import LOGO, icon
 from .models import Channel, CreditTx, Job, PromoCode, TopUp, User, now
@@ -62,6 +63,7 @@ def create_app(*, start_worker: bool | None = None, generator=None, database_url
         return resp
 
     app.mount("/static", StaticFiles(directory=str(config.ROOT / "static")), name="static")
+    app.state.generator = generator
     _routes(app)
     if start_worker if start_worker is not None else config.WORKER_ENABLED:
         app.state.worker = worker.Worker(generator)
@@ -128,6 +130,8 @@ def _active(path: str) -> str:
     for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar"):
         if path.startswith(prefix):
             return prefix
+    if path.startswith("/video/"):
+        return "/videolar"
     return "/panel"
 
 
@@ -189,6 +193,7 @@ def local_time(dt: datetime | None) -> str:
 
 
 templates.env.filters["tarih"] = local_time
+templates.env.filters["slot"] = lambda slot: (f"{slot[5:21]} · elle" if slot.startswith("elle ") else slot) if slot else ""
 STATUS_LABELS = {"sirada": "Sırada", "uretiliyor": "Üretiliyor", "hazir": "Hazır", "hata": "Hata"}
 templates.env.globals["status_labels"] = STATUS_LABELS
 templates.env.globals["icon"] = icon
@@ -535,8 +540,14 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)
-    def new_video_page(request: Request, idea: str = "", user: User = Depends(require_user)):
-        return render(request, "video_yeni.html", user, idea=clean(idea))
+    def new_video_page(request: Request, idea: str = "", src: int = Query(0, alias="from"),
+                       user: User = Depends(require_user)):
+        pre = None
+        if src:  # "Düzenleyip üret": eski videonun ayarlarıyla doldur
+            with db.session() as s:
+                job = s.get(Job, src)
+                pre = job if job and job.user_id == user.id else None
+        return render(request, "video_yeni.html", user, idea=clean(idea) or (pre.idea if pre else ""), pre=pre)
 
     @app.post("/video/yeni", dependencies=[Depends(check_csrf)])
     def new_video(request: Request, user: User = Depends(require_user), idea: str = Form(""),
@@ -557,6 +568,28 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return go("/kredi")
         return go(f"/video/{job_id}")
 
+    @app.get("/videolar", response_class=HTMLResponse)
+    def videos(request: Request, user: User = Depends(require_user), durum: str = "", q: str = "", sayfa: int = 1):
+        per = 24
+        groups = {"hazir": ["hazir"], "uretiliyor": ["sirada", "uretiliyor"], "hata": ["hata"]}
+        durum = durum if durum in groups else ""
+        q = clean(q, 80)
+        with db.session() as s:
+            base = select(Job).where(Job.user_id == user.id)
+            counts = {k: s.scalar(select(func.count(Job.id)).where(Job.user_id == user.id, Job.status.in_(v)))
+                      for k, v in groups.items()}
+            counts[""] = sum(counts.values())
+            if durum:
+                base = base.where(Job.status.in_(groups[durum]))
+            if q:
+                base = base.where(or_(Job.title.ilike(f"%{q}%"), Job.idea.ilike(f"%{q}%")))
+            total = s.scalar(select(func.count()).select_from(base.subquery()))
+            pages = max(1, -(-total // per))
+            sayfa = min(max(1, sayfa), pages)
+            jobs = s.scalars(base.order_by(Job.id.desc()).offset((sayfa - 1) * per).limit(per)).all()
+        return render(request, "videolar.html", user, jobs=jobs, durum=durum, q=q, sayfa=sayfa, pages=pages,
+                      total=total, counts=counts)
+
     def _own_job(s, user: User, job_id: int) -> Job:
         job = s.get(Job, job_id)
         if not job or (job.user_id != user.id and not user.is_admin):
@@ -569,6 +602,47 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             job = _own_job(s, user, job_id)
             _ = job.channel  # şablonda kanal adı gösterilecek
         return render(request, "video.html", user, job=job)
+
+    @app.post("/video/{job_id}/tekrar", dependencies=[Depends(check_csrf)])
+    def job_again(request: Request, job_id: int, user: User = Depends(require_user)):
+        """Aynı ayarlarla yeni bir video (yapay zekâ önceki fikirleri tekrar etmez)."""
+        if (blocked := require_verified(request, user)) is not None:
+            return blocked
+        with db.session() as s:
+            old = _own_job(s, user, job_id)
+            if old.user_id != user.id:
+                raise HTTPException(404)
+            params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
+                          quality=old.quality)
+        try:
+            with db.session() as s:
+                new_id = worker.create_job(s, user.id, **params).id
+        except credits.NotEnoughCredits:
+            flash(request, f"Yeterli kredin yok. Bu kalite {config.QUALITIES[params['quality']]['credits']} kredi.", "err")
+            return go("/kredi")
+        return go(f"/video/{new_id}")
+
+    idea_limiter = RateLimiter(limit=12, window=600)
+
+    @app.post("/api/fikirler", dependencies=[Depends(check_csrf)])
+    def ideas_api(request: Request, user: User = Depends(require_user), topic: str = Form(""),
+                  language: str = Form("tr")):
+        if not idea_limiter.allow(f"i:{user.id}"):
+            return JSONResponse({"error": "Çok fazla fikir istedin, birkaç dakika sonra tekrar dene."}, status_code=429)
+        with db.session() as s:
+            past = [t for t in s.scalars(select(Job.title).where(Job.user_id == user.id, Job.title != "")
+                                         .order_by(Job.id.desc()).limit(20)) if t]
+        gen = request.app.state.generator
+        if gen is None:
+            gen = request.app.state.generator = (getattr(request.app.state, "worker", None) and
+                                                 request.app.state.worker.generator) or ai_mod.default_ai()
+        try:
+            ideas = gen.ideas(topic=clean(topic, 300), language=_valid_choice(language, config.LANGUAGES, "tr"),
+                              past=past)
+        except Exception:
+            log.exception("Fikir üretilemedi")
+            return JSONResponse({"error": "Şu an fikir üretilemedi, biraz sonra tekrar dene."}, status_code=503)
+        return {"ideas": [clean(i, 200) for i in ideas][:4]}
 
     @app.get("/video/{job_id}/durum")
     def job_status(job_id: int, user: User = Depends(require_user)):
@@ -721,6 +795,24 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             active = ch.active
         flash(request, "Kanal açıldı." if active else "Kanal durduruldu.")
         return go("/kanallar")
+
+    @app.post("/kanallar/{cid}/simdi", dependencies=[Depends(check_csrf)])
+    def channel_now(request: Request, cid: int, user: User = Depends(require_user)):
+        """Saatini beklemeden kanal ayarlarıyla hemen bir video üretir."""
+        if (blocked := require_verified(request, user)) is not None:
+            return blocked
+        with db.session() as s:
+            ch = _own_channel(s, user, cid)
+            params = dict(idea=ch.topic, characters=ch.characters, style=ch.style, language=ch.language,
+                          quality=ch.quality, channel_id=ch.id)
+        slot = "elle " + datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d %H:%M:%S.%f")
+        try:
+            with db.session() as s:
+                new_id = worker.create_job(s, user.id, slot=slot, **params).id
+        except credits.NotEnoughCredits:
+            flash(request, "Yeterli kredin yok.", "err")
+            return go("/kredi")
+        return go(f"/video/{new_id}")
 
     @app.post("/kanallar/{cid}/sil", dependencies=[Depends(check_csrf)])
     def channel_delete(request: Request, cid: int, user: User = Depends(require_user)):

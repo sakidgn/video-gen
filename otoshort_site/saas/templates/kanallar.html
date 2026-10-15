@@ -24,7 +24,8 @@
     {% if ch.notice %}<div class="flash warn" style="margin:0">{{ icon('alert', 16) }}<div>{{ ch.notice }} <a href="/kredi">Kredi yükle</a></div></div>{% endif %}
     <hr class="sep" style="margin:4px 0">
     <div class="row between"><span class="small faint"><span class="mono">{{ ch.time_list()|length }}</span> video/gün · <span class="mono">{{ ch.time_list()|length * q.credits }}</span> kredi/gün</span>
-      <a class="btn btn-ghost btn-sm" href="/kanallar/{{ ch.id }}">{{ icon('edit', 14) }} Düzenle</a></div>
+      <div class="row" style="gap:6px"><form method="post" action="/kanallar/{{ ch.id }}/simdi" data-confirm="Şimdi bir video üretilsin mi? {{ q.credits }} kredi düşecek."><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-text btn-sm" type="submit">{{ icon('zap', 14) }} Şimdi üret</button></form>
+        <a class="btn btn-ghost btn-sm" href="/kanallar/{{ ch.id }}">{{ icon('edit', 14) }} Düzenle</a></div></div>
   </div>
 {% endfor %}
 </div>
