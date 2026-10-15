@@ -337,7 +337,8 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:24px 0}
   margin:48px 0 -.12em;user-select:none;pointer-events:none;color:transparent;background:linear-gradient(180deg,rgba(244,239,230,.16),rgba(244,239,230,0) 88%);-webkit-background-clip:text;background-clip:text}
 .nav-links a{position:relative}
 .nav-links a:after{content:"";position:absolute;left:14px;right:14px;bottom:5px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:right;transition:transform .45s var(--spring,var(--ease))}
-.nav-links a:hover{background:none}.nav-links a:hover:after{transform:scaleX(1);transform-origin:left}
+.nav-links a:hover{background:none}.nav-links a:hover:after,.nav-links a.on:after{transform:scaleX(1);transform-origin:left}
+.nav-links a.on{color:var(--text)}
 
 /* ============ Uygulama kabuğu ============ */
 .app{display:grid;grid-template-columns:calc(252px * var(--fs)) minmax(0,1fr);min-height:100vh}

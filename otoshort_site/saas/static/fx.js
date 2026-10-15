@@ -78,10 +78,56 @@
   }
 
   // Masaüstünde yumuşak, ataletli kaydırma
+  let lenis = null;
   if (!reduce && fine) addEventListener('DOMContentLoaded', () => {
     if (!window.Lenis || !document.body.classList.contains('home')) return;
-    try { new Lenis({ autoRaf: true, lerp: .09, anchors: true }); } catch (e) {}
+    try { lenis = new Lenis({ autoRaf: true, lerp: .09 }); } catch (e) {}
   });
+
+  // Sayfa içi bağlantılar (menüdeki Nasıl çalışır, Fiyatlar, SSS…): bölüme yumuşakça kayarak gider
+  const navH = () => (nav ? nav.getBoundingClientRect().height : 0) + 12;
+  const easeInOut = t => t < .5 ? 16 * t ** 5 : 1 - Math.pow(-2 * t + 2, 5) / 2;  // yavaş başla, hızlan, yumuşak dur
+  const glideTo = el => {
+    const top = el.getBoundingClientRect().top + scrollY - navH();
+    if (reduce) { scrollTo(0, top); return; }
+    const dist = Math.abs(top - scrollY), duration = Math.min(1.8, Math.max(.7, dist / 2600));
+    if (lenis) { lenis.scrollTo(top, { duration, easing: easeInOut }); return; }
+    const from = scrollY, t0 = performance.now();
+    document.documentElement.style.scrollBehavior = 'auto';  // kendi animasyonumuz; tarayıcınınkiyle çakışmasın
+    (function step(t) {
+      const k = Math.min(1, (t - t0) / (duration * 1000));
+      scrollTo(0, from + (top - from) * easeInOut(k));
+      if (k < 1) requestAnimationFrame(step); else document.documentElement.style.scrollBehavior = '';
+    })(t0);
+  };
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href*="#"]');
+    if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+    const url = new URL(a.href, location.href);
+    if (url.pathname !== location.pathname || url.origin !== location.origin || !url.hash) return;
+    const el = document.getElementById(decodeURIComponent(url.hash.slice(1)));
+    if (!el) return;
+    e.preventDefault();
+    history.replaceState(null, '', url.hash);
+    glideTo(el);
+  });
+  // Başka sayfadan /#fiyat gibi bir bağlantıyla gelinince bölüm başlığı menünün altında kalmasın
+  if (location.hash && document.body.classList.contains('home')) {
+    const el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (el) addEventListener('load', () => setTimeout(() => glideTo(el), 120));
+  }
+
+  // Menüde o an bulunulan bölümün altı çizili
+  const spy = $$('.nav-links a[href*="#"]').map(a => [a, document.getElementById(a.hash.slice(1))]).filter(x => x[1]);
+  if (spy.length && 'IntersectionObserver' in window) {
+    const vis = new Map();
+    const so = new IntersectionObserver(es => {
+      es.forEach(e => vis.set(e.target, e.isIntersecting ? e.intersectionRatio : 0));
+      let best = null, r = 0; spy.forEach(([a, sec]) => { if ((vis.get(sec) || 0) > r) { r = vis.get(sec); best = a; } });
+      spy.forEach(([a]) => a.classList.toggle('on', a === best));
+    }, { threshold: [0, .15, .3, .5], rootMargin: '-30% 0px -40% 0px' });
+    spy.forEach(([, sec]) => so.observe(sec));
+  }
 
   // Ürün vitrini: kaydırdıkça 3D açıdan düzleşir
   const sc = $('[data-showcase]');
