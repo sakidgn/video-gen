@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../saas/static/fonts/fonts.css">
+<style>
+:root{--ivory:#f4efe6;--ink:#0c0b0a;--champ:#d8b98a;--t2:#bdb5a8;--t3:#857e73}
+*{box-sizing:border-box}
+html,body{margin:0;width:100vw;height:100vh;overflow:hidden;font-variant-numeric:lining-nums;background:#0c0b0a;font-family:"Plus Jakarta Sans",sans-serif;color:var(--ivory);-webkit-font-smoothing:antialiased}
+#smoke{position:absolute;inset:0;width:100%;height:100%}
+.vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 75% 70% at var(--cx) 48%,transparent 40%,rgba(0,0,0,.72) 100%)}
+#grain{position:absolute;inset:0;width:100%;height:100%;opacity:.07;mix-blend-mode:overlay;pointer-events:none}
+.stage{position:absolute;left:var(--cx);top:var(--cy);width:0;height:0;perspective:1400px}
+.shadow{position:absolute;left:-190px;top:300px;width:380px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.75),transparent);filter:blur(14px)}
+.phone{position:absolute;left:-150px;top:-325px;width:300px;height:650px;border-radius:50px;padding:11px;transform-style:preserve-3d;
+  background:linear-gradient(140deg,#4a4540,#1b1917 30%,#0f0e0d 60%,#3b3631);box-shadow:0 0 0 1.5px #5a544c inset,0 0 0 3px #0a0908 inset,0 60px 120px -30px rgba(0,0,0,.95),0 0 120px -40px rgba(216,185,138,.35)}
+.scr{position:relative;width:100%;height:100%;border-radius:40px;overflow:hidden;background:#0e0d0c}
+.island{position:absolute;top:10px;left:50%;width:92px;height:27px;margin-left:-46px;border-radius:20px;background:#000;z-index:20}
+.gloss{position:absolute;inset:0;border-radius:40px;pointer-events:none;z-index:30;background:linear-gradient(var(--ga),rgba(255,255,255,.13),rgba(255,255,255,0) 38%,rgba(255,255,255,0) 70%,rgba(255,255,255,.05))}
+.scene{position:absolute;inset:0;padding:52px 20px 22px}
+.status{position:absolute;top:15px;left:30px;right:26px;display:flex;justify-content:space-between;font-size:13px;font-weight:600;z-index:21}
+.status i{display:inline-block;width:22px;height:11px;border-radius:3px;border:1.4px solid rgba(255,255,255,.8);position:relative}
+.status i:after{content:"";position:absolute;inset:1.5px;right:5px;background:#fff;border-radius:1px}
+/* A: form */
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.brand{font-family:"Cormorant Garamond";font-weight:500;font-size:23px;display:flex;align-items:center;gap:8px}
+.mark{width:22px;height:22px;border-radius:7px;background:var(--ivory);display:grid;place-items:center}
+.mark:after{content:"";border-left:7px solid var(--ink);border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;margin-left:2px}
+.av{width:28px;height:28px;border-radius:50%;background:linear-gradient(140deg,#e9d5b0,#8c7b66)}
+h2{font-family:"Cormorant Garamond";font-weight:500;font-size:38px;line-height:1;margin:0 0 18px}
+h2 em{color:var(--champ)}
+.lbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--t3);margin:0 0 8px}
+.ta{min-height:92px;border:1px solid rgba(255,246,230,.16);border-radius:14px;padding:12px 13px;font-size:14px;line-height:1.45;background:rgba(255,246,230,.03);margin-bottom:18px}
+.caret{display:inline-block;width:1.5px;height:15px;background:var(--champ);vertical-align:-2px;margin-left:1px}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
+.chip{font-size:12.5px;padding:7px 12px;border-radius:999px;border:1px solid rgba(255,246,230,.16);color:var(--t2)}
+.chip.on{background:var(--ivory);color:var(--ink);border-color:var(--ivory);font-weight:600}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:20px}
+.seg div{border:1px solid rgba(255,246,230,.14);border-radius:12px;padding:9px 10px;font-size:12px;color:var(--t2)}
+.seg div b{display:block;font-family:"Cormorant Garamond";font-weight:500;font-size:20px;color:var(--ivory);line-height:1.1}
+.seg div.on{border-color:var(--champ);background:rgba(216,185,138,.08)}
+.go{position:absolute;left:20px;right:20px;bottom:26px;height:50px;border-radius:999px;background:var(--ivory);color:var(--ink);display:grid;place-items:center;font-weight:700;font-size:15px}
+/* B: üretim */
+.gen{display:flex;flex-direction:column;align-items:center;text-align:center;padding-top:70px}
+.ring{position:relative;width:170px;height:170px;margin-bottom:26px}
+.ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;line-height:1;font-family:"Cormorant Garamond";font-weight:500;font-size:60px}
+.ring .num small{font-size:26px;color:var(--t3)}
+.gen h3{font-family:"Cormorant Garamond";font-weight:500;font-size:28px;margin:0 0 6px}
+.gen p{margin:0 0 26px;color:var(--t3);font-size:13px}
+.steps{width:100%;display:grid;gap:8px;text-align:left}
+.st{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1px solid rgba(255,246,230,.1);font-size:13px;color:var(--t2)}
+.st .c{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(255,246,230,.3);display:grid;place-items:center;flex:none}
+.st.done .c{background:var(--champ);border-color:var(--champ)}
+.st.done .c:after{content:"";width:7px;height:4px;border:2px solid var(--ink);border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg)}
+/* C: video */
+#vid{position:absolute;inset:0;width:100%;height:100%}
+.rail{position:absolute;right:12px;bottom:120px;display:grid;gap:18px;justify-items:center;z-index:5;font-size:11px;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.rail .ic{width:34px;height:34px;display:grid;place-items:center}
+.cap{position:absolute;left:14px;right:64px;bottom:34px;z-index:5;font-size:12.5px;line-height:1.4;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.cap b{display:block;font-size:13.5px;margin-bottom:3px}
+.sub{position:absolute;left:14px;right:58px;top:68%;text-align:center;z-index:5;font-weight:800;font-size:23px;line-height:1.15;letter-spacing:-.01em;
+  -webkit-text-stroke:5px #000;paint-order:stroke fill;color:#fff;text-transform:uppercase}
+.sub em{font-style:normal;color:#ffd84a}
+.bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25);z-index:5}.bar i{display:block;height:100%;background:#fff}
+.ai{position:absolute;top:52px;left:14px;z-index:5;font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(0,0,0,.45);letter-spacing:.04em}
+/* D: paylaşım sayfası */
+.sheet{position:absolute;left:8px;right:8px;bottom:8px;z-index:12;border-radius:30px;padding:18px 18px 20px;background:rgba(22,20,18,.86);backdrop-filter:blur(20px);border:1px solid rgba(255,246,230,.12);box-shadow:0 -20px 40px -10px rgba(0,0,0,.6)}
+.sheet .grab{width:36px;height:4px;border-radius:4px;background:rgba(255,246,230,.25);margin:-6px auto 14px}
+.sheet .ok{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--champ);margin-bottom:8px}
+.sheet h4{margin:0 0 6px;font-family:"Cormorant Garamond";font-weight:500;font-size:24px;line-height:1.1}
+.sheet .tags{font-size:12.5px;color:var(--t2);margin-bottom:14px}
+.sheet .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet .btns div{height:40px;border-radius:999px;display:grid;place-items:center;font-size:13px;font-weight:600;border:1px solid rgba(255,246,230,.2)}
+.sheet .btns div:first-child{background:var(--ivory);color:var(--ink);border-color:var(--ivory)}
+/* yayın kartları */
+.pill{position:absolute;transform-origin:0 0;display:flex;align-items:center;gap:12px;padding:12px 18px 12px 12px;border-radius:20px;white-space:nowrap;
+  background:rgba(24,22,20,.62);backdrop-filter:blur(16px);border:1px solid rgba(255,246,230,.14);box-shadow:0 30px 60px -20px rgba(0,0,0,.8)}
+.pill .pi{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(255,246,230,.08)}
+.pill b{display:block;font-size:14.5px;font-weight:600}
+.pill small{display:block;font-size:12px;color:var(--t2)}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:#9fc59f;display:inline-block;margin-right:6px;vertical-align:1px}
+.fade{position:absolute;inset:0;background:#0e0d0c;z-index:25;pointer-events:none}
+</style></head>
+<body>
+<canvas id="smoke"></canvas>
+<div class="vig"></div>
+<div class="stage" id="stage">
+  <div class="shadow" id="shadow"></div>
+  <div class="phone" id="phone"><div class="scr">
+    <div class="island"></div>
+    <div class="status"><span>9:41</span><span><i></i></span></div>
+    <div class="scene" id="A">
+      <div class="hdr"><div class="brand"><span class="mark"></span>Cutless</div><span class="av"></span></div>
+      <h2>Yeni <em>video</em></h2>
+      <div class="lbl">Fikrin</div>
+      <div class="ta"><span id="typed"></span><span class="caret" id="caret"></span></div>
+      <div class="lbl">Tarz</div>
+      <div class="chips"><span class="chip on">Çizgi film</span><span class="chip">Anime</span><span class="chip">Gerçekçi</span><span class="chip">Kil</span></div>
+      <div class="lbl">Kalite</div>
+      <div class="seg"><div>Ekonomik<b>35</b></div><div class="on">Hızlı<b>65</b></div><div>Standart<b>250</b></div></div>
+      <div class="go" id="go">Videoyu üret</div>
+    </div>
+    <div class="scene" id="B">
+      <div class="gen">
+        <div class="ring"><svg viewBox="0 0 170 170"><circle cx="85" cy="85" r="80" fill="none" stroke="rgba(255,246,230,.1)" stroke-width="2"/>
+          <circle id="arc" cx="85" cy="85" r="80" fill="none" stroke="#d8b98a" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="502.65" stroke-dashoffset="502.65"/></svg>
+          <div class="num"><span id="pct">0</span><small>%</small></div></div>
+        <h3>Video üretiliyor</h3><p>Senaryo, ses ve görüntü hazırlanıyor</p>
+        <div class="steps"><div class="st" id="s1"><span class="c"></span>Senaryo yazıldı</div><div class="st" id="s2"><span class="c"></span>Diyaloglar seslendirildi</div><div class="st" id="s3"><span class="c"></span>Dikey video oluşturuldu</div></div>
+      </div>
+    </div>
+    <div class="scene" id="C" style="padding:0">
+      <canvas id="vid"></canvas>
+      <div class="ai">AI</div>
+      <div class="sub" id="sub"></div>
+      <div class="rail">
+        <div><div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3.1 4.5 6.9 4.5c2.1 0 3.6 1.1 5.1 3 1.5-1.9 3-3 5.1-3 3.8 0 6 3.9 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg></div><span id="likes">0</span></div>
+        <div><div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 3c5 0 9 3.4 9 7.6s-4 7.6-9 7.6c-1 0-2-.1-2.9-.4L4 20l1.4-4C4 14.6 3 12.7 3 10.6 3 6.4 7 3 12 3z"/></svg></div><span id="coms">0</span></div>
+        <div><div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M14 4l8 7.5-8 7.5v-4.5c-5 0-8.5 1.5-11 5 1-5 4-9.5 11-10.5V4z"/></svg></div><span>Paylaş</span></div>
+      </div>
+      <div class="cap"><b>@komikmeyveler</b>Portakal markette olay çıkardı. Son indirim kimin olacak? #komik #shorts</div>
+      <div class="bar"><i id="prog"></i></div>
+      <div class="sheet" id="sheet"><div class="grab"></div>
+        <div class="ok">✓ Paylaşıma hazır</div>
+        <h4>Portakal markette olay çıkardı</h4>
+        <div class="tags">#komik #market #shorts #keşfet</div>
+        <div class="btns"><div>İndir</div><div>Metni kopyala</div></div>
+      </div>
+    </div>
+    <div class="fade" id="fade"></div>
+    <div class="gloss"></div>
+  </div></div>
+  <div class="pill" id="p1"><span class="pi"><svg width="20" height="20" viewBox="0 0 24 24" fill="#f4efe6"><path d="M16.5 3c.4 2.3 1.9 3.8 4.2 4v3.2c-1.5 0-2.9-.4-4.2-1.2v6.4a6 6 0 1 1-6-6h.6v3.3a2.8 2.8 0 1 0 2.2 2.7V3h3.2z"/></svg></span><div><b>TikTok</b><small><span class="dot"></span>Yayında · 18:30</small></div></div>
+  <div class="pill" id="p2"><span class="pi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f4efe6" stroke-width="1.8"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r=".9" fill="#f4efe6"/></svg></span><div><b>Instagram Reels</b><small><span class="dot"></span>Yayında · 18:30</small></div></div>
+  <div class="pill" id="p3"><span class="pi"><svg width="20" height="20" viewBox="0 0 24 24" fill="#f4efe6"><path d="M21.6 7.2a2.6 2.6 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.6 2.6 0 0 0 2.4 7.2C2 8.8 2 12 2 12s0 3.2.4 4.8a2.6 2.6 0 0 0 1.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.6 2.6 0 0 0 1.8-1.8c.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3L10 15z"/></svg></span><div><b>YouTube Shorts</b><small><span class="dot"></span>Yayında · 18:30</small></div></div>
+  <div class="pill" id="p4"><span class="pi"><svg width="20" height="20" viewBox="0 0 24 24" fill="#d8b98a"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3.1 4.5 6.9 4.5c2.1 0 3.6 1.1 5.1 3 1.5-1.9 3-3 5.1-3 3.8 0 6 3.9 4.5 7.3C19.5 16.4 12 21 12 21z"/></svg></span><div><b id="views">0 izlenme</b><small>ilk saatte</small></div></div>
+</div>
+<canvas id="grain"></canvas>
+<script>
+const T = 16, M = new URLSearchParams(location.search).get('m') === '1';
+const $ = id => document.getElementById(id);
+const cl = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => cl((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3), eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const spring = x => x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.exp(-6 * x) * Math.cos(9 * x);
+document.documentElement.style.setProperty('--cx', M ? '50%' : '64%');
+document.documentElement.style.setProperty('--cy', M ? '40%' : '50%');
+
+// ---------- duman (WebGL) ----------
+const cv = $('smoke'), gl = cv.getContext('webgl', { preserveDrawingBuffer: true });
+const vs = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+const fs = `precision highp float;uniform vec2 R;uniform float t;uniform vec2 C;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);for(int i=0;i<5;i++){v+=a*n(p);p=m*p;a*=.5;}return v;}
+float smoke(vec2 uv,float s){vec2 q=vec2(fbm(uv+vec2(0.,s*.05)),fbm(uv+vec2(5.2,1.3)-vec2(0.,s*.04)));
+  vec2 r=vec2(fbm(uv+2.2*q+vec2(1.7,9.2)+s*.06),fbm(uv+2.2*q+vec2(8.3,2.8)-s*.05));return fbm(uv+2.4*r+vec2(0.,-s*.08));}
+void main(){vec2 uv=gl_FragCoord.xy/R;vec2 p=(gl_FragCoord.xy-.5*R)/R.y;
+  float L=${T.toFixed(1)};float k=t/L;
+  vec2 sp=p*1.25+vec2(0.,-.1);
+  float w=smoothstep(L-3.,L,t);float s=smoke(sp,t);
+  if(w>0.){s=mix(s,smoke(sp,t-L),w);}
+  vec2 c=(C-.5*R)/R.y;float d=length((p-c)*vec2(.8,1.));
+  float beam=exp(-pow((p.x-c.x+ (p.y)*.18)*2.4,2.))*smoothstep(-.6,.6,p.y);
+  float glow=exp(-d*d*3.2);
+  vec3 col=vec3(.045,.04,.036);
+  vec3 warm=vec3(.85,.63,.38),cool=vec3(.55,.52,.48);
+  float sm=smoothstep(.38,.95,s);
+  col+=sm*mix(cool,warm,.55)*(.16+.55*glow+.25*beam);
+  col+=warm*glow*.10+warm*beam*.05;
+  col*=1.-.35*smoothstep(.3,1.1,length(p*vec2(.7,1.)));
+  gl_FragColor=vec4(pow(col,vec3(.95)),1.);}`;
+function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s); return s; }
+const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); gl.useProgram(pr);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const uR = gl.getUniformLocation(pr, 'R'), uT = gl.getUniformLocation(pr, 't'), uC = gl.getUniformLocation(pr, 'C');
+const SS = .34; // duman yarım çözünürlükte (yumuşak zaten)
+function drawSmoke(t) {
+  const w = Math.round(innerWidth * devicePixelRatio * SS), hh = Math.round(innerHeight * devicePixelRatio * SS);
+  if (cv.width !== w) { cv.width = w; cv.height = hh; }
+  gl.viewport(0, 0, w, hh); gl.uniform2f(uR, w, hh); gl.uniform1f(uT, t);
+  gl.uniform2f(uC, w * (M ? .5 : .64), hh * (M ? .6 : .5)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); gl.finish();
+}
+
+// ---------- gren ----------
+const gc = $('grain'), gx = gc.getContext('2d'); gc.width = 512; gc.height = 512;
+const noiseImgs = [];
+for (let k = 0; k < 6; k++) { const im = gx.createImageData(256, 256); let seed = 1234 + k * 999;
+  for (let i = 0; i < im.data.length; i += 4) { seed = (seed * 16807) % 2147483647; const v = seed % 255; im.data[i] = im.data[i+1] = im.data[i+2] = v; im.data[i+3] = 255; }
+  noiseImgs.push(im); }
+function drawGrain(f) { const im = noiseImgs[f % 6]; for (let x = 0; x < 2; x++) for (let y = 0; y < 2; y++) gx.putImageData(im, x * 256, y * 256); }
+
+// ---------- telefondaki video (portakal) ----------
+const vc = $('vid'), vx = vc.getContext('2d'); const VD = 2; vc.width = 278 * VD; vc.height = 628 * VD;
+let BG = null;
+function makeBG() { // raflar + bokeh, bulanık; bir kez çizilir
+  const w = 278 + 60, h = 628; const c = document.createElement('canvas'); c.width = w * VD; c.height = h * VD; const x = c.getContext('2d'); x.scale(VD, VD);
+  x.filter = 'blur(2.2px)';
+  let g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#3a2a1c'); g.addColorStop(.55, '#6b4a2c'); g.addColorStop(1, '#2a1d12'); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let r = 0; r < 4; r++) { const y = 70 + r * 95; x.fillStyle = 'rgba(20,12,6,.55)'; x.fillRect(0, y + 70, w, 10);
+    for (let k = 0; k < 8; k++) { const xx = k * 44 + r * 17 - 20; const hue = [28, 8, 45, 95, 200, 340, 18][(k + r) % 7];
+      x.fillStyle = `hsla(${hue},45%,${38 + (k % 3) * 8}%,.55)`; x.beginPath(); x.roundRect(xx, y + 20 + (k % 2) * 8, 30, 50 - (k % 2) * 8, 5); x.fill(); } }
+  for (let k = 0; k < 18; k++) { const xx = (k * 71) % w, y = 30 + (k * 53) % 260, r = 10 + (k % 5) * 7;
+    const gg = x.createRadialGradient(xx, y, 0, xx, y, r); gg.addColorStop(0, `rgba(255,${200 + (k % 3) * 20},140,.28)`); gg.addColorStop(1, 'rgba(255,200,140,0)'); x.fillStyle = gg; x.beginPath(); x.arc(xx, y, r, 0, 7); x.fill(); }
+  BG = c;
+}
+function drawVideo(lt) { // lt: video içindeki zaman (sn)
+  const W = vc.width, H = vc.height; vx.save(); vx.scale(VD, VD); const w = 278, h = 628;
+  if (!BG) makeBG(); vx.drawImage(BG, -Math.min(50, lt * 6), 0, BG.width / VD, BG.height / VD);
+  vx.filter = 'none';
+  // bulanıklık hissi + ön plan karartma
+  g = vx.createLinearGradient(0, h * .45, 0, h); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.65)'); vx.fillStyle = g; vx.fillRect(0, 0, w, h);
+  // indirim tabelası
+  vx.save(); vx.translate(196, 96); vx.rotate(.08 + Math.sin(lt * 2) * .03); vx.fillStyle = '#e8463a'; vx.beginPath(); vx.roundRect(-38, -18, 76, 36, 6); vx.fill();
+  vx.fillStyle = '#fff'; vx.font = '800 17px "Plus Jakarta Sans"'; vx.textAlign = 'center'; vx.fillText('%50', 0, 7); vx.restore();
+  // portakal
+  const bounce = Math.abs(Math.sin(lt * 4.2)) * 10, sq = 1 + Math.sin(lt * 8.4) * .025;
+  const cx = 139, cy = 330 - bounce, R = 74;
+  vx.fillStyle = 'rgba(0,0,0,.35)'; vx.beginPath(); vx.ellipse(cx, 412, 62 - bounce, 12, 0, 0, 7); vx.fill();
+  vx.save(); vx.translate(cx, cy); vx.scale(1 / sq, sq);
+  g = vx.createRadialGradient(-26, -30, 8, 0, 0, R); g.addColorStop(0, '#ffc266'); g.addColorStop(.45, '#ff8a1f'); g.addColorStop(1, '#b84a06');
+  vx.fillStyle = g; vx.beginPath(); vx.arc(0, 0, R, 0, 7); vx.fill();
+  for (let k = 0; k < 90; k++) { const a = k * 2.399, rr = Math.sqrt(k / 90) * R * .95; vx.fillStyle = 'rgba(120,40,0,.12)'; vx.beginPath(); vx.arc(Math.cos(a) * rr, Math.sin(a) * rr, 1.6, 0, 7); vx.fill(); }
+  vx.fillStyle = 'rgba(255,255,255,.35)'; vx.beginPath(); vx.ellipse(-30, -36, 16, 9, -.6, 0, 7); vx.fill();
+  // yaprak
+  vx.fillStyle = '#3f8f3a'; vx.beginPath(); vx.ellipse(14, -R - 4, 20, 8, -.4, 0, 7); vx.fill();
+  vx.fillStyle = '#5a3a1a'; vx.fillRect(-2, -R - 8, 4, 10);
+  // gözler (kızgın)
+  for (const s of [-1, 1]) { vx.fillStyle = '#fff'; vx.beginPath(); vx.ellipse(s * 24, -12, 15, 17, 0, 0, 7); vx.fill();
+    vx.fillStyle = '#1a0f08'; vx.beginPath(); vx.arc(s * 24 + 4 * Math.sin(lt * 1.3), -9, 7.5, 0, 7); vx.fill();
+    vx.fillStyle = '#fff'; vx.beginPath(); vx.arc(s * 24 + 2 + 4 * Math.sin(lt * 1.3), -12, 2.4, 0, 7); vx.fill();
+    vx.strokeStyle = '#4a2208'; vx.lineWidth = 5; vx.lineCap = 'round'; vx.beginPath(); vx.moveTo(s * 10, -30); vx.lineTo(s * 38, -40 + Math.sin(lt * 5) * 2); vx.stroke(); }
+  // ağız (konuşuyor)
+  const open = 6 + Math.abs(Math.sin(lt * 11)) * 13; vx.fillStyle = '#5a1606'; vx.beginPath(); vx.ellipse(0, 30, 20, open, 0, 0, 7); vx.fill();
+  vx.fillStyle = '#ff6b6b'; vx.beginPath(); vx.ellipse(0, 30 + open * .5, 11, open * .35, 0, 0, 7); vx.fill();
+  vx.restore();
+  vx.restore();
+}
+
+// ---------- sahne zamanlaması ----------
+const IDEA = 'Portakal markette son indirimli ürün için kavga ediyor';
+const SUBS = [[0, 'Bu son <em>indirim</em>'], [1.1, '<em>Benim</em> dedim!'], [2.2, 'Muz bile <em>şahit</em>'], [3.3, 'Kasiyer <em>nerede?!</em>']];
+function render(t) {
+  t = ((t % T) + T) % T;
+  const ph = $('phone'), stg = $('stage');
+  const S = M ? Math.min(innerWidth / 300 * .62, innerHeight / 650 * .64) : innerHeight / 650 * .84;
+  const ang = Math.sin(t / T * Math.PI * 2) * 9 - (M ? 0 : 6), tilt = Math.sin(t / T * Math.PI * 4) * 2.2 + 3, fl = Math.sin(t / T * Math.PI * 4) * 7;
+  ph.style.transform = `translateY(${fl}px) scale(${S}) rotateY(${ang}deg) rotateX(${tilt}deg)`;
+  $('shadow').style.transform = `scale(${S}) scaleX(${1 - fl / 120})`; $('shadow').style.top = (300 * S - 280) + 'px';
+  ph.style.setProperty('--ga', (110 + ang * 3) + 'deg');
+  // ölçek: pill yerleşimi
+  const P = (id, x, y, a, b) => { const e = $(id), k = spring(seg(t, a, a + .9)), out = seg(t, b, b + .5);
+    e.style.opacity = Math.min(seg(t, a, a + .35), 1 - out); e.style.transform = `translate(${x * S}px,${y * S + (1 - k) * 30}px) scale(${(.85 + .15 * k) * Math.min(S, 1.3) * (M ? .74 : 1)})`; e.style.left = '0'; e.style.top = '0'; };
+  if (M) { P('p1', -235, -268, 12, 15.2); P('p2', 22, -196, 12.35, 15.2); P('p3', -245, -124, 12.7, 15.2); $('p4').style.display = 'none'; }
+  else { P('p1', -330, -280, 12, 15.2); P('p2', 190, -190, 12.35, 15.2); P('p3', -350, -40, 12.7, 15.2); P('p4', 200, 120, 13.05, 15.2); }
+  $('views').textContent = Math.round(eo(seg(t, 13, 15)) * 12400).toLocaleString('tr-TR') + ' izlenme';
+  // A: 0-4.4
+  const A = $('A'), B = $('B'), C = $('C');
+  const n = Math.round(eio(seg(t, .5, 3.1)) * IDEA.length); $('typed').textContent = IDEA.slice(0, n);
+  $('caret').style.opacity = (t < 3.2 || Math.floor(t * 2) % 2 === 0) ? 1 : 0;
+  const press = seg(t, 3.55, 3.75) - seg(t, 3.75, 4.0); $('go').style.transform = `scale(${1 - press * .05})`; $('go').style.background = press > .1 ? '#fff' : '';
+  const aOut = eio(seg(t, 4.0, 4.6)); A.style.opacity = 1 - aOut; A.style.transform = `translateY(${-aOut * 20}px) scale(${1 - aOut * .04})`;
+  // B: 4.3-8.4
+  const bIn = eio(seg(t, 4.3, 4.9)), bOut = eio(seg(t, 8.0, 8.5)); B.style.opacity = Math.min(bIn, 1 - bOut); B.style.transform = `translateY(${(1 - bIn) * 24}px) scale(${1 + bOut * .06})`;
+  const pc = eio(seg(t, 4.5, 7.9)); $('pct').textContent = Math.round(pc * 100); $('arc').setAttribute('stroke-dashoffset', (502.65 * (1 - pc)).toFixed(1));
+  [['s1', 5.4], ['s2', 6.5], ['s3', 7.7]].forEach(([id, at]) => $(id).classList.toggle('done', t >= at));
+  // C: 8.2-16
+  const cIn = eio(seg(t, 8.2, 8.8)); C.style.opacity = cIn; C.style.transform = `scale(${1.08 - cIn * .08})`;
+  if (t > 8) { const lt = t - 8.2; drawVideo(Math.max(0, lt));
+    const s = [...SUBS].reverse().find(x => lt >= x[0]) || SUBS[0]; $('sub').innerHTML = s[1];
+    $('prog').style.width = (seg(t, 8.2, 16) * 100) + '%';
+    $('likes').textContent = (Math.round(eo(seg(t, 9, 14.5)) * 128) / 10).toLocaleString('tr-TR', { minimumFractionDigits: 1 }) + 'B';
+    $('coms').textContent = Math.round(eo(seg(t, 9.5, 14.5)) * 846);
+  }
+  const sh = spring(seg(t, 11.6, 12.6)), shOut = eio(seg(t, 15.0, 15.4)); $('sheet').style.transform = `translateY(${(1 - sh) * 260 + shOut * 260}px)`;
+  // döngü: sonda karart, başta aç
+  $('fade').style.opacity = Math.max(seg(t, 15.35, 15.95), 1 - seg(t, 0, .35));
+  drawSmoke(t); drawGrain(Math.floor(t * 30));
+}
+window.render = render; render(new URLSearchParams(location.search).get('t') || 1);
+</script>
+</body></html>

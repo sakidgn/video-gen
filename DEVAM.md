@@ -54,13 +54,16 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
 - Python string içinde JS yazarken `\n`/`\s` için raw string kullan (iki kere satır sonu hatası çıktı).
 - `.bat` dosyaları CRLF olmalı; `if (...)` blokları içinde parantezli metin kullanma.
 
-## SaaS sitesi (`otoshort_site/` — shitpost'tan tamamen ayrı proje)
+## SaaS sitesi — marka adı **Cutless** (cutless.app); kod klasörü hâlâ `otoshort_site/` (güncelleyici bu yola bağlı, değiştirme)
 - FastAPI + SQLite + Jinja; kredili video üretimi (Veo API), otomatik kanallar, havale ile kredi, yönetim paneli.
-- Tasarım: kullanıcı 4 maket arasından **A · Neon** tarzını seçti (koyu mor-siyah zemin, pembe/turuncu/camgöbeği/limon neon,
-  parlayan hap butonlar). Gömülü fontlar: başlık **Unbounded**, metin **Plus Jakarta Sans** (`saas/static/fonts`). SVG ikonlar
-  (`saas/icons.py`), Three.js (gömülü, `static/vendor`) ile ana sayfada canlı çizimli 3D telefonlar (`static/hero3d.js`).
+- Tasarım: neon tema bırakıldı → zarif koyu tema (sıcak siyah #0c0b0a, fildişi #f4efe6, şampanya #d8b98a). Başlık fontu
+  **Cormorant Garamond** (Instrument Serif "basık" bulundu), metin **Plus Jakarta Sans**, düz rakamlar (lining-nums).
+- Ana sayfa: tam ekran tanıtım filmi (`static/hero/hero.mp4` + telefon için `hero-m.mp4`; scratchpad'deki film.html'den kare kare
+  render edilip ffmpeg ile kodlanır), ürün vitrini (`static/shots/studio.jpg`), kayan fikir şeritleri, bento özellikler.
+  Kaydırınca geride kalan bloklar hafifçe bulanıklaşır (kullanıcı "fazla" dedi → üst üçte birde, en fazla 6px), Lenis ile
+  yumuşak kaydırma (`static/vendor/lenis.min.js`), başlıklar kelime kelime belirir, footer'da büyük silik marka yazısı.
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
-- Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
+- Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.
 - Site klasöründe: `Siteyi_Ac.bat` (kendi .venv'ini kurar; SAHTE_AI=1, admin@deneme.com, 1000 deneme kredisi),
   `Guncelle.bat` (`python -m saas.guncelle`, .env ve saas_veri* korunur).

@@ -1,4 +1,4 @@
-# Otoshort (site) — kurulum
+# Cutless (site) — kurulum
 
 Yapay zekâ ile kısa video üreten, kredili site. Kullanıcı havale ile kredi yükler, tek video ya da
 "otomatik kanal" (her gün belirli saatlerde kendiliğinden video) üretir. Videolar Google'ın Veo modeliyle,
@@ -18,17 +18,17 @@ Tarayıcıda http://localhost:8000 → kayıt ol (admin e-postasıyla) → Yöne
 3. `.env.ornek` dosyasını `.env` olarak kopyala, doldur (`GIZLI_ANAHTAR` uzun ve rastgele olmalı).
 4. Çalıştır:
    ```
-   docker build -t otoshort .          # bu klasörün içinden
-   docker run -d --restart always --env-file .env -v /srv/otoshort:/veri -p 8000:8000 otoshort
+   docker build -t cutless .          # bu klasörün içinden
+   docker run -d --restart always --env-file .env -v /srv/cutless:/veri -p 8000:8000 cutless
    ```
 5. Önüne HTTPS için Caddy koy (en kolayı): `caddy reverse-proxy --from alanadin.com --to localhost:8000`
 6. Yasal sayfalardaki `[ŞİRKET UNVANI]`, `[ADRES]`, `[E-POSTA]`, `[TARİH]` yerlerini doldur
    (`saas/templates/yasal_*.html`). Satışa başlamadan önce bir muhasebeciye/avukata göster.
 
 ## Google ile giriş (ücretsiz, kart gerekmez)
-1. https://console.cloud.google.com → üstten **yeni proje** oluştur (ör. "Otoshort").
+1. https://console.cloud.google.com → üstten **yeni proje** oluştur (ör. "Cutless").
 2. Menüden **Google Auth Platform** (APIs & Services → OAuth consent screen) → **Get started**:
-   uygulama adı "Otoshort", destek e-postası, **Audience: External**, iletişim e-postası → Create.
+   uygulama adı "Cutless", destek e-postası, **Audience: External**, iletişim e-postası → Create.
 3. **Clients → Create client** → Application type: **Web application** → *Authorized redirect URIs*:
    - deneme için `http://localhost:8000/auth/google/donus`
    - canlı site için `https://ALANADIN/auth/google/donus`

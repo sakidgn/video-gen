@@ -1,6 +1,6 @@
 @echo off
 cd /d "%~dp0"
-title Otoshort Site - Guncelle
+title Cutless Site - Guncelle
 if not exist ".venv\Scripts\python.exe" (
   echo Once Siteyi_Ac.bat ile kurulumu yap.
   pause

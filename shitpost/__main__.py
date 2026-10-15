@@ -287,7 +287,7 @@ def cmd_site_kur(args) -> int:
 
     from .config import ROOT
 
-    dest = Path(args.hedef) if args.hedef else _desktop() / "Otoshort Site"
+    dest = Path(args.hedef) if args.hedef else _desktop() / "Cutless Site"
     print(f"Site şu klasöre kuruluyor: {dest}")
     r = requests.get(os.environ.get("GUNCELLEME_URL", UPDATE_URL), timeout=120)
     r.raise_for_status()

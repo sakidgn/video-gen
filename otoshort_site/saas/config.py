@@ -8,7 +8,7 @@ def _env(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
 
 
-SITE_NAME = _env("SITE_ADI", "Otoshort")
+SITE_NAME = _env("SITE_ADI", "Cutless")
 SECRET_KEY = _env("GIZLI_ANAHTAR", "gelistirme-anahtari-degistir")
 DATA_DIR = Path(_env("VERI_KLASORU", str(ROOT.parent / "saas_veri")))
 DATABASE_URL = _env("VERITABANI", f"sqlite:///{DATA_DIR / 'site.db'}")
@@ -17,12 +17,12 @@ IBAN = _env("IBAN", "TR00 0000 0000 0000 0000 0000 00")
 IBAN_NAME = _env("IBAN_ALICI", "Ad Soyad")
 GOOGLE_CLIENT_ID = _env("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = _env("GOOGLE_CLIENT_SECRET")
-SITE_URL = _env("SITE_ADRESI").rstrip("/")  # ör. https://otoshort.com (boşsa istekten bulunur)
+SITE_URL = _env("SITE_ADRESI").rstrip("/")  # ör. https://cutless.app (boşsa istekten bulunur)
 SMTP_HOST = _env("SMTP_SUNUCU")
 SMTP_PORT = int(_env("SMTP_PORT", "587") or 587)
 SMTP_USER = _env("SMTP_KULLANICI")
 SMTP_PASSWORD = _env("SMTP_SIFRE")
-SMTP_FROM = _env("SMTP_GONDEREN")  # ör. bildirim@otoshort.com
+SMTP_FROM = _env("SMTP_GONDEREN")  # ör. bildirim@cutless.app
 SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
 FAKE_AI = _env("SAHTE_AI") == "1"  # geliştirme/test: API'ye gitmeden sahte video üretir
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")
