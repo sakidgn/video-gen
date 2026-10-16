@@ -100,6 +100,8 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   30 gün, `TopUp.plan`), aboneliksiz sadece Ekonomik. Süre çubuğu 4–60 sn (`config.price`, `plan_clips`): 10 sn'ye kadar
   sabit, üstü saniye başı; çok sahne `worker.make_scenes` + `media.join_clips`. "Neler üretebilirsin" örnekleri
   (`fikirler.USE_CASES`), fikir/öneri formu (/oneri, `Feedback`, /admin/oneriler).
+- Dikkat çekici araçlar: senaryo oynatıcı (`_phone_player.html`, fx.js `playScript`), paylaşılabilir senaryo
+  (/s/KOD, `SharedScript`), ücretsiz Kanal Kurucu (/araclar/kanal-kurucu, `ai.channel_plan`, kayıtta `session['kanal']`).
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

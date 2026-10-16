@@ -2053,3 +2053,50 @@ def test_feedback_form_reaches_admin(client, tmp_path):
         assert s.get(Feedback, rows[0].id).status == "okundu"
     assert "Fikirlerinizi ve düşüncelerinizi" in anon.get("/").text and "Neler üretebilirsin" in anon.get("/").text
     _assert_english(TestClient(client.app).get("/en/oneri").text, "/en/oneri")
+
+
+def test_trial_script_share_page(client, monkeypatch):
+    import html
+
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    client.app.state.generator = ai.FakeAI()
+    r = client.post("/api/deneme-senaryo", data={"idea": "Kedi <b>kasada</b> tartışıyor", "csrf": csrf(client, "/")})
+    share = r.json()["share"]
+    assert re.fullmatch(r"http://testserver/s/[A-Za-z0-9_-]{8}", share)
+    friend = TestClient(client.app)
+    page = friend.get(share.replace("http://testserver", "")).text
+    assert "data-tphone" in page and "data-preview=" in page and "Sen de fikrini yaz" in page
+    assert "<b>kasada</b>" not in page and html.escape("<b>kasada</b>") in page  # kaçışlı
+    assert 'name="robots" content="noindex"' in page and 'property="og:title"' in page
+    assert page.count('property="og:title"') == 1
+    assert "/kayit?fikir=" in page
+    assert friend.get("/s/YOKBOYLE1").status_code == 404 and friend.get("/s/../x").status_code == 404
+    _assert_english(TestClient(client.app).get("/en/").text, "/en/ (oynatıcı)")
+
+
+def test_free_channel_builder_carries_plan_into_signup(client, monkeypatch):
+    import html
+    from urllib.parse import parse_qs, urlparse
+
+    monkeypatch.setattr(config, "FAKE_AI", True)
+    client.app.state.generator = ai.FakeAI()
+    anon = TestClient(client.app)
+    page = anon.get("/araclar/kanal-kurucu").text
+    assert "Kanalını" in page and "data-ktool" in page
+    t = csrf(anon, "/araclar/kanal-kurucu")
+    assert anon.post("/api/kanal-plani", data={"topic": "", "csrf": t}).status_code == 400
+    d = anon.post("/api/kanal-plani", data={"topic": "Uzay gerçekleri", "csrf": t}).json()
+    plan = d["plan"]
+    assert len(plan["names"]) == 3 and len(plan["ideas"]) == 5 and plan["times"] and plan["character"]
+    assert d["start"].startswith("/kayit?")
+    anon.get(d["start"])  # kayıt sayfası planı oturumda tutar
+    r = anon.post("/kayit", data={"email": "k@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                                  "csrf": csrf(anon, "/kayit")}, follow_redirects=False)
+    loc = r.headers["location"]
+    assert loc.startswith("/kanallar/yeni?")
+    q = parse_qs(urlparse(loc).query)
+    assert q["ad"] == [plan["names"][0]] and "Uzay gerçekleri" in q["konu"][0] and q["saatler"] == [" ".join(plan["times"])]
+    form = html.unescape(anon.get(loc).text)
+    assert f'value="{plan["names"][0]}"' in form and "Uzay gerçekleri" in form and plan["times"][0] in form
+    _assert_english(TestClient(client.app).get("/en/araclar/kanal-kurucu").text, "/en/araclar/kanal-kurucu")
+    assert "/araclar/kanal-kurucu" in client.get("/sitemap.xml").text

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ p.title }} · {{ site }}{% endblock %}
+{% block og %}<meta property="og:title" content="{{ p.title }} · {{ _('yapay zekâ senaryosu') }}">
+<meta property="og:description" content="{% for l in p.lines[:2] %}{{ l.who }}: {{ l.text }} {% endfor %}">{% endblock %}
+{% block head %}<meta name="robots" content="noindex">{% endblock %}
+{% block content %}
+<section class="share-sec"><div class="wrap">
+  <div class="share-grid">
+    <div class="share-phone reveal">{% include "_phone_player.html" %}</div>
+    <div class="share-copy reveal" data-delay="1">
+      <span class="eyebrow">{{ _('Yapay zekâ senaryosu') }}</span>
+      <h1>{{ p.title }}</h1>
+      <p class="share-idea"><span class="tiny faint">{{ _('Fikir') }}</span>“{{ idea }}”</p>
+      <p class="muted">{{ p.scene }}</p>
+      <ul class="t-lines">{% for l in p.lines %}<li><b>{{ l.who }}:</b> {{ l.text }}</li>{% endfor %}</ul>
+      {% if p.hashtags %}<p class="tiny hl-tags">{% for h in p.hashtags %}#{{ h }} {% endfor %}</p>{% endif %}
+      <div class="row share-ctas">
+        <a class="btn btn-primary" href="{{ start }}">{{ icon('sparkles', 16) }} {{ _('Bu senaryoyu videoya dönüştür') }}</a>
+        <a class="btn btn-ghost" href="{{ L('/') }}#fikir">{{ icon('wand', 16) }} {{ _('Sen de fikrini yaz') }}</a>
+      </div>
+      <div class="t-share">
+        <span class="tiny faint">{{ _('Paylaş:') }}</span>
+        {% set msg = _('Yapay zekâ bu fikirden bu senaryoyu yazdı 😂') %}
+        <button type="button" class="btn btn-ghost btn-sm" data-share-url="{{ share }}" data-share-text="{{ msg }}" data-copied="{{ _('Bağlantı kopyalandı') }}">{{ icon('share', 14) }} {{ _('Paylaş') }}</button>
+        <a class="btn btn-ghost btn-sm" href="https://wa.me/?text={{ (msg ~ ' ' ~ share)|urlencode }}" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="btn btn-ghost btn-sm" href="https://x.com/intent/post?text={{ (msg ~ ' ' ~ share)|urlencode }}" target="_blank" rel="noopener">X</a>
+      </div>
+      <p class="tiny faint">{{ _('Bu senaryoyu bir ziyaretçi {site} ile yazdırdı. Kayıt olmadan sen de deneyebilirsin.', site=site) }}</p>
+    </div>
+  </div>
+</div></section>
+{% endblock %}

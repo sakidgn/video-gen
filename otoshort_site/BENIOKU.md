@@ -51,6 +51,14 @@ rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle a�
   erken erişim = ilk yüklemede %20, sadakat = her 400 kredilik videoda 1 Ekonomik video.
 - Hepsi `.env` ile değişir (bkz. `.env.ornek`). Maliyete göre kâr ~%40.
 
+## Ziyaretçiyi yakalayan araçlar
+- **Senaryo oynatıcı:** ana sayfadaki kayıtsız denemede senaryo telefon ekranında kelime kelime altyazıyla oynar.
+- **Paylaşılabilir senaryo:** her denemenin /s/KOD bağlantısı var (WhatsApp/X butonları). Arkadaşı açınca senaryoyu
+  oynar halde görür, "Sen de fikrini yaz" ile siteye gelir. Sayfa arama motorlarına kapalı (noindex).
+- **Ücretsiz Kanal Kurucu** (/araclar/kanal-kurucu): konu yazılır; kanal adı, açıklama, karakter, ilk 5 video,
+  saatler ve hashtag'ler gelir. "Bu kanalı otomatik kur" kayıttan sonra kanal formunu dolu açar. Kayıtsız deneme
+  sınırlarını paylaşır (kişi başı saatte 6, günlük toplam DENEME_GUNLUK_SINIR).
+
 ## Fikir ve öneriler
 Sitede /oneri sayfası (alt menü, panel menüsü ve ana sayfa): kullanıcılar ve ziyaretçiler fikir, istek ya da sorun
 yazar. Gelenler yönetim panelinde **Fikir ve öneriler** (/admin/oneriler) altında, yöneticilere e-posta da gider.

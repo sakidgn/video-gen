@@ -1,0 +1,10 @@
+{# Senaryo oynatıcı: deneme senaryosunu telefon ekranında karaoke altyazıyla oynatır. p: senaryo (yoksa JS doldurur) #}
+<div class="tphone" data-tphone{% if p %} data-preview='{{ p|tojson }}'{% endif %} aria-hidden="true">
+  <div class="tp-screen">
+    <div class="tp-scene"><span class="tp-char a"><i class="mascot"></i></span><span class="tp-char b"><i class="mascot alt"></i></span><span class="tp-floor"></span></div>
+    <div class="tp-top"><span class="tp-av">{{ site[:1] }}</span><b data-tp-title>{{ p.title if p else '' }}</b></div>
+    <div class="tp-side"><span>{{ icon('gem', 15) }}<small>12,4B</small></span><span>{{ icon('share', 15) }}<small>842</small></span></div>
+    <div class="tp-sub"><small data-tp-who></small><p data-tp-line></p></div>
+    <div class="tp-prog"><i data-tp-prog></i></div>
+  </div>
+</div>

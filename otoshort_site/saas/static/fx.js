@@ -202,7 +202,7 @@
   }, 4000);
 
   // Form gönderilirken buton yükleniyor
-  $$('form:not([data-trial])').forEach(f => f.addEventListener('submit', () => {  // fetch'li formlar kendi yönetir
+  $$('form:not([data-trial]):not([data-ktool-form])').forEach(f => f.addEventListener('submit', () => {  // fetch'li formlar kendi yönetir
     const b = f.querySelector('button[type=submit]'); if (b && f.checkValidity()) b.classList.add('is-loading');
   }));
 
@@ -266,8 +266,71 @@
           b.textContent = l.who + ': '; li.append(b, document.createTextNode(l.text)); ul.appendChild(li); });
         $('[data-t-tags]', out).textContent = p.hashtags.map(h => '#' + h).join(' ');
         $('[data-t-start]', out).href = d.start;
+        const sb = $('[data-t-sharebtn]', out), share = $('.t-share', out);
+        if (share) share.hidden = !d.share;
+        if (sb && d.share) { sb.dataset.shareUrl = d.share;
+          const msg = encodeURIComponent(sb.dataset.shareText + ' ' + d.share);
+          $('[data-t-wa]', out).href = 'https://wa.me/?text=' + msg; $('[data-t-x]', out).href = 'https://x.com/intent/post?text=' + msg; }
+        const ph = $('[data-tphone]', out); if (ph) playScript(ph, p);
         out.hidden = false; out.classList.remove('im-pop'); void out.offsetWidth; out.classList.add('im-pop');
       } catch (x) { err.textContent = x.message || err.dataset.fallback || ''; err.hidden = false; }
+      btn.classList.remove('is-loading');
+    });
+  }
+
+  // Senaryo oynatıcı: telefon ekranında diyalog kelime kelime (viral altyazı gibi) akar, konuşan karakter zıplar
+  function playScript(el, p) {
+    clearTimeout(el._tp);
+    const lines = (p.lines || []).filter(l => l.text); if (!lines.length) return;
+    const title = $('[data-tp-title]', el); if (title) title.textContent = p.title || '';
+    let h = 0; for (const ch of (p.title || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    el.style.setProperty('--tp-h', h % 360);
+    const side = {}; let k = 0; lines.forEach(l => { if (!(l.who in side)) side[l.who] = (k++) % 2; });
+    const lineEl = $('[data-tp-line]', el), whoEl = $('[data-tp-who]', el), prog = $('[data-tp-prog]', el);
+    const words = lines.map(l => l.text.split(/\s+/).filter(Boolean)), total = words.reduce((n, w) => n + w.length, 0);
+    let li = 0, wi = 0, done = 0;
+    const draw = () => {
+      whoEl.textContent = lines[li].who; el.dataset.talk = side[lines[li].who];
+      lineEl.textContent = '';
+      words[li].forEach((w, i) => { const sp = document.createElement('span'); sp.textContent = w;
+        if (reduce || i < wi) sp.className = 'done'; if (!reduce && i === wi) sp.className = 'on';
+        lineEl.append(sp, ' '); });
+      if (prog) prog.style.width = Math.min(100, (done / total) * 100) + '%';
+    };
+    const step = () => {
+      if (reduce) { draw(); li = (li + 1) % lines.length; el._tp = setTimeout(step, 2600); return; }
+      draw(); done++;
+      if (++wi < words[li].length) { el._tp = setTimeout(step, 300 + Math.min(260, words[li][wi - 1].length * 22)); return; }
+      wi = 0; li++;
+      if (li >= lines.length) { li = 0; done = 0; el._tp = setTimeout(step, 1800); return; }
+      el._tp = setTimeout(step, 750);
+    };
+    step();
+  }
+  $$('[data-tphone][data-preview]').forEach(el => { try { playScript(el, JSON.parse(el.dataset.preview)); } catch (e) {} });
+
+  // Ücretsiz kanal kurucu: konudan kanal adı, açıklama, karakter, ilk 5 video ve saatler
+  const kt = $('[data-ktool]');
+  if (kt) {
+    const form = $('[data-ktool-form]', kt), out = $('[data-ktool-out]', kt), err = $('[data-ktool-err]', kt),
+      btn = $('[data-ktool-go]', kt), topic = $('[data-ktool-topic]', kt);
+    $$('[data-ktool-pick]', kt).forEach(b => b.addEventListener('click', () => { topic.value = b.dataset.ktoolPick; topic.focus(); }));
+    const fillList = (box, items, tag) => { box.textContent = ''; items.forEach(t => { const e = document.createElement(tag); e.textContent = t; box.appendChild(e); }); };
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading'); err.hidden = true;
+      try {
+        const r = await fetch('/api/kanal-plani', { method: 'POST', body: new FormData(form) }), d = await r.json();
+        if (!r.ok) throw new Error(d.error || '');
+        const p = d.plan;
+        fillList($('[data-ko-names]', out), p.names, 'span');
+        $('[data-ko-bio]', out).textContent = p.bio; $('[data-ko-char]', out).textContent = p.character;
+        fillList($('[data-ko-ideas]', out), p.ideas, 'li'); fillList($('[data-ko-times]', out), p.times, 'span');
+        $('[data-ko-tags]', out).textContent = p.hashtags.map(h => '#' + h).join(' ');
+        $('[data-ko-start]', out).href = d.start;
+        out.hidden = false; out.classList.remove('im-pop'); void out.offsetWidth; out.classList.add('im-pop');
+      } catch (x) { err.textContent = x.message || ''; err.hidden = false; }
       btn.classList.remove('is-loading');
     });
   }

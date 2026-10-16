@@ -218,3 +218,15 @@ class Feedback(Base):
     lang: Mapped[str] = mapped_column(String(5), default="tr")
     status: Mapped[str] = mapped_column(String(20), default="yeni", index=True)  # yeni / okundu
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
+class SharedScript(Base):
+    """Ana sayfadaki kayıtsız denemede yazılan senaryo: /s/KOD bağlantısıyla paylaşılabilir (kod tahmin edilemez)."""
+    __tablename__ = "shared_scripts"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(12), unique=True, index=True)
+    idea: Mapped[str] = mapped_column(String(300), default="")
+    lang: Mapped[str] = mapped_column(String(5), default="tr")
+    data: Mapped[str] = mapped_column(Text, default="{}")  # yapay zekânın yazdığı senaryo (JSON)
+    views: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

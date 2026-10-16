@@ -17,7 +17,7 @@ from . import ai as ai_mod
 from . import (abonelik, config, credits, db, growth, i18n, karakter, mailer, media, oauth, publisher, secretbox, social, tokens,
                worker)
 from .icons import LOGO, brand, icon
-from .models import Channel, Character, CreditTx, Feedback, Job, PromoCode, Publication, SocialAccount, TopUp, User, now
+from .models import Channel, Character, CreditTx, Feedback, Job, SharedScript, PromoCode, Publication, SocialAccount, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
 
 log = logging.getLogger("saas")
@@ -58,7 +58,7 @@ FAQS = [
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
-PUBLIC_PAGES = ["/", "/kesfet", "/sablonlar", "/oneri", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
+PUBLIC_PAGES = ["/", "/kesfet", "/sablonlar", "/araclar/kanal-kurucu", "/oneri", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
 
 
 class CachedStatic(StaticFiles):
@@ -492,9 +492,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             flash(request, "Davet bağlantısı geçersiz, yine de kayıt olabilirsin.", "warn")
         return go("/kayit")
 
-    def _after_signup(idea: str, tpl: str = "") -> str:
-        from urllib.parse import quote
+    def _after_signup(idea: str, tpl: str = "", kanal: dict | None = None) -> str:
+        from urllib.parse import quote, urlencode
 
+        if kanal:
+            return "/kanallar/yeni?" + urlencode({"ad": kanal.get("ad", ""), "konu": kanal.get("konu", ""),
+                                                  "saatler": kanal.get("saatler", "")})
         if tpl:
             return f"/kanallar/yeni?sablon={tpl}"
         return f"/video/yeni?idea={quote(idea)}" if idea else "/panel"
@@ -552,8 +555,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                       link=f"{site_url(request)}/e/{w.code}")
 
     @app.get("/kayit", response_class=HTMLResponse)
-    def register_page(request: Request, ref: str = "", fikir: str = "", sablon: str = ""):
+    def register_page(request: Request, ref: str = "", fikir: str = "", sablon: str = "", kanal_ad: str = "",
+                      kanal_konu: str = "", kanal_saat: str = ""):
         remember_ref(request, ref)
+        if kanal_konu:  # kanal kurucudan geldi: kayıttan sonra kanal formu bu ad ve konuyla açılsın
+            request.session["kanal"] = {"ad": clean(kanal_ad, 100), "konu": clean(kanal_konu, 600),
+                                        "saatler": clean(kanal_saat, 60)}
         if fikir:  # fikir makinesinden geldi: kayıttan sonra stüdyoda hazır olsun
             request.session["fikir"] = clean(fikir, 300)
         if sablon and re.fullmatch(r"[a-z0-9-]{1,40}", sablon):  # şablondan geldi: kayıttan sonra kanal formu dolu açılsın
@@ -592,6 +599,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             uid = user.id
         idea = request.session.get("fikir", "")
         tpl = request.session.get("sablon", "")
+        kanal = request.session.get("kanal")
         start_session(request, user)
         if config.SHOWCASE:  # herkese açık demo: gerçek e-posta yok, hesap hemen açılır
             with db.session() as s:
@@ -600,10 +608,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 if config.SIGNUP_BONUS:
                     credits.add(s, uid, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
             flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
-            return go(_after_signup(idea, tpl))
+            return go(_after_signup(idea, tpl, kanal))
         flash(request, "Hesabın oluşturuldu! E-postana bir doğrulama bağlantısı gönderdik. 🎉")
         send_verification(request, uid, email)
-        return go(_after_signup(idea, tpl))
+        return go(_after_signup(idea, tpl, kanal))
 
     @app.get("/giris", response_class=HTMLResponse)
     def login_page(request: Request):
@@ -1171,7 +1179,68 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         user = current_user(request)
         start = f"/video/yeni?idea={quote(idea)}" if user else \
             i18n.localized_path("/kayit", public=tuple(PUBLIC_PAGES)) + f"?fikir={quote(idea)}"
-        return {"preview": prev, "start": start, "demo": config.FAKE_AI}
+        import json
+        import secrets
+
+        code = secrets.token_urlsafe(6)  # paylaşım bağlantısı (tahmin edilemez)
+        with db.session() as s:
+            s.add(SharedScript(code=code, idea=idea, lang=lang, data=json.dumps(prev, ensure_ascii=False)))
+        return {"preview": prev, "start": start, "demo": config.FAKE_AI, "share": f"{site_url(request)}/s/{code}"}
+
+    @app.get("/s/{code}", response_class=HTMLResponse)
+    def shared_script(request: Request, code: str):
+        """Paylaşılan deneme senaryosu: telefonda oynayan senaryo + "Sen de dene"."""
+        import json
+        from urllib.parse import quote
+
+        if not re.fullmatch(r"[A-Za-z0-9_-]{4,12}", code):
+            raise HTTPException(404)
+        with db.session() as s:
+            row = s.scalar(select(SharedScript).where(SharedScript.code == code))
+            if not row:
+                raise HTTPException(404)
+            row.views += 1
+            prev, idea = json.loads(row.data), row.idea
+        user = current_user(request)
+        start = f"/video/yeni?idea={quote(idea)}" if user else \
+            i18n.localized_path("/kayit", public=tuple(PUBLIC_PAGES)) + f"?fikir={quote(idea)}"
+        return render(request, "senaryo.html", user, p=prev, idea=idea, start=start,
+                      share=f"{site_url(request)}/s/{code}")
+
+    # --- ücretsiz kanal kurucu ---
+    @app.get("/araclar/kanal-kurucu", response_class=HTMLResponse)
+    def channel_tool(request: Request):
+        return render(request, "kanal_kurucu.html", current_user(request))
+
+    @app.post("/api/kanal-plani", dependencies=[Depends(check_csrf)])
+    def channel_plan_api(request: Request, topic: str = Form(""), language: str = Form("")):
+        from datetime import date
+        from urllib.parse import urlencode
+
+        topic = clean(topic, 120)
+        lang = _valid_choice(language or i18n.current(), config.LANGUAGES, "tr")
+        if len(topic) < 2:
+            return JSONResponse({"error": i18n.t("Önce kanalın konusunu yaz.")}, status_code=400)
+        ip = request.client.host if request.client else "?"
+        today = date.today().isoformat()
+        if not trial_limiter.allow(f"k:{ip}") or trial_daily.get(today, 0) >= config.TRIAL_DAILY_LIMIT:
+            return JSONResponse({"error": i18n.t("Deneme sınırına ulaştın. Ücretsiz kaydolup devam edebilirsin.")},
+                                status_code=429)
+        if today not in trial_daily:
+            trial_daily.clear()
+        trial_daily[today] = trial_daily.get(today, 0) + 1
+        try:
+            plan = _generator(request).channel_plan(topic=topic, language=lang)
+        except Exception:
+            log.exception("Kanal planı yazılamadı")
+            return JSONResponse({"error": i18n.t("Şu an plan yazılamadı, biraz sonra tekrar dene.")}, status_code=503)
+        name = plan["names"][0] if plan["names"] else topic
+        konu = topic + (f". {plan['character']}" if plan["character"] else "")
+        q = {"ad": name, "konu": konu, "saatler": " ".join(plan["times"])}
+        start = "/kanallar/yeni?" + urlencode(q) if current_user(request) else \
+            i18n.localized_path("/kayit", public=tuple(PUBLIC_PAGES)) + "?" + urlencode(
+                {"kanal_ad": name, "kanal_konu": konu, "kanal_saat": " ".join(plan["times"])})
+        return {"plan": plan, "start": start, "demo": config.FAKE_AI}
 
     idea_limiter = RateLimiter(limit=12, window=600)
 
@@ -1395,13 +1464,23 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return {p: a.name for p, a in publisher.accounts(s, user_id).items()}
 
     @app.get("/kanallar/yeni", response_class=HTMLResponse)
-    def channel_new_page(request: Request, sablon: str = "", user: User = Depends(require_user)):
+    def channel_new_page(request: Request, sablon: str = "", ad: str = "", konu: str = "", saatler: str = "",
+                         user: User = Depends(require_user)):
+        from types import SimpleNamespace
+
         from . import sablonlar
 
         t = sablonlar.get(sablon, i18n.current()) if sablon else None
+        tpl = sablonlar.as_channel(t, i18n.current()) if t else None
+        if not tpl and konu:  # kanal kurucudan: ad, konu ve önerilen saatler dolu gelsin
+            times = " ".join(x for x in saatler.split() if TIME_RE.match(x)) or "12:00 19:00"
+            tpl = SimpleNamespace(id=None, name=clean(ad, 100), topic=clean(konu, 600), characters="", style="cartoon",
+                                  language=i18n.current(), quality="fast", times=times, subtitles=True,
+                                  subtitle_style="viral", publish_to="", ref_image="", active=True, idea="", title="",
+                                  seconds=config.DEFAULT_SECONDS, approval=False)
+        request.session.pop("kanal", None)
         return render(request, "kanal_form.html", user, ch=None, linked=_linked(user.id), platforms=social.PLATFORMS,
-                      tpl=sablonlar.as_channel(t, i18n.current()) if t else None, tpl_name=t.name if t else "",
-                      **_cast_ctx(user.id, []))
+                      tpl=tpl, tpl_name=t.name if t else "", **_cast_ctx(user.id, []))
 
     @app.post("/kanallar/yeni", dependencies=[Depends(check_csrf)])
     async def channel_new(request: Request, user: User = Depends(require_user)):

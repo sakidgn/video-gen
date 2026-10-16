@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Ücretsiz Kanal Kurucu') }} · {{ site }}{% endblock %}
+{% block og %}<meta property="og:title" content="{{ _('Ücretsiz Kanal Kurucu') }} · {{ site }}">
+<meta property="og:description" content="{{ _('Konunu yaz; yapay zekâ kanal adını, açıklamasını, karakterini ve ilk 5 videonu saniyeler içinde planlasın.') }}">{% endblock %}
+{% block content %}
+<section class="tool-sec"><div class="wrap narrow">
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Ücretsiz araç') }}</span>
+    <h1 class="fb-h">{{ _h('Kanalını <span class="hl">10 saniyede</span> planla.') }}</h1>
+    <p class="lead">{{ _('Konunu yaz; yapay zekâ kanal adını, açıklamasını, karakterini ve ilk 5 videonu saniyeler içinde planlasın. Kayıt gerekmez.') }}</p></div>
+  <div class="card card-lg tool-card reveal" data-ktool>
+    <form class="tool-form" data-ktool-form>
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="language" value="{{ lang }}">
+      <input class="input" name="topic" maxlength="120" required data-ktool-topic placeholder="{{ _('Örn: Evcil hayvanlar, yemek tarifleri, uzay, motivasyon…') }}" aria-label="{{ _('Kanalın konusu') }}">
+      <button type="submit" class="btn btn-primary" data-ktool-go>{{ icon('wand', 16) }} {{ _('Kanalımı planla') }}</button>
+    </form>
+    <div class="ideas tool-topics">{% for t in [_('Komik kediler'), _('Mutfak kazaları'), _('Uzay gerçekleri'), _('Günlük motivasyon'), _('Tarihten ilginç anlar'), _('Ofis hayatı')] %}<button type="button" data-ktool-pick="{{ t }}">{{ icon('sparkles', 13) }} {{ t }}</button>{% endfor %}</div>
+    <p class="trial-err" data-ktool-err hidden></p>
+    <div class="ktool-out" data-ktool-out hidden aria-live="polite">
+      {% if demo_mode %}<span class="tiny faint">{{ _('Demo: örnek plan. Gerçek sürümde yapay zekâ senin konuna özel yazar.') }}</span>{% endif %}
+      <div class="ko-block"><small>{{ _('Kanal adı önerileri') }}</small><div class="ko-names" data-ko-names></div></div>
+      <div class="ko-block"><small>{{ _('Açıklama') }}</small><p data-ko-bio></p></div>
+      <div class="ko-block"><small>{{ _('Kanalın karakteri') }}</small><p class="ko-char" data-ko-char></p></div>
+      <div class="ko-block"><small>{{ _('İlk 5 video') }}</small><ol class="ko-ideas" data-ko-ideas></ol></div>
+      <div class="ko-row">
+        <div class="ko-block"><small>{{ _('Paylaşım saatleri') }}</small><div class="ko-times" data-ko-times></div></div>
+        <div class="ko-block"><small>{{ _('Hashtag') }}</small><p class="hl-tags" data-ko-tags></p></div>
+      </div>
+      <a class="btn btn-primary btn-lg btn-block" data-ko-start href="{{ L('/kayit') }}">{{ icon('repeat', 17) }} {{ _('Bu kanalı otomatik kur') }} {{ icon('arrow-right', 16) }}</a>
+      <p class="tiny faint center">{{ _('Saatleri seç, videolar her gün kendiliğinden üretilsin. İstersen YouTube, TikTok ve Instagram’a da yüklensin.') }}</p>
+    </div>
+  </div>
+</div></section>
+{% endblock %}

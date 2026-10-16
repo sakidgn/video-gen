@@ -107,6 +107,45 @@ def clean_preview(data: dict) -> dict:
             "hashtags": [h.strip().lstrip("#")[:30] for h in (data.get("hashtags") or []) if h.strip()][:5]}
 
 
+def build_channel_request(topic: str, language: str) -> str:
+    """Ücretsiz kanal kurucu aracı: konudan kanal adı, açıklama, ilk videolar ve paylaşım planı (yalnızca metin)."""
+    lang = config.LANGUAGES.get(language, language)
+    return "\n".join([
+        f"Plan a new faceless short-video channel (TikTok/Reels/Shorts) about: {topic.strip()}",
+        f"Everything in {lang}. Videos are 8-30 second AI-generated vertical clips with original characters.",
+        RULES,
+        f"Return JSON (all text in {lang}): names (3 catchy, original channel names, max 24 chars each, no "
+        "existing brands), bio (one-line channel bio, max 120 chars, 1 emoji), character (one original recurring "
+        "character for the channel: look and personality in one sentence), ideas (5 different first video ideas, "
+        "one sentence each, max 90 chars, no emojis), times (2-3 best posting times as HH:MM for a Turkish audience), "
+        "hashtags (5 words without #).",
+    ])
+
+
+CHANNEL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "names": {"type": "array", "items": {"type": "string"}}, "bio": {"type": "string"},
+        "character": {"type": "string"}, "ideas": {"type": "array", "items": {"type": "string"}},
+        "times": {"type": "array", "items": {"type": "string"}},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["names", "bio", "character", "ideas", "times", "hashtags"],
+}
+
+
+def clean_channel(data: dict) -> dict:
+    import re
+
+    def strs(key, n, limit):
+        return [str(x).strip()[:limit] for x in (data.get(key) or []) if str(x).strip()][:n]
+
+    times = [t for t in strs("times", 3, 5) if re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", t)] or ["12:00", "19:00"]
+    return {"names": strs("names", 3, 30), "bio": str(data.get("bio", "")).strip()[:160],
+            "character": str(data.get("character", "")).strip()[:300], "ideas": strs("ideas", 5, 120),
+            "times": times, "hashtags": [h.lstrip("#") for h in strs("hashtags", 5, 30)]}
+
+
 IDEA_POOL = [
     "Kedi, sahibinin online toplantısına gizlice katılıp patronu yönetmeye çalışıyor",
     "Dinozor ilk kez metrobüse biniyor ve kuyruğu kapıya sıkışıyor",
@@ -178,6 +217,17 @@ class RealAI:
                                                response_json_schema=PREVIEW_SCHEMA, temperature=1.0),
         )
         return clean_preview(json.loads(resp.text))
+
+    def channel_plan(self, *, topic: str, language: str) -> dict:
+        """Ücretsiz kanal kurucu: kanal adı, açıklama, karakter, ilk 5 video ve saatler (video üretmez)."""
+        from google.genai import types
+
+        resp = self.client.models.generate_content(
+            model=config.TEXT_MODEL, contents=build_channel_request(topic, language),
+            config=types.GenerateContentConfig(response_mime_type="application/json",
+                                               response_json_schema=CHANNEL_SCHEMA, temperature=1.0),
+        )
+        return clean_channel(json.loads(resp.text))
 
     def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
         """Kullanıcıya fikir önerir (ucuz metin modeli; video üretmez)."""
@@ -378,6 +428,28 @@ class FakeAI:
         return {"title": f"{idea[:40]} 😂", "scene": f"Gün ışığı, yakın çekim. {idea}. Kamera ana karakterin "
                 "şaşkın yüzüne yaklaşıyor.", "lines": [{"who": w, "text": x} for w, x in lines[:rnd.choice([3, 4])]],
                 "caption": "Sonunu bekle 😭", "hashtags": ["komik", "shorts", "yapayzeka", "viral"]}
+
+    def channel_plan(self, *, topic: str, language: str) -> dict:
+        """Sahte mod: konudan kalıp kanal planı (demo)."""
+        t = topic.strip().rstrip(".!") or "Komik hayvanlar"
+        short = t.split()[0].capitalize()[:12]
+        if language == "en":
+            return clean_channel({
+                "names": [f"{short} Daily", f"The {short} Show", f"{short} Unfiltered"],
+                "bio": f"Short, funny {t.lower()} stories every day 🎬",
+                "character": f"A clumsy but lovable host obsessed with {t.lower()}, always one step from disaster.",
+                "ideas": [f"{short} tries something new for the first time", f"A day in the life: {t.lower()} edition",
+                          f"{short} vs Monday morning", f"The worst {t.lower()} advice ever",
+                          f"{short} meets an unexpected rival"],
+                "times": ["12:00", "19:00", "21:30"], "hashtags": [short.lower(), "funny", "shorts", "ai", "daily"]})
+        return clean_channel({
+            "names": [f"Günlük {short}", f"{short} Hikâyeleri", f"{short} Kafası"],
+            "bio": f"Her gün kısa ve komik {t.lower()} hikâyeleri 🎬",
+            "character": f"{t} konusuna takıntılı, sakar ama sevimli bir anlatıcı; her seferinde felakete bir adım uzakta.",
+            "ideas": [f"{short} ilk kez yeni bir şey deniyor", f"{t}: bir günün hikâyesi",
+                      f"{short} pazartesi sabahına karşı", f"{t} hakkında verilmiş en kötü tavsiye",
+                      f"{short} beklenmedik bir rakiple karşılaşıyor"],
+            "times": ["12:00", "19:00", "21:30"], "hashtags": [short.lower(), "komik", "shorts", "yapayzeka", "keşfet"]})
 
     def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
         import random

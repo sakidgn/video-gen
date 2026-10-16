@@ -56,10 +56,21 @@
       <p class="trial-err" data-trial-err hidden></p>
       <div class="trial-out" data-trial-out hidden>
         {% if demo_mode %}<span class="tiny faint">{{ _('Demo: örnek senaryo. Gerçek sürümde yapay zekâ senin fikrine özel yazar.') }}</span>{% endif %}
-        <h3 data-t-title></h3>
-        <p class="small muted" data-t-scene></p>
-        <ul class="t-lines" data-t-lines></ul>
-        <p class="tiny hl-tags" data-t-tags></p>
+        <div class="t-stage">
+          {% with p=None %}{% include "_phone_player.html" %}{% endwith %}
+          <div class="t-script">
+            <h3 data-t-title></h3>
+            <p class="small muted" data-t-scene></p>
+            <ul class="t-lines" data-t-lines></ul>
+            <p class="tiny hl-tags" data-t-tags></p>
+          </div>
+        </div>
+        <div class="t-share">
+          <span class="tiny faint">{{ _('Arkadaşlarına göster:') }}</span>
+          <button type="button" class="btn btn-ghost btn-sm" data-share-url="" data-t-sharebtn data-share-text="{{ _('Yapay zekâ benim fikrimden bu senaryoyu yazdı 😂') }}" data-copied="{{ _('Bağlantı kopyalandı') }}">{{ icon('share', 14) }} {{ _('Paylaş') }}</button>
+          <a class="btn btn-ghost btn-sm" data-t-wa href="#" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="btn btn-ghost btn-sm" data-t-x href="#" target="_blank" rel="noopener">X</a>
+        </div>
         <a class="btn btn-primary btn-block" data-t-start href="{{ start }}">{{ _('Bu senaryoyu şimdi videoya dönüştür · {n} kredi', n=qualities.lite.credits) }} {{ icon('arrow-right', 16) }}</a>
         {% if not user %}<p class="tiny faint center">{{ _('Ücretsiz kayıt · kart gerekmez') }}</p>{% endif %}
       </div>
@@ -138,6 +149,11 @@
       <span class="uc-go">{{ _('Bu fikirle dene') }} {{ icon('arrow-right', 13) }}</span></a>
     {% endfor %}
   </div>
+  <a class="card tool-cta reveal" href="{{ L('/araclar/kanal-kurucu') }}">
+    <span class="icon-box accent">{{ icon('wand', 18) }}</span>
+    <div><span class="tiny faint mono">{{ _('ÜCRETSİZ ARAÇ') }}</span><b>{{ _('Kanal Kurucu') }}</b>
+      <span class="small muted">{{ _('Konunu yaz; kanal adı, açıklama, karakter ve ilk 5 video fikri 10 saniyede hazır.') }}</span></div>
+    <span class="btn btn-primary btn-sm">{{ _('Dene') }} {{ icon('arrow-right', 14) }}</span></a>
 </div></section>
 
 <section id="otomatik" style="padding-top:20px"><div class="wrap">

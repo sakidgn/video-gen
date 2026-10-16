@@ -1040,4 +1040,65 @@ a.pub-t:hover{color:var(--accent)}
 .cast-tip{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(216,185,138,.3);background:rgba(216,185,138,.06);color:#ecdcc0;font-size:calc(13.5px * var(--fs));line-height:1.45}
 .cast-tip span{flex:1}.cast-tip:hover{background:rgba(216,185,138,.11)}
 
+/* senaryo oynatıcı (telefon) */
+.t-stage{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;width:100%}
+.t-script{display:grid;gap:10px;min-width:0}
+.tphone{--tp-h:28;width:176px;aspect-ratio:9/18.5;padding:7px;border-radius:30px;background:#0a0908;border:1px solid var(--border-3);box-shadow:0 30px 60px -24px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.03) inset;flex:none}
+.tp-screen{position:relative;height:100%;border-radius:24px;overflow:hidden;background:linear-gradient(180deg,hsl(var(--tp-h) 45% 72%),hsl(calc(var(--tp-h) + 30) 35% 30%) 78%)}
+.tp-scene{position:absolute;inset:0}
+.tp-floor{position:absolute;left:-10%;right:-10%;bottom:0;height:34%;background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.45));border-radius:50% 50% 0 0/22% 22% 0 0}
+.tp-char{position:absolute;bottom:31%;transition:transform .3s var(--spring,ease)}
+.tp-char.a{left:16%}.tp-char.b{right:16%}
+.tp-char .mascot{font-size:46px;display:block}
+.tphone[data-talk="0"] .tp-char.a,.tphone[data-talk="1"] .tp-char.b{animation:tptalk .32s ease-in-out infinite alternate}
+.tphone[data-talk="0"] .tp-char.b,.tphone[data-talk="1"] .tp-char.a{transform:scale(.92);filter:saturate(.8)}
+@keyframes tptalk{from{transform:translateY(0) scale(1)}to{transform:translateY(-6px) scale(1.04,.97)}}
+.mascot.alt{background:radial-gradient(circle at 34% 30%,#d6ecff 0 18%,#7fb6ff 46%,#4a78d8 100%)}
+.mascot.alt:after{left:44%;top:-18%;width:6%;height:22%;border-radius:4px;background:#2c3a5a;transform:none;box-shadow:0 -.06em 0 .05em #ffd36b}
+.tp-top{position:absolute;left:10px;right:10px;top:12px;display:flex;gap:7px;align-items:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.tp-top b{font-size:11px;font-weight:600;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tp-av{width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;background:#f4efe6;color:#0c0b0a;font-family:var(--display);font-weight:700;font-size:12px}
+.tp-side{position:absolute;right:7px;bottom:30%;display:grid;gap:10px;color:#fff;text-align:center}
+.tp-side span{display:grid;justify-items:center;gap:1px}.tp-side small{font-size:8px;opacity:.85}
+.tp-sub{position:absolute;left:8px;right:8px;bottom:12%;text-align:center}
+.tp-sub small{display:inline-block;margin-bottom:4px;padding:1px 7px;border-radius:99px;background:rgba(0,0,0,.45);color:#fff;font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+.tp-sub p{margin:0;font-weight:800;font-size:13.5px;line-height:1.25;text-transform:uppercase;color:#fff;text-shadow:0 2px 0 #000,0 0 5px rgba(0,0,0,.85),1px 1px 0 #000,-1px -1px 0 #000}
+.tp-sub p span{opacity:.35;transition:opacity .12s}.tp-sub p span.done{opacity:1}
+.tp-sub p span.on{opacity:1;color:#ffe135;display:inline-block;margin:0 .1em;animation:tppop .28s var(--pop,ease)}
+@keyframes tppop{0%{transform:scale(.7)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+.tp-prog{position:absolute;left:10px;right:10px;bottom:7px;height:2px;border-radius:2px;background:rgba(255,255,255,.25)}
+.tp-prog i{display:block;height:100%;width:0;border-radius:inherit;background:#fff;transition:width .3s linear}
+.t-share{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%}
+@media(max-width:600px){.t-stage{grid-template-columns:1fr}.t-stage .tphone{justify-self:center}}
+/* paylaşılan senaryo sayfası */
+.share-sec{padding-top:clamp(60px,7vw,110px)}
+.share-grid{display:grid;grid-template-columns:auto minmax(0,560px);gap:clamp(28px,6vw,90px);justify-content:center;align-items:center}
+.share-phone .tphone{width:min(300px,78vw)}
+.share-phone .tp-char .mascot{font-size:78px}.share-phone .tp-sub p{font-size:22px}.share-phone .tp-top b{font-size:14px}
+.share-phone .tp-sub small{font-size:12px}.share-phone .tp-side small{font-size:11px}
+.share-copy{display:grid;gap:14px}.share-copy h1{font-family:var(--display);font-weight:500;font-size:clamp(34px,4.6vw,56px);line-height:1.05;margin:0}
+.share-idea{display:grid;gap:2px;margin:0;font-family:var(--display);font-style:italic;font-size:calc(20px * var(--fs));color:var(--text-2)}
+.share-idea .tiny{font-family:var(--font);font-style:normal;letter-spacing:.14em;text-transform:uppercase}
+.share-ctas{gap:10px;margin-top:6px}
+@media(max-width:860px){.share-grid{grid-template-columns:1fr;justify-items:center}.share-copy{max-width:560px}}
+/* ücretsiz kanal kurucu */
+.tool-cta{display:flex;gap:16px;align-items:center;margin-top:18px;padding:20px 22px;border-color:rgba(216,185,138,.35);background:linear-gradient(100deg,rgba(216,185,138,.08),transparent 60%),var(--surface)}
+.tool-cta>div{flex:1;display:grid;gap:3px}.tool-cta b{font-family:var(--display);font-weight:500;font-size:calc(24px * var(--fs))}
+.tool-cta:hover{border-color:rgba(216,185,138,.6)}
+@media(max-width:600px){.tool-cta{flex-wrap:wrap}}
+.tool-sec{padding-top:clamp(60px,7vw,110px)}
+.tool-card{display:grid;gap:16px}
+.tool-form{display:flex;gap:10px;flex-wrap:wrap}.tool-form .input{flex:1;min-width:220px}
+.tool-topics{margin-top:-4px}
+.ktool-out{display:grid;gap:16px;padding-top:18px;border-top:1px solid var(--border)}
+.ko-block{display:grid;gap:6px}.ko-block small{font-size:calc(10.5px * var(--fs));letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+.ko-block p{margin:0}
+.ko-names{display:flex;flex-wrap:wrap;gap:8px}
+.ko-names span{font-family:var(--display);font-size:calc(24px * var(--fs));padding:4px 14px;border-radius:12px;border:1px solid rgba(216,185,138,.35);background:rgba(216,185,138,.06)}
+.ko-char{font-style:italic;color:var(--text-2)}
+.ko-ideas{margin:0;padding-left:20px;display:grid;gap:6px;color:var(--text-2)}
+.ko-row{display:grid;grid-template-columns:auto 1fr;gap:24px}
+.ko-times{display:flex;gap:6px}.ko-times span{font-family:var(--mono);padding:4px 10px;border-radius:8px;background:var(--surface-2)}
+@media(max-width:560px){.ko-row{grid-template-columns:1fr}}
+
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none;filter:none}}
