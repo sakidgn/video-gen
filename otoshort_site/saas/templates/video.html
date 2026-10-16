@@ -69,7 +69,8 @@
       {% endif %}
       <div class="row" style="margin-top:20px">
         <a class="btn btn-primary" href="/video/{{ job.id }}/dosya?indir=1">{{ icon('download', 16) }} {{ _('Videoyu indir') }}</a>
-        {% if job.raw_file %}<a class="btn btn-ghost" href="/video/{{ job.id }}/dosya?indir=1&ham=1">{{ _('Altyazısız indir') }}</a>{% endif %}
+        {% if job.raw_file %}<a class="btn btn-ghost" href="/video/{{ job.id }}/dosya?indir=1&ham=1">{{ _('Altyazısız indir') if job.subtitles else _('Yazısız indir') }}</a>{% endif %}
+        {% if has_srt %}<a class="btn btn-ghost" href="/video/{{ job.id }}/altyazi.srt" download>{{ icon('download', 16) }} {{ _('Altyazı dosyası (.srt)') }}</a>{% endif %}
         <button type="button" class="btn btn-ghost" hidden data-share-file="/video/{{ job.id }}/dosya" data-share-name="{{ (job.title or 'video')|truncate(40, True, '') }}.mp4" data-share-text="{{ job.caption }}">{{ icon('share', 16) }} {{ _('Uygulamada paylaş') }}</button>
       </div>
       {% if job.user_id == user.id %}
@@ -118,7 +119,7 @@
         {% if job.characters %}<dt>{{ _('Karakterler') }}</dt><dd>{{ job.characters }}</dd>{% endif %}
         {% if job.ref_image %}<dt>{{ _('Referans') }}</dt><dd><img class="ref-mini" src="/referans/{{ job.ref_image }}" alt="{{ _('Referans karakter') }}" data-hide-broken></dd>{% endif %}
         <dt>{{ _('Tarz') }}</dt><dd>{{ _(styles.get(job.style, job.style)) }}</dd>
-        <dt>{{ _('Dil') }}</dt><dd>{{ languages.get(job.language, job.language) }} · {{ job.seconds }} {{ _('sn') }}{% if job.subtitles %} · {{ _('viral altyazılı') if job.subtitle_style == 'viral' else _('altyazılı') }}{% endif %}</dd>
+        <dt>{{ _('Dil') }}</dt><dd>{{ languages.get(job.language, job.language) }} · {{ job.seconds }} {{ _('sn') }}{% if job.subtitles %} · {{ _('{s} altyazı', s=_(sub_styles.get(job.subtitle_style or 'klasik', sub_styles['klasik'])[0])) }}{% endif %}{% if job.hook %} · {{ _('açılış kancası') }}{% endif %}{% if job.progress %} · {{ _('ilerleme çubuğu') }}{% endif %}{% if job.voice %} · {{ _('kadın sesi') if job.voice == 'female' else _('erkek sesi') }}{% endif %}</dd>
         <dt>{{ _('Format') if job.format else _('Kalite') }}</dt><dd>{{ _(formats[job.format][0]) if job.format in formats else _(qualities[job.quality].label) }} · <span class="mono">{{ job.cost }}</span> {{ _('kredi') }}</dd>
         {% if job.channel %}<dt>{{ _('Kanal') }}</dt><dd><a href="/kanallar/{{ job.channel_id }}" style="text-decoration:underline;text-underline-offset:3px">{{ job.channel.name }}</a></dd>{% endif %}
         <dt>{{ _('Tarih') }}</dt><dd class="mono small">{{ job.created_at|tarih }}</dd>

@@ -34,8 +34,11 @@ rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle a�
   `DENEME_GUNLUK_SINIR` (varsayılan 300; maliyet tavanı).
 - **Karakter kütüphanesi** (/karakterler): görünüş + ses + isteğe bağlı görsel bir kez kaydedilir, stüdyoda ve kanallarda
   tek tıkla seçilir (en fazla 3).
-- **Viral altyazı:** altyazı açıkken "Viral" stil kelime kelime renklenen, büyük harfli Shorts altyazısı basar; "Klasik"
-  sade cümle altyazısıdır.
+- **6 altyazı stili:** Viral (kelime kelime renkli), Kutu (sarı kutuda), Neon (parlayan), Tek kelime (kocaman, tek tek),
+  Klasik (cümle cümle) ve Minimal (küçük, yarı saydam kutu). Video sayfasından altyazı dosyası (.srt) da indirilir.
+- **Açılış kancası ve ilerleme çubuğu:** kanca açıksa yapay zekânın yazdığı kısa merak cümlesi ilk ~3 sn ekranın
+  üstünde görünür; ilerleme çubuğu en altta video boyunca dolar (formatlarda da). Formatlarda anlatıcı sesi
+  (otomatik / kadın / erkek) seçilebilir.
 - **Onaylı paylaşım:** otomatik kanalda "Onaylı paylaşım" seçilirse video hazır olunca e-posta gelir, video sayfasında
   "Onayla ve paylaş" denince yüklenir; "Paylaşma" denirse hiçbir yere gitmez.
 
@@ -66,6 +69,9 @@ kendi videoların. Ana sayfadaki örnek videolar: `python araclar/format_ornekle
 - **Ücretsiz Kanal Kurucu** (/araclar/kanal-kurucu): konu yazılır; kanal adı, açıklama, karakter, ilk 5 video,
   saatler ve hashtag'ler gelir. "Bu kanalı otomatik kur" kayıttan sonra kanal formunu dolu açar. Kayıtsız deneme
   sınırlarını paylaşır (kişi başı saatte 6, günlük toplam DENEME_GUNLUK_SINIR).
+- **Ücretsiz Kanca Üretici** (/araclar/kanca-uretici) ve **Başlık ve Hashtag Üretici** (/araclar/baslik-uretici):
+  konudan 10 açılış kancası ya da 5 başlık + açıklama + 10 hashtag. Hepsi /araclar sayfasında; aynı deneme
+  sınırlarını paylaşır. Arama motorlarından ziyaretçi çekmek için site haritasında.
 
 ## Fikir ve öneriler
 Sitede /oneri sayfası (alt menü, panel menüsü ve ana sayfa): kullanıcılar ve ziyaretçiler fikir, istek ya da sorun

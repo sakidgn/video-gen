@@ -204,7 +204,7 @@
   }, 4000);
 
   // Form gönderilirken buton yükleniyor
-  $$('form:not([data-trial]):not([data-ktool-form])').forEach(f => f.addEventListener('submit', () => {  // fetch'li formlar kendi yönetir
+  $$('form:not([data-trial]):not([data-ktool-form]):not([data-gtool-form])').forEach(f => f.addEventListener('submit', () => {  // fetch'li formlar kendi yönetir
     const b = f.querySelector('button[type=submit]'); if (b && f.checkValidity()) b.classList.add('is-loading');
   }));
 
@@ -349,6 +349,50 @@
         fillList($('[data-ko-ideas]', out), p.ideas, 'li'); fillList($('[data-ko-times]', out), p.times, 'span');
         $('[data-ko-tags]', out).textContent = p.hashtags.map(h => '#' + h).join(' ');
         $('[data-ko-start]', out).href = d.start;
+        out.hidden = false; out.classList.remove('im-pop'); void out.offsetWidth; out.classList.add('im-pop');
+      } catch (x) { err.textContent = x.message || ''; err.hidden = false; }
+      btn.classList.remove('is-loading');
+    });
+  }
+
+  // Ücretsiz kanca / başlık üretici: konudan kancalar ya da başlık + açıklama + hashtag
+  const gt = $('[data-gtool]');
+  if (gt) {
+    const form = $('[data-gtool-form]', gt), out = $('[data-gtool-out]', gt), err = $('[data-gtool-err]', gt),
+      btn = $('[data-gtool-go]', gt), topic = $('[data-gtool-topic]', gt);
+    $$('[data-gtool-pick]', gt).forEach(b => b.addEventListener('click', () => { topic.value = b.dataset.gtoolPick; topic.focus(); }));
+    const copyBtn = (text, label) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-ghost btn-sm'; b.textContent = label;
+      b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(text); } catch (e) { return; }
+        b.textContent = gt.dataset.copied; b.classList.add('done');
+        setTimeout(() => { b.textContent = label; b.classList.remove('done'); }, 1600);
+      });
+      return b;
+    };
+    const row = (list, text, tag, link) => {
+      const li = document.createElement('li'), t = document.createElement('span'), acts = document.createElement('span');
+      t.className = 'hl-t'; t.textContent = text; acts.className = 'hl-acts';
+      if (tag) { const k = document.createElement('small'); k.textContent = tag; li.appendChild(k); }
+      li.appendChild(t); acts.appendChild(copyBtn(text, list.dataset.copyLabel));
+      if (link) { const a = document.createElement('a'); a.className = 'btn btn-text btn-sm'; a.href = link; a.textContent = list.dataset.make + ' →'; acts.appendChild(a); }
+      li.appendChild(acts); list.appendChild(li);
+    };
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading'); err.hidden = true;
+      try {
+        const r = await fetch(gt.dataset.gtool, { method: 'POST', body: new FormData(form) }), d = await r.json();
+        if (!r.ok) throw new Error(d.error || '');
+        const hooks = $('[data-go-hooks]', out), titles = $('[data-go-titles]', out);
+        if (hooks) { hooks.textContent = ''; d.hooks.forEach(h => row(hooks, h.text, h.type, h.start)); }
+        if (titles) {
+          titles.textContent = ''; d.titles.forEach(t => row(titles, t));
+          $('[data-go-caption]', out).textContent = d.caption;
+          $('[data-go-tags]', out).textContent = d.hashtags.map(h => '#' + h).join(' ');
+          $('[data-go-start]', out).href = d.start;
+        }
         out.hidden = false; out.classList.remove('im-pop'); void out.offsetWidth; out.classList.add('im-pop');
       } catch (x) { err.textContent = x.message || ''; err.hidden = false; }
       btn.classList.remove('is-loading');

@@ -138,4 +138,5 @@ def as_channel(t: SimpleNamespace, lang: str) -> SimpleNamespace:
     """Kanal formunu doldurmak için kanal benzeri nesne (kaydedilmemiş)."""
     return SimpleNamespace(id=None, name=t.name, topic=t.topic, characters=t.characters, style=t.style,
                            language=lang if lang in ("tr", "en") else "tr", quality="fast", times=t.times,
-                           subtitles=True, subtitle_style="viral", publish_to="", ref_image="", active=True, idea=t.ideas[0], title="")
+                           subtitles=True, subtitle_style="viral", publish_to="", ref_image="", active=True, idea=t.ideas[0], title="",
+                           hook=True, progress=False, voice="")

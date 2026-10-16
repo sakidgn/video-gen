@@ -1,0 +1,24 @@
+{% extends "app_base.html" if user else "base.html" %}
+{% block title %}{{ _('Ücretsiz araçlar') }} · {{ site }}{% endblock %}
+{% block og %}<meta property="og:title" content="{{ _('Ücretsiz araçlar') }} · {{ site }}">
+<meta property="og:description" content="{{ _('Kısa video üreticileri için ücretsiz araçlar: kanca, başlık, hashtag ve kanal planı. Kayıt gerekmez.') }}">{% endblock %}
+{% block content %}
+{% if not user %}<section class="guides-pub"><div class="wrap">{% endif %}
+<div class="page-head"><div class="t"><span class="eyebrow">{{ _('Ücretsiz araçlar') }}</span><h1>{{ _('Videon daha çok izlensin') }}</h1>
+  <p class="muted" style="margin:0">{{ _('Kısa video üreticileri için ücretsiz araçlar: kanca, başlık, hashtag ve kanal planı. Kayıt gerekmez.') }}</p></div></div>
+<div class="guide-grid">
+  {% for href, ic, title, desc, tag in [
+      ('/araclar/kanca-uretici', 'zap', _('Kanca Üretici'), _('Videonun ilk 2 saniyesi için 10 farklı açılış cümlesi: soru, merak, cesur iddia…'), _('Yeni')),
+      ('/araclar/baslik-uretici', 'hash', _('Başlık ve Hashtag Üretici'), _('5 başlık, yorum getiren bir açıklama ve konuna uygun 10 hashtag.'), _('Yeni')),
+      ('/araclar/kanal-kurucu', 'wand', _('Kanal Kurucu'), _('Konunu yaz; kanal adı, açıklama, karakter, ilk 5 video ve paylaşım saatleri gelsin.'), ''),
+      ('/rehberler', 'book', _('Rehberler'), _('İlk videodan otomatik kanala, birkaç dakikada okunan kısa rehberler.'), '')] %}
+  <a class="card guide-card reveal" data-delay="{{ loop.index0 % 3 }}" href="{{ L(href) }}">
+    <span class="row" style="justify-content:space-between"><span class="icon-box accent">{{ icon(ic, 18) }}</span>{% if tag %}<span class="badge b-ok">{{ tag }}</span>{% endif %}</span>
+    <h3>{{ title }}</h3>
+    <p class="small muted">{{ desc }}</p>
+    <span class="tiny guide-meta" style="color:var(--accent)">{{ _('Aç') }} {{ icon('arrow-right', 13) }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% if not user %}</div></section>{% endif %}
+{% endblock %}

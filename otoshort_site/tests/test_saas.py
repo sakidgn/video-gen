@@ -811,9 +811,13 @@ def test_subtitles_burned_and_raw_kept(client, tmp_path):
         assert job.status == "hazir" and job.subtitles and job.raw_file == f"{jid}-ham.mp4"
     assert (tmp_path / "videolar" / f"{jid}-ham.mp4").exists()
     page = client.get(f"/video/{jid}").text
-    assert "Altyazısız indir" in page and "altyazılı" in page
+    assert "Altyazısız indir" in page and "Viral altyazı" in page
     r = client.get(f"/video/{jid}/dosya?indir=1&ham=1")
     assert r.status_code == 200 and "altyazisiz" in r.headers["content-disposition"]
+    # altyazı dosyası (SRT) da indirilebilir
+    assert f"/video/{jid}/altyazi.srt" in page
+    r = client.get(f"/video/{jid}/altyazi.srt")
+    assert r.status_code == 200 and "-->" in r.text and ".srt" in r.headers["content-disposition"]
 
 
 def test_subtitle_failure_keeps_video(client):
@@ -1549,7 +1553,7 @@ def test_waitlist_join_reward_and_export(client, tmp_path, monkeypatch):
     monkeypatch.setattr(config, "PRELAUNCH", True)
     monkeypatch.setattr(config, "EARLY_TOPUP_PCT", 20)
     anon = TestClient(client.app)
-    home = anon.get("/").text
+    home = TestClient(client.app).get("/").text
     assert 'id="erken"' in home and "data-mcta" in home
     t = csrf(anon, "/")
     assert "e-posta iznini" in anon.post("/erken-erisim", data={"email": "a@b.com", "csrf": t}).text  # izin şart
@@ -1882,7 +1886,7 @@ def test_viral_subtitle_style_flows_to_jobs_and_channels(client):
     with db.session() as s:
         jobs = s.scalars(select(Job).order_by(Job.id)).all()
     assert [j.subtitle_style for j in jobs] == ["viral", "", ""] and Spy.words == [True, False]
-    assert "viral altyazılı" in client.get(f"/video/{jobs[0].id}").text
+    assert "Viral altyazı" in client.get(f"/video/{jobs[0].id}").text
     client.post("/kanallar/yeni", data={"name": "K", "topic": "x", "times": "09:00", "subtitles": "1",
                                         "subtitle_style": "viral", "csrf": t})
     worker.schedule_channels(datetime(2026, 1, 5, 9, 1, tzinfo=ZoneInfo(config.TIMEZONE)))
@@ -2055,7 +2059,7 @@ def test_feedback_form_reaches_admin(client, tmp_path):
     admin.post(f"/admin/oneri/{rows[0].id}/okundu", data={"csrf": csrf(admin, "/admin")})
     with db.session() as s:
         assert s.get(Feedback, rows[0].id).status == "okundu"
-    home = anon.get("/").text
+    home = TestClient(client.app).get("/").text
     assert "Bize yaz" in home and "/oneri" in home
     _assert_english(TestClient(client.app).get("/en/oneri").text, "/en/oneri")
 
@@ -2364,3 +2368,106 @@ def test_light_dark_and_system_themes(client):
     assert '[data-mode="light"] .hero-film{' in css  # tanıtım filmi alanı açık temada da koyu kalır
     stray = [l for l in css.splitlines() if "rgba(255,246,230" in l and ".hero-film{" not in l and ".nav:not(.scrolled)" not in l]
     assert not stray  # koyu mürekkep rengi yalnızca açık temada da koyu kalan hero/menü satırında sabit
+
+
+def test_caption_styles_opening_hook_progress_bar_and_srt(client, tmp_path):
+    from saas import media
+
+    segs = [{"start": 0.2, "end": 1.8, "text": "kedim toplantıda konuştu"}, {"start": 2, "end": 3, "text": "inanılmaz"}]
+    for style, name in [("viral", "Viral"), ("kutu", "Kutu"), ("neon", "Neon"), ("tek", "Tek"), ("", "Alt"),
+                        ("sade", "Sade")]:
+        lines = [l for l in media.build_ass(segs, style=style).splitlines() if l.startswith("Dialogue:")]
+        assert lines and all(f",{name},," in l for l in lines)
+    tek = [l for l in media.build_ass(segs, style="tek").splitlines() if l.startswith("Dialogue:")]
+    assert len(tek) == 4 and "KEDİM" in tek[0]  # tek kelime, Türkçe büyük harf
+    neon = media.build_ass(segs, style="neon")
+    assert "\\blur" in neon and "Dialogue: 0," in neon and "Dialogue: 1," in neon  # parıltı altta, yazı üstte
+    ass = media.build_ass(segs, style="viral", hook="Sonunu bekle 😳 {x}", duration=6, bar=True)
+    hook = [l for l in ass.splitlines() if ",Kanca,," in l]
+    assert len(hook) == 1 and hook[0].endswith("Sonunu bekle (x)") and "0:00:00.00,0:00:02.80" in hook[0]
+    assert "\\t(0,6000,\\clip(0," in ass  # ilerleme çubuğu video boyunca dolar
+    assert media.srt(segs).startswith("1\n00:00:00,200 --> 00:00:01,800\nkedim toplantıda konuştu\n")
+
+    class Spy(ai.FakeAI):
+        words, voices = [], []
+
+        def transcribe(self, *, video, language, words=False):
+            Spy.words.append(words)
+            return super().transcribe(video=video, language=language)
+
+        def speak(self, *, text, voice, out):
+            Spy.voices.append(voice)
+            return super().speak(text=text, voice=voice, out=out)
+
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni").text
+    for k in ("viral", "kutu", "neon", "tek", "klasik", "sade"):
+        assert f'name="subtitle_style" value="{k}"' in page
+    assert re.search(r'name="hook" value="1"\s+checked', page) and 'name="progress" value="1"' in page
+    assert 'name="voice" value="male"' in page
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "subtitles": "1", "subtitle_style": "kutu",
+                                     "hook": "1", "progress": "1", "voice": "male", "csrf": t})
+    client.post("/video/yeni", data={"idea": "y", "quality": "lite", "hook": "1", "csrf": t})  # altyazısız, kancalı
+    client.post("/video/yeni", data={"idea": "Uzay", "format": "quiz", "hook": "1", "progress": "1",
+                                     "voice": "male", "csrf": t})
+    run_queue(Spy())
+    with db.session() as s:
+        vid, hooked, quiz = s.scalars(select(Job).order_by(Job.id)).all()
+    assert (vid.subtitle_style, vid.hook, vid.progress, vid.voice) == ("kutu", True, True, "")
+    assert vid.status == hooked.status == quiz.status == "hazir"
+    assert Spy.words == [True]  # kutu kelime zamanı ister; altyazısız videoda döküm hiç yapılmaz
+    assert hooked.raw_file and not (tmp_path / "videolar" / f"{hooked.id}.srt").exists()  # kanca basıldı, altyazı yok
+    assert (quiz.hook, quiz.progress, quiz.voice) == (False, True, "male")  # formatta kanca yok, ses seçilir
+    assert Spy.voices and set(Spy.voices) == {ai.VOICES["male"][0]}
+    page = client.get(f"/video/{vid.id}").text
+    assert "Kutu altyazı" in page and "açılış kancası" in page and "ilerleme çubuğu" in page
+    assert f"/video/{vid.id}/altyazi.srt" in page
+    assert "Yazısız indir" in client.get(f"/video/{hooked.id}").text
+    r = client.get(f"/video/{quiz.id}/altyazi.srt")  # formatlarda okunan metinler de SRT olur
+    assert r.status_code == 200 and "Uzay" in r.text and "-->" in r.text
+    assert client.get(f"/video/{hooked.id}/altyazi.srt").status_code == 404
+    # kanal ayarları da işe geçer
+    client.post("/kanallar/yeni", data={"name": "K", "topic": "x", "times": "09:00", "subtitles": "1",
+                                        "subtitle_style": "neon", "hook": "1", "progress": "1", "csrf": t})
+    worker.schedule_channels(datetime(2026, 1, 5, 9, 1, tzinfo=ZoneInfo(config.TIMEZONE)))
+    with db.session() as s:
+        ch = s.scalar(select(Channel))
+        cj = s.scalar(select(Job).where(Job.channel_id == ch.id))
+    assert (ch.subtitle_style, ch.hook, ch.progress) == ("neon", True, True)
+    assert (cj.subtitle_style, cj.hook, cj.progress) == ("neon", True, True)
+
+
+def test_free_hook_and_title_tools(client):
+    client.app.state.generator = ai.FakeAI()
+    anon = TestClient(client.app)
+    hub = anon.get("/araclar").text
+    for href in ("/araclar/kanca-uretici", "/araclar/baslik-uretici", "/araclar/kanal-kurucu"):
+        assert href in hub
+    page = anon.get("/araclar/kanca-uretici").text
+    assert "Ücretsiz Kanca Üretici" in page and 'data-gtool="/api/kancalar"' in page
+    t = csrf(anon, "/araclar/kanca-uretici")
+    assert anon.post("/api/kancalar", data={"topic": "", "csrf": t}).status_code == 400
+    d = anon.post("/api/kancalar", data={"topic": "Uzay", "language": "tr", "csrf": t}).json()
+    assert len(d["hooks"]) == 10 and {h["type"] for h in d["hooks"]} >= {"Soru", "Cesur iddia"}
+    assert all(h["start"].startswith("/kayit?fikir=") for h in d["hooks"])
+    page = anon.get("/araclar/baslik-uretici").text
+    assert 'data-gtool="/api/basliklar"' in page
+    d = anon.post("/api/basliklar", data={"topic": "Uzay", "language": "tr", "csrf": t}).json()
+    assert len(d["titles"]) == 5 and d["caption"] and len(d["hashtags"]) == 10
+    assert all("#" not in h and " " not in h for h in d["hashtags"]) and d["start"].startswith("/kayit?fikir=")
+    for url in ("/en/araclar", "/en/araclar/kanca-uretici", "/en/araclar/baslik-uretici"):
+        _assert_english(anon.get(url).text, url)
+    en = anon.post("/api/kancalar", data={"topic": "Space", "language": "en", "csrf": t},
+                   headers={"Accept-Language": "en"}).json()
+    assert en["hooks"][0]["text"].startswith("Why")
+    sm = anon.get("/sitemap.xml").text
+    assert "/araclar/kanca-uretici" in sm and "/araclar/baslik-uretici" in sm
+    home = TestClient(client.app).get("/").text
+    assert "Neden Zaply?" in home and "Kalan kredi devreder" in home and 'href="/araclar"' in home
+    # girişliyken araçtan video formuna fikirle gidilir; panelde menüde araçlar var
+    signup(client, "a@b.com")
+    d = client.post("/api/kancalar", data={"topic": "Uzay", "csrf": csrf(client, "/araclar/kanca-uretici")}).json()
+    assert d["hooks"][0]["start"].startswith("/video/yeni?idea=")
+    assert 'href="/araclar"' in client.get("/panel").text

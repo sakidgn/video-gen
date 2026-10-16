@@ -81,19 +81,44 @@
 </div>
 </div>
 
+{% set sub_on = ch.subtitles if ch else true %}{% set sub_style = ((ch.subtitle_style or 'klasik') if ch and ch.subtitle_style is defined else 'viral') %}
+{% set prev = {'viral': _('SON') ~ ' <b>' ~ _('İNDİRİM') ~ '</b>', 'kutu': _('SON') ~ ' <b>' ~ _('İNDİRİM') ~ '</b>', 'neon': _('SON') ~ ' <b>' ~ _('İNDİRİM') ~ '</b>', 'tek': '<b>' ~ _('İNDİRİM') ~ '</b>', 'klasik': _('Son indirim'), 'sade': _('Son indirim')} %}
 <div class="only-video">
-{% set sub_on = ch.subtitles if ch else true %}{% set sub_style = (ch.subtitle_style if ch and ch.subtitle_style is defined else 'viral') %}
 <div class="subs-box">
 <label class="toggle-row">
   <input type="checkbox" name="subtitles" value="1" {% if sub_on %}checked{% endif %}>
   <span class="tg"></span>
-  <span><b>{{ _('Otomatik viral altyazı') }}</b><small>{{ _('Konuşmalar konuşmayla senkron, kelime kelime ekrana basılır. Kısa videoların çoğu sessiz izlendiği için izlenme süresini artırır. Ücretsiz.') }}</small></span>
+  <span><b>{{ _('Otomatik altyazı') }}</b><small>{{ _('Konuşmalar konuşmayla senkron ekrana basılır. Kısa videoların çoğu sessiz izlendiği için izlenme süresini artırır. Ücretsiz.') }}</small></span>
 </label>
-<div class="seg subs-style" role="radiogroup" aria-label="{{ _('Altyazı stili') }}">
-  <label class="opt"><input type="radio" name="subtitle_style" value="viral" {% if sub_style == 'viral' %}checked{% endif %}>
-    <span class="opt-body"><span class="sub-prev viral" aria-hidden="true">{{ _('SON') }} <b>{{ _('İNDİRİM') }}</b></span><span class="opt-title">{{ _('Viral') }}</span><span class="opt-sub">{{ _('kelime kelime, renkli') }}</span></span></label>
-  <label class="opt"><input type="radio" name="subtitle_style" value="klasik" {% if sub_style != 'viral' %}checked{% endif %}>
-    <span class="opt-body"><span class="sub-prev" aria-hidden="true">{{ _('Son indirim') }}</span><span class="opt-title">{{ _('Klasik') }}</span><span class="opt-sub">{{ _('sade, cümle cümle') }}</span></span></label>
+<div class="subs-style" role="radiogroup" aria-label="{{ _('Altyazı stili') }}">
+  {% for k, (label, sub) in sub_styles.items() %}
+  <label class="opt"><input type="radio" name="subtitle_style" value="{{ k }}" {% if sub_style == k %}checked{% endif %}>
+    <span class="opt-body"><span class="sub-prev {{ k }}" aria-hidden="true">{{ prev[k]|safe }}</span><span class="opt-title">{{ _(label) }}</span><span class="opt-sub">{{ _(sub) }}</span></span></label>
+  {% endfor %}
 </div>
 </div>
 </div>
+{% set want_voice = ch.voice if ch and ch.voice is defined else '' %}
+<div class="only-format">
+<div class="step-title"><span class="n"></span><h3>{{ _('Anlatıcı sesi') }}</h3></div>
+<div class="seg voice-pick">
+{% for k, label, ic in [('', _('Otomatik'), 'sparkles'), ('female', _('Kadın'), 'user'), ('male', _('Erkek'), 'user')] %}
+  <label class="opt"><input type="radio" name="voice" value="{{ k }}" {% if want_voice == k %}checked{% endif %}>
+    <span class="opt-body"><span class="icon-box">{{ icon(ic, 15) }}</span><span class="opt-title">{{ label }}</span></span></label>
+{% endfor %}
+</div>
+<p class="hint" style="margin-top:8px">{{ _('Mesajlaşma formatında iki farklı ses otomatik seçilir.') }}</p>
+</div>
+<div class="extras">
+  <label class="toggle-row only-video">
+    <input type="checkbox" name="hook" value="1" {% if (ch.hook if ch and ch.hook is defined else true) %}checked{% endif %}>
+    <span class="tg"></span>
+    <span><b>{{ _('Açılış kancası') }}</b><small>{{ _('İlk 3 saniye ekranın üstünde merak uyandıran kısa bir yazı çıkar; izleyici kaydırmadan önce durur. Yazıyı yapay zekâ seçer.') }}</small></span>
+  </label>
+  <label class="toggle-row">
+    <input type="checkbox" name="progress" value="1" {% if ch and ch.progress is defined and ch.progress %}checked{% endif %}>
+    <span class="tg"></span>
+    <span><b>{{ _('İlerleme çubuğu') }}</b><small>{{ _('En altta video boyunca dolan ince bir çizgi: izleyici sonun yaklaştığını görür ve sonuna kadar izler.') }}</small></span>
+  </label>
+</div>
+

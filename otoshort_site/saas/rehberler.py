@@ -59,6 +59,22 @@ GUIDES = [
           "İzleyici sonraki mesajı ya da doğru cevabı merak ettiği için videoyu sonuna kadar izler; seçim ve quiz "
           "videoları yorum da getirir. Platform böyle videoları daha çok kişiye gösterir."),
      ], "cta": ("/video/yeni?format=sohbet", "Formatı dene")},
+    {"slug": "kanca-altyazi", "icon": "type", "min": 2, "title": "Kanca, altyazı stili ve ilerleme çubuğu",
+     "desc": "İzleyiciyi ilk saniyede yakalayıp sonuna kadar tutan üç ayar.",
+     "steps": [
+         ("Açılış kancasını aç",
+          "Video üretirken “Açılış kancası” açıksa ilk 3 saniye ekranın üstünde merak uyandıran kısa bir yazı çıkar. "
+          "Yazıyı yapay zekâ videoya göre seçer; kendin denemek istersen ücretsiz Kanca Üretici'yi kullan."),
+         ("Altyazı stilini seç",
+          "6 stil var: Viral, Kutu, Neon, Tek kelime, Klasik ve Minimal. Hızlı ve enerjik videolarda Viral ya da Tek "
+          "kelime, sakin anlatımlarda Klasik ya da Minimal iyi gider."),
+         ("İlerleme çubuğunu ekle",
+          "En altta video boyunca dolan ince çizgi, izleyiciye sonun yakın olduğunu gösterir. Uzun hikâye ve quiz "
+          "videolarında özellikle işe yarar."),
+         ("Altyazı dosyasını indir",
+          "Video sayfasındaki “Altyazı dosyası (.srt)” ile altyazıyı YouTube'a ayrıca yükleyebilir ya da başka bir "
+          "düzenleyicide kullanabilirsin."),
+     ], "cta": ("/araclar/kanca-uretici", "Ücretsiz kanca üret")},
     {"slug": "karakterler", "icon": "users", "min": 2, "title": "Karakter kütüphanesiyle tutarlı maskot",
      "desc": "Aynı karakteri her videoda aynı görünüşle kullan.",
      "steps": [

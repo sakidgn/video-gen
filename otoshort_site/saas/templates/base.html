@@ -58,7 +58,7 @@
   </div>
 </div>
   <div class="mobile-menu" data-mobile-menu aria-hidden="true">
-    <a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/') }}#fiyat">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a><a href="{{ L('/rehberler') }}">{{ _('Rehberler') }}</a><a href="{{ L('/araclar/kanal-kurucu') }}">{{ _('Kanal Kurucu') }}</a>
+    <a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/') }}#fiyat">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a><a href="{{ L('/rehberler') }}">{{ _('Rehberler') }}</a><a href="{{ L('/araclar') }}">{{ _('Ücretsiz araçlar') }}</a>
     {% if user %}<a class="btn btn-primary btn-block" href="/panel">{{ _('Panele git') }}</a>{% else %}<a class="btn btn-ghost btn-block" href="{{ L('/giris') }}">{{ _('Giriş yap') }}</a><a class="btn btn-primary btn-block" href="{{ L('/kayit') }}">{{ _('Ücretsiz başla') }}</a>{% endif %}
   </div>
 </header>
@@ -71,7 +71,7 @@
   <div><a class="brand" href="{{ L('/') }}" style="margin-bottom:12px">{{ LOGO }}{{ site }}</a><p style="max-width:320px">{{ _('Yapay zekâ ile kısa video üret, otomatik kanallarla her gün yeni içerik paylaş.') }}</p>
     <div class="lang-pick">{% for code, name in langs.items() %}<a href="/dil/{{ code }}?next={{ path|urlencode }}" hreflang="{{ code }}" lang="{{ code }}" class="{{ 'on' if code == lang }}">{{ name }}</a>{% endfor %}</div>
     {% include '_theme_pick.html' %}</div>
-  <div><h4>{{ _('Ürün') }}</h4><a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/sablonlar') }}">{{ _('Hazır şablonlar') }}</a><a href="{{ L('/araclar/kanal-kurucu') }}">{{ _('Kanal Kurucu') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/fiyatlar') }}">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a><a href="{{ L('/oneri') }}">{{ _('Fikrini paylaş') }}</a></div>
+  <div><h4>{{ _('Ürün') }}</h4><a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/sablonlar') }}">{{ _('Hazır şablonlar') }}</a><a href="{{ L('/araclar/kanal-kurucu') }}">{{ _('Kanal Kurucu') }}</a><a href="{{ L('/araclar/kanca-uretici') }}">{{ _('Kanca Üretici') }}</a><a href="{{ L('/araclar/baslik-uretici') }}">{{ _('Başlık ve Hashtag Üretici') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/fiyatlar') }}">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a><a href="{{ L('/oneri') }}">{{ _('Fikrini paylaş') }}</a></div>
   <div><h4>{{ _('Yasal') }}</h4><a href="{{ L('/yasal/kullanim') }}">{{ _('Kullanım şartları') }}</a><a href="{{ L('/yasal/kvkk') }}">{{ _('KVKK aydınlatma') }}</a><a href="{{ L('/yasal/mesafeli') }}">{{ _('Mesafeli satış') }}</a></div>
   <div class="legal"><span>© {{ site }}{% if legal.email %} · <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>{% endif %}</span><span>{{ _('Yapay zekâ ile üretilen videolar platformlarda “AI” etiketiyle paylaşılmalıdır.') }}</span></div>
 </div><div class="footer-mark" aria-hidden="true">{{ site }}</div></footer>

@@ -69,13 +69,14 @@ def channel_params(s, ch: Channel) -> dict:
     characters, ref_image = karakter.cast(s, ch.user_id, ch.cast_ids, ch.characters, ch.ref_image)
     return dict(idea=ch.topic, characters=characters, style=ch.style, language=ch.language, quality=ch.quality,
                 channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles, subtitle_style=ch.subtitle_style,
-                seconds=ch.seconds, format=ch.format, background=ch.background)
+                seconds=ch.seconds, format=ch.format, background=ch.background, hook=ch.hook, progress=ch.progress,
+                voice=ch.voice)
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
                channel_id: int | None = None, slot: str | None = None, ref_image: str = "",
                subtitles: bool = False, subtitle_style: str = "viral", seconds: int = 8, format: str = "",
-               background: str = "") -> Job:
+               background: str = "", hook: bool = False, progress: bool = False, voice: str = "") -> Job:
     """İşi oluşturur ve krediyi düşer (yetmezse credits.NotEnoughCredits)."""
     from . import abonelik, formatlar
 
@@ -92,7 +93,8 @@ def create_job(s, user_id: int, *, idea: str, characters: str, style: str, langu
     job = Job(user_id=user_id, channel_id=channel_id, slot=slot, idea=idea, characters=characters, style=style,
               language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles),
               subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "", seconds=seconds,
-              format=format, background=background)
+              format=format, background=background, hook=bool(hook) and not format, progress=bool(progress),
+              voice=voice if format and voice in ai_mod.VOICES else "")
     s.add(job)
     s.flush()
     label = formatlar.FORMATS[format][0] if format else config.QUALITIES[quality]["label"]
@@ -114,6 +116,7 @@ def run_job(job_id: int, generator) -> None:
         quality, seconds = job.quality, config.clamp_seconds(job.seconds)
         fmt, background = job.format, job.background
         want_subs, sub_style = job.subtitles, job.subtitle_style
+        want_hook, want_bar, voice = job.hook, job.progress, job.voice
         from . import media
 
         ref = media.ref_path(job.ref_image) if job.ref_image and config.supports_refs(job.quality) else None
@@ -124,7 +127,7 @@ def run_job(job_id: int, generator) -> None:
         rel = f"{job_id}.mp4"
         if fmt:  # viral format: yazışma/hikâye metni + seslendirme + çizim
             script = make_format(generator, fmt, params["idea"], params["language"], seconds, background, past,
-                                 video_dir() / rel)
+                                 video_dir() / rel, voice=voice, bar=want_bar)
             raw = None
         else:
             clips = config.plan_clips(quality, seconds)
@@ -135,7 +138,9 @@ def run_job(job_id: int, generator) -> None:
                     prompt="\n\n".join(shots) if len(shots) > 1 else script.video_prompt, title=script.title,
                     caption=script.caption, hashtags=" ".join(script.hashtags), summary=script.summary))
             make_scenes(generator, shots, clips, quality, refs, video_dir() / rel, seconds)
-            raw = add_subtitles(generator, video_dir() / rel, params["language"], sub_style) if want_subs else None
+            hook = (script.hook or script.title) if want_hook else ""
+            raw = add_subtitles(generator, video_dir() / rel, params["language"], sub_style if want_subs else None,
+                                hook=hook, bar=want_bar) if want_subs or hook or want_bar else None
         if fmt:
             with db.session() as s:
                 s.execute(update(Job).where(Job.id == job_id).values(
@@ -181,13 +186,17 @@ def run_job(job_id: int, generator) -> None:
 
 
 def make_format(generator, kind: str, idea: str, language: str, seconds: int, background: str, past: list[str],
-                out: Path) -> "ai_mod.Script":
-    """Viral format videosu: yapay zekâ metni yazar, her satır seslendirilir, balonlar/kart + altyazı çizilir."""
+                out: Path, voice: str = "", bar: bool = False) -> "ai_mod.Script":
+    """Viral format videosu: yapay zekâ metni yazar, her satır seslendirilir, balonlar/kart + altyazı çizilir.
+    voice: tek sesli formatlarda anlatıcı ("female"/"male"; boşsa yapay zekâ seçer) · bar: en altta ilerleme çubuğu.
+    Okunan metinler zamanlarıyla '<ad>.srt' altyazı dosyasına da yazılır."""
     import tempfile
 
-    from . import formatlar
+    from . import formatlar, media
 
     data = generator.write_format(kind=kind, idea=idea, language=language, seconds=seconds, past=past)
+    if voice in ai_mod.VOICES and "voice" in data:
+        data["voice"] = voice
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)
         if kind == "sohbet":
@@ -200,6 +209,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             total = times[-1][1] + 1.2
             ass = formatlar.chat_ass(msgs, times, data["contact"], total)
             lines = [("> " if m["me"] else "< ") + m["text"] for m in msgs]
+            spoken = [m["text"] for m in msgs]
         elif kind in ("secim", "quiz", "bilgi", "liste", "dogru", "bayrak"):
             # tek sesli, tur tur ilerleyen formatlar: açılış + turlar (+ düşünme süresi) + kapanış çağrısı
             w, voice = formatlar.words(language), ai_mod.VOICES[data["voice"]][0]
@@ -244,6 +254,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             texts.append(closing)
             gaps.append(0.0)
             parts = [generator.speak(text=t, voice=voice, out=tmp / f"q{i}.wav") for i, t in enumerate(texts)]
+            spoken = texts
             times = formatlar.join_audio(parts, gaps, 0.4, 1.2, tmp / "ses.wav")
             total = times[-1][1] + 1.2
             if kind == "secim":
@@ -263,8 +274,12 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             times = formatlar.join_audio(parts, 0.2, 0.3, 1.0, tmp / "ses.wav")
             total = times[-1][1] + 1.0
             ass = formatlar.story_ass(sents[0], data["community"], sents, times, total, language, dark=kind == "korku")
-            lines = sents
+            lines = spoken = sents
+        if bar:
+            ass += "\n".join(media.progress_events(total, formatlar.W, formatlar.H, style="D")) + "\n"
         formatlar.render(ass, tmp / "ses.wav", total, background, out)
+    out.with_suffix(".srt").write_text(media.srt([{"text": t, "start": a, "end": b}
+                                                  for t, (a, b) in zip(spoken, times)]), encoding="utf-8")
     return ai_mod.Script(video_prompt="\n".join(lines), title=data["title"], caption=data["caption"],
                          hashtags=data["hashtags"], summary=data["summary"])
 
@@ -294,14 +309,17 @@ def make_scenes(generator, shots: list[str], clips: list[int], quality: str, ref
             part.unlink(missing_ok=True)
 
 
-def add_subtitles(generator, video: Path, language: str, style: str = "") -> Path | None:
-    """Konuşmaları döküp videoya basar. Başarısız olursa video altyazısız kalır (iş yine de hazır sayılır).
-    style="viral": kelime kelime renklenen Shorts altyazısı (kelime zamanları da istenir)."""
+def add_subtitles(generator, video: Path, language: str, style: str | None = "", hook: str = "",
+                  bar: bool = False) -> Path | None:
+    """Konuşmaları döküp videoya basar (+ istenirse açılış kancası ve ilerleme çubuğu). Başarısız olursa video
+    yazısız kalır (iş yine de hazır sayılır). style: media.SUB_STYLES'tan biri; None = altyazı yok.
+    Kelime kelime stillerde (viral, kutu, neon, tek) kelime zamanları da istenir."""
     from . import media
 
     try:
-        segments = generator.transcribe(video=video, language=language, words=style == "viral")
-        return media.burn_subtitles(video, segments, style, language)
+        segments = [] if style is None else generator.transcribe(video=video, language=language,
+                                                                 words=style in media.WORD_STYLES)
+        return media.burn_subtitles(video, segments, style or "", language, hook=hook, bar=bar)
     except Exception:
         log.exception("Altyazı eklenemedi: %s", video.name)
         return None

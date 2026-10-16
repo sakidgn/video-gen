@@ -69,6 +69,12 @@ NEW_COLUMNS = [
     ("jobs", "background", "VARCHAR(40) NOT NULL DEFAULT ''"),
     ("channels", "format", "VARCHAR(10) NOT NULL DEFAULT ''"),
     ("channels", "background", "VARCHAR(40) NOT NULL DEFAULT ''"),
+    ("jobs", "hook", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("jobs", "progress", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("jobs", "voice", "VARCHAR(10) NOT NULL DEFAULT ''"),
+    ("channels", "hook", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("channels", "progress", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("channels", "voice", "VARCHAR(10) NOT NULL DEFAULT ''"),
 ]
 
 

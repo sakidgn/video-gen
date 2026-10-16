@@ -78,6 +78,12 @@ def constant_keys() -> set[str]:
 
     keys |= texts()
     keys |= {"Aboneliksiz", "Kredi paketiyle kullan"}  # abonelik karşılaştırmasındaki ilk sütun (app.plans_page)
+    from .media import SUB_STYLE_LABELS
+
+    keys |= {x for pair in SUB_STYLE_LABELS.values() for x in pair}
+    from .ai import HOOK_TYPES
+
+    keys |= set(HOOK_TYPES.values())
     return keys
 
 

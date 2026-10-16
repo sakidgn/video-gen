@@ -170,6 +170,23 @@
   </div>
 </div></section>
 
+<section class="why-sec" style="padding-top:20px"><div class="wrap">
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Neden {site}?', site=site) }}</span>
+    <h2>{{ _h('Sürpriz yok, <span class="hl">boşa giden</span> kredi yok.') }}</h2></div>
+  <div class="why-grid">
+    {% for ic, t, d in [
+        ('gem', _('Kalan kredi devreder'), _('Ay bitince silinmez; harcamadığın kredi hesabında kalır.')),
+        ('shield', _('Otomatik çekim yok'), _('Süre bitince istersen uzatırsın. Kart bilgisi saklamayız.')),
+        ('refund', _('Olmazsa kredi iade'), _('Üretim başarısız olursa kredin kendiliğinden geri yüklenir.')),
+        ('eye', _('Paylaşmadan önce onay'), _('Otomatik paylaşımda istersen her video önce sana gelir; beğenmezsen hiçbir yere gitmez.')),
+        ('type', _('6 altyazı stili + kanca'), _('Açılış kancası, ilerleme çubuğu ve altyazı dosyası (.srt) hazır.')),
+        ('globe', _('Türkçe, baştan sona'), _('Türkçe ses ve altyazı (İ/ı doğru), ₺ fiyat, havale ile ödeme.'))] %}
+    <div class="why reveal" data-delay="{{ loop.index0 % 3 }}"><span class="icon-box accent">{{ icon(ic, 18) }}</span>
+      <div><b>{{ t }}</b><small>{{ d }}</small></div></div>
+    {% endfor %}
+  </div>
+</div></section>
+
 {% if showcase %}
 <section style="padding-top:40px"><div class="wrap">
   <div class="sec-head reveal"><span class="eyebrow">{{ _('Keşfet') }}</span><h2>{{ _h('Kullanıcılarımız <span class="hl">ne üretti?</span>') }}</h2></div>

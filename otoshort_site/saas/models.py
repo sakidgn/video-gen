@@ -108,6 +108,9 @@ class Channel(Base):
     publish_to: Mapped[str] = mapped_column(String(60), default="")  # otomatik paylaşım: "youtube tiktok instagram"
     cast_ids: Mapped[str] = mapped_column(String(60), default="")  # kayıtlı karakterler: "3 7"
     approval: Mapped[bool] = mapped_column(Boolean, default=False)  # onaylı paylaşım: kullanıcı onaylayınca yüklenir
+    hook: Mapped[bool] = mapped_column(Boolean, default=False)  # ilk saniyelerde üstte kanca yazısı
+    progress: Mapped[bool] = mapped_column(Boolean, default=False)  # en altta ilerleme çubuğu
+    voice: Mapped[str] = mapped_column(String(10), default="")  # formatlarda anlatıcı: "" otomatik, female, male
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
     def time_list(self) -> list[str]:
@@ -152,6 +155,9 @@ class Job(Base):
     seconds: Mapped[int] = mapped_column(Integer, default=8)
     format: Mapped[str] = mapped_column(String(10), default="")
     background: Mapped[str] = mapped_column(String(40), default="")
+    hook: Mapped[bool] = mapped_column(Boolean, default=False)
+    progress: Mapped[bool] = mapped_column(Boolean, default=False)
+    voice: Mapped[str] = mapped_column(String(10), default="")
     raw_file: Mapped[str] = mapped_column(String(300), default="")  # altyazısız orijinal
     public: Mapped[bool] = mapped_column(Boolean, default=False)  # sahibi Keşfet'te paylaşmayı seçti
     featured: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici öne çıkardı

@@ -58,7 +58,8 @@ FAQS = [
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
-PUBLIC_PAGES = ["/", "/fiyatlar", "/kesfet", "/sablonlar", "/araclar/kanal-kurucu", "/rehberler",
+PUBLIC_PAGES = ["/", "/fiyatlar", "/kesfet", "/sablonlar", "/araclar", "/araclar/kanal-kurucu", "/araclar/kanca-uretici",
+                "/araclar/baslik-uretici", "/rehberler",
                 *(f"/rehberler/{g['slug']}" for g in rehberler.GUIDES), "/oneri", "/kayit", "/giris", "/yasal/kullanim",
                 "/yasal/kvkk", "/yasal/mesafeli"]
 
@@ -242,7 +243,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
                                                          base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
         my_plan=abonelik.active_plan(user) if user else "",
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
-        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(),
+        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), sub_styles=media.SUB_STYLE_LABELS,
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
         theme=current_theme(request), themes=config.THEMES,
         yearly_save=config.YEARLY_SAVE_PCT,
@@ -1060,7 +1061,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                         quality: str = Form("fast"), ref: UploadFile | None = File(None), ref_keep: str = Form(""),
                         ref_remove: str = Form(""), subtitles: str = Form(""), cast: list[str] = Form([]),
                         subtitle_style: str = Form("viral"), seconds: int = Form(config.DEFAULT_SECONDS),
-                        format: str = Form(""), background: str = Form("")):
+                        format: str = Form(""), background: str = Form(""), hook: str = Form(""),
+                        progress: str = Form(""), voice: str = Form("")):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
@@ -1075,7 +1077,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                     style=_valid_choice(style, config.STYLES, "cartoon"),
                     language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image,
                     subtitles=bool(subtitles), subtitle_style=subtitle_style, seconds=seconds, format=format,
-                    background=background)
+                    background=background, hook=bool(hook), progress=bool(progress), voice=voice)
                 job_id = job.id
         except credits.NotEnoughCredits:
             flash(request, "Yeterli kredin yok. Bu video {n} kredi.", "err", n=config.price(quality, seconds))
@@ -1119,7 +1121,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             _ = job.channel  # şablonda kanal adı gösterilecek
             pubs = {p.platform: p for p in s.scalars(select(Publication).where(Publication.job_id == job.id))}
         return render(request, "video.html", user, job=job, pubs=pubs, linked=_linked(job.user_id),
-                      platforms=social.PLATFORMS)
+                      platforms=social.PLATFORMS, has_srt=(worker.video_dir() / f"{job.id}.srt").exists())
 
     @app.post("/video/{job_id}/metin", dependencies=[Depends(check_csrf)])
     def job_text_edit(request: Request, job_id: int, user: User = Depends(require_user), title: str = Form(""),
@@ -1166,7 +1168,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
                           quality=old.quality, ref_image=old.ref_image, subtitles=old.subtitles,
                           subtitle_style=old.subtitle_style, seconds=old.seconds, format=old.format,
-                          background=old.background)
+                          background=old.background, hook=old.hook, progress=old.progress, voice=old.voice)
         try:
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
@@ -1253,10 +1255,75 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         faqs = [f for f in FAQS if any(w in f[0] for w in ("Abonelik", "saniye", "Kredi", "kredim", "beğenmezsem"))]
         return render(request, "fiyatlar.html", current_user(request), faqs=faqs)
 
-    # --- ücretsiz kanal kurucu ---
+    # --- ücretsiz araçlar (kayıt gerekmez; deneme sınırı ve günlük maliyet tavanı ortak) ---
+    def _tool_allowed(request: Request, prefix: str) -> bool:
+        from datetime import date
+
+        ip = request.client.host if request.client else "?"
+        today = date.today().isoformat()
+        if not trial_limiter.allow(f"{prefix}:{ip}") or trial_daily.get(today, 0) >= config.TRIAL_DAILY_LIMIT:
+            return False
+        if today not in trial_daily:  # yeni gün: sayaç sıfırlanır
+            trial_daily.clear()
+        trial_daily[today] = trial_daily.get(today, 0) + 1
+        return True
+
+    def _start_link(request: Request, idea: str) -> str:
+        """Araçtan videoya: girişliyse video formu fikirle açılır, değilse kayıt (fikir kayıttan sonra gelir)."""
+        from urllib.parse import quote
+
+        return f"/video/yeni?idea={quote(idea)}" if current_user(request) else \
+            i18n.localized_path("/kayit", public=tuple(PUBLIC_PAGES)) + f"?fikir={quote(idea)}"
+
+    @app.get("/araclar", response_class=HTMLResponse)
+    def tools_page(request: Request):
+        return render(request, "araclar.html", current_user(request))
+
     @app.get("/araclar/kanal-kurucu", response_class=HTMLResponse)
     def channel_tool(request: Request):
         return render(request, "kanal_kurucu.html", current_user(request))
+
+    @app.get("/araclar/kanca-uretici", response_class=HTMLResponse)
+    def hook_tool(request: Request):
+        return render(request, "arac.html", current_user(request), tool="kanca")
+
+    @app.get("/araclar/baslik-uretici", response_class=HTMLResponse)
+    def title_tool(request: Request):
+        return render(request, "arac.html", current_user(request), tool="baslik")
+
+    @app.post("/api/kancalar", dependencies=[Depends(check_csrf)])
+    def hooks_api(request: Request, topic: str = Form(""), language: str = Form("")):
+        topic = clean(topic, 160)
+        lang = _valid_choice(language or i18n.current(), config.LANGUAGES, "tr")
+        if len(topic) < 2:
+            return JSONResponse({"error": i18n.t("Önce videonun konusunu yaz.")}, status_code=400)
+        if not _tool_allowed(request, "h"):
+            return JSONResponse({"error": i18n.t("Deneme sınırına ulaştın. Ücretsiz kaydolup devam edebilirsin.")},
+                                status_code=429)
+        try:
+            hooks = _generator(request).hooks(topic=topic, language=lang)
+        except Exception:
+            log.exception("Kanca yazılamadı")
+            return JSONResponse({"error": i18n.t("Şu an yazılamadı, biraz sonra tekrar dene.")}, status_code=503)
+        labels = {k: i18n.t(v) for k, v in ai_mod.HOOK_TYPES.items()}
+        return {"hooks": [{"type": labels[h["type"]], "text": h["text"],
+                           "start": _start_link(request, f"{h['text']} ({topic})")} for h in hooks]}
+
+    @app.post("/api/basliklar", dependencies=[Depends(check_csrf)])
+    def titles_api(request: Request, topic: str = Form(""), language: str = Form("")):
+        topic = clean(topic, 160)
+        lang = _valid_choice(language or i18n.current(), config.LANGUAGES, "tr")
+        if len(topic) < 2:
+            return JSONResponse({"error": i18n.t("Önce videonun konusunu yaz.")}, status_code=400)
+        if not _tool_allowed(request, "b"):
+            return JSONResponse({"error": i18n.t("Deneme sınırına ulaştın. Ücretsiz kaydolup devam edebilirsin.")},
+                                status_code=429)
+        try:
+            out = _generator(request).titles(topic=topic, language=lang)
+        except Exception:
+            log.exception("Başlık yazılamadı")
+            return JSONResponse({"error": i18n.t("Şu an yazılamadı, biraz sonra tekrar dene.")}, status_code=503)
+        return {**out, "start": _start_link(request, topic)}
 
     @app.post("/api/kanal-plani", dependencies=[Depends(check_csrf)])
     def channel_plan_api(request: Request, topic: str = Form(""), language: str = Form("")):
@@ -1334,6 +1401,16 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         name = (f"video-{job.id}-altyazisiz.mp4" if ham and job.raw_file else f"video-{job.id}.mp4") if indir else None
         return FileResponse(path, media_type="video/mp4", filename=name)
 
+    @app.get("/video/{job_id}/altyazi.srt")
+    def job_srt(job_id: int, user: User = Depends(require_user)):
+        """Altyazı dosyası: platformlara ayrıca yüklenebilir ya da başka düzenleyicide kullanılır."""
+        with db.session() as s:
+            job = _own_job(s, user, job_id)
+        path = worker.video_dir() / f"{job.id}.srt"
+        if job.status != "hazir" or not path.exists():
+            raise HTTPException(404)
+        return FileResponse(path, media_type="application/x-subrip", filename=f"video-{job.id}.srt")
+
     @app.get("/video/{job_id}/kapak")
     def job_poster(job_id: int, user: User = Depends(require_user)):
         with db.session() as s:
@@ -1389,7 +1466,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             for row in [*s.scalars(select(Channel).where(Channel.user_id == u.id)), *karakter.for_user(s, u.id)]:
                 s.delete(row)
             for job in s.scalars(select(Job).where(Job.user_id == u.id)):
-                for ext in (".mp4", ".jpg", "-ham.mp4"):
+                for ext in (".mp4", ".jpg", "-ham.mp4", ".srt"):
                     f = worker.video_dir() / f"{job.id}{ext}"
                     if f.exists():
                         f.unlink()
@@ -1499,6 +1576,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             subtitle_style=_valid_choice(str(form.get("subtitle_style", "")), media.SUB_STYLES, ""),
             publish_to=" ".join(p for p in social.PLATFORMS if form.get(f"pub_{p}")),
             approval=form.get("approval") == "1",
+            hook=bool(form.get("hook")) and not form.get("format"), progress=bool(form.get("progress")),
+            voice=str(form.get("voice", "")) if form.get("format") and form.get("voice") in ai_mod.VOICES else "",
         )
 
     @app.get("/kanallar", response_class=HTMLResponse)
@@ -1525,7 +1604,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             tpl = SimpleNamespace(id=None, name=clean(ad, 100), topic=clean(konu, 600), characters="", style="cartoon",
                                   language=i18n.current(), quality="fast", times=times, subtitles=True,
                                   subtitle_style="viral", publish_to="", ref_image="", active=True, idea="", title="",
-                                  seconds=config.DEFAULT_SECONDS, approval=False)
+                                  seconds=config.DEFAULT_SECONDS, approval=False, hook=True, progress=False, voice="")
         request.session.pop("kanal", None)
         return render(request, "kanal_form.html", user, ch=None, linked=_linked(user.id), platforms=social.PLATFORMS,
                       tpl=tpl, tpl_name=t.name if t else "", **_cast_ctx(user.id, []))

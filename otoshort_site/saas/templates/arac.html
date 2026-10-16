@@ -1,0 +1,43 @@
+{# Ücretsiz kanca üretici (tool="kanca") ve başlık/hashtag üretici (tool="baslik") #}
+{% extends "base.html" %}
+{% set kanca = tool == 'kanca' %}
+{% set name = _('Ücretsiz Kanca Üretici') if kanca else _('Ücretsiz Başlık ve Hashtag Üretici') %}
+{% set desc = _('Videonun konusunu yaz; ilk 2 saniyede izleyiciyi durduracak 10 farklı açılış cümlesi gelsin. Kayıt gerekmez.') if kanca else _('Videonun konusunu yaz; 5 başlık, yorum getiren bir açıklama ve 10 hashtag gelsin. Kayıt gerekmez.') %}
+{% block title %}{{ name }} · {{ site }}{% endblock %}
+{% block og %}<meta property="og:title" content="{{ name }} · {{ site }}">
+<meta property="og:description" content="{{ desc }}">{% endblock %}
+{% block content %}
+<section class="tool-sec"><div class="wrap narrow">
+  <div class="sec-head reveal"><a class="eyebrow" href="{{ L('/araclar') }}">{{ _('Ücretsiz araç') }}</a>
+    <h1 class="fb-h">{% if kanca %}{{ _h('İlk <span class="hl">2 saniyede</span> yakala.') }}{% else %}{{ _h('Başlığı, açıklaması, <span class="hl">hashtag’i</span> hazır.') }}{% endif %}</h1>
+    <p class="lead">{{ desc }}</p></div>
+  <div class="card card-lg tool-card reveal" data-gtool="{{ '/api/kancalar' if kanca else '/api/basliklar' }}" data-copied="{{ _('Kopyalandı') }}">
+    <form class="tool-form" data-gtool-form>
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="language" value="{{ lang }}">
+      <input class="input" name="topic" maxlength="160" required data-gtool-topic placeholder="{{ _('Örn: Kedimin sabah 5 alarmı, uzayda yemek, ilk iş günüm…') }}" aria-label="{{ _('Videonun konusu') }}">
+      <button type="submit" class="btn btn-primary" data-gtool-go>{{ icon('wand', 16) }} {{ _('Kanca yaz') if kanca else _('Başlık yaz') }}</button>
+    </form>
+    <div class="ideas tool-topics">{% for t in [_('Kedimin sabah alarmı'), _('Uzayda bir gün'), _('Mutfak kazası'), _('İlk iş günüm'), _('Tarihten ilginç bir an')] %}<button type="button" data-gtool-pick="{{ t }}">{{ icon('sparkles', 13) }} {{ t }}</button>{% endfor %}</div>
+    <p class="trial-err" data-gtool-err hidden></p>
+    <div class="ktool-out" data-gtool-out hidden aria-live="polite">
+      {% if kanca %}
+      <div class="ko-block"><small>{{ _('10 açılış kancası') }}</small><ol class="hook-list" data-go-hooks data-make="{{ _('Bununla video üret') }}" data-copy-label="{{ _('Kopyala') }}"></ol></div>
+      <p class="tiny faint">{{ icon('info', 13) }} {{ _('Kancayı videonun ilk cümlesi yap ya da ekrana yaz. Zaply’de “Açılış kancası” açıkken yapay zekâ bunu kendisi ekler.') }}</p>
+      {% else %}
+      <div class="ko-block"><small>{{ _('Başlık önerileri') }}</small><ol class="hook-list" data-go-titles data-copy-label="{{ _('Kopyala') }}"></ol></div>
+      <div class="ko-block"><small>{{ _('Açıklama') }}</small><div class="copy-box"><span id="go-cap" data-go-caption></span><button type="button" class="btn btn-ghost btn-sm" data-copy="go-cap" data-label="{{ _('Kopyalandı') }}">{{ icon('copy', 14) }} {{ _('Kopyala') }}</button></div></div>
+      <div class="ko-block"><small>{{ _('Hashtag') }}</small><div class="copy-box"><span id="go-tags" class="hl-tags" data-go-tags></span><button type="button" class="btn btn-ghost btn-sm" data-copy="go-tags" data-label="{{ _('Kopyalandı') }}">{{ icon('copy', 14) }} {{ _('Kopyala') }}</button></div></div>
+      <a class="btn btn-primary btn-lg btn-block" data-go-start href="{{ L('/kayit') }}">{{ icon('sparkles', 17) }} {{ _('Bu konuyla video üret') }} {{ icon('arrow-right', 16) }}</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="tool-more reveal">
+    <span class="tiny faint">{{ _('Diğer ücretsiz araçlar') }}</span>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      {% if not kanca %}<a class="btn btn-ghost btn-sm" href="{{ L('/araclar/kanca-uretici') }}">{{ icon('zap', 14) }} {{ _('Kanca Üretici') }}</a>{% endif %}
+      {% if kanca %}<a class="btn btn-ghost btn-sm" href="{{ L('/araclar/baslik-uretici') }}">{{ icon('hash', 14) }} {{ _('Başlık ve Hashtag Üretici') }}</a>{% endif %}
+      <a class="btn btn-ghost btn-sm" href="{{ L('/araclar/kanal-kurucu') }}">{{ icon('wand', 14) }} {{ _('Kanal Kurucu') }}</a>
+    </div>
+  </div>
+</div></section>
+{% endblock %}

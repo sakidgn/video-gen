@@ -20,6 +20,7 @@ class Script:
     hashtags: list[str]
     summary: str
     shots: list[str] = field(default_factory=list)  # çok sahneli videoda sahne başına Veo komutu
+    hook: str = ""  # açılış kancası: ilk saniyelerde ekranın üstünde görünen kısa yazı
 
 
 def fit_shots(shots: list[str], fallback: str, n: int) -> list[str]:
@@ -65,7 +66,9 @@ def build_script_request(*, idea: str, characters: str, style: str, language: st
         f"{lang}; strong hook in the first second, punchline at the end"
         + ("; for a multi-shot video a one-paragraph overview of the whole video" if len(clips) > 1 else "") +
         f"), title (max 50 chars, in {lang}, 1-2 emojis), caption (one short line in {lang} with 1-3 emojis, no "
-        "hashtags), hashtags (3-6 words without #), summary (one English sentence).",
+        "hashtags), hashtags (3-6 words without #), summary (one English sentence), hook (on-screen opening text shown "
+        f"during the first 2-3 seconds, in {lang}, max 7 words, no emojis: a curiosity hook that makes viewers stay, "
+        "e.g. a bold claim or an unfinished question; do not spoil the punchline).",
     ]
     if past:
         parts.append("Do NOT repeat these earlier ideas:\n- " + "\n- ".join(past[-30:]))
@@ -144,6 +147,66 @@ def clean_channel(data: dict) -> dict:
     return {"names": strs("names", 3, 30), "bio": str(data.get("bio", "")).strip()[:160],
             "character": str(data.get("character", "")).strip()[:300], "ideas": strs("ideas", 5, 120),
             "times": times, "hashtags": [h.lstrip("#") for h in strs("hashtags", 5, 30)]}
+
+
+# ---------- ücretsiz araçlar: kanca üretici ve başlık/hashtag üretici (yalnızca metin) ----------
+HOOK_TYPES = {  # anahtar: Türkçe etiket (sitede çevrilir)
+    "question": "Soru", "curiosity": "Merak boşluğu", "bold": "Cesur iddia", "list": "Liste",
+    "story": "Hikâye", "warning": "Uyarı", "contrast": "Karşıtlık", "secret": "Sır",
+}
+
+
+def build_hooks_request(topic: str, language: str) -> str:
+    lang = config.LANGUAGES.get(language, language)
+    return "\n".join([
+        f"Write 10 different opening hooks (the first sentence said or shown in the first 2 seconds) for a vertical "
+        f"short video (TikTok/Reels/Shorts) about: {topic.strip()}",
+        f"All text in {lang}. Each hook max 12 words, no hashtags, at most one emoji, no clickbait lies, no real "
+        "people's names, family-friendly. Make the viewer need to see the rest.",
+        f"Use a mix of these types and label each one: {', '.join(HOOK_TYPES)}.",
+        "Return JSON: hooks (array of {type, text}).",
+    ])
+
+
+HOOKS_SCHEMA = {"type": "object", "properties": {"hooks": {"type": "array", "items": {
+    "type": "object", "properties": {"type": {"type": "string"}, "text": {"type": "string"}},
+    "required": ["type", "text"]}}}, "required": ["hooks"]}
+
+
+def clean_hooks(data: dict) -> list[dict]:
+    out = []
+    for h in data.get("hooks") or []:
+        text = str(h.get("text", "")).strip().strip('"')[:140]
+        if text and text not in (x["text"] for x in out):
+            out.append({"type": h.get("type") if h.get("type") in HOOK_TYPES else "curiosity", "text": text})
+    return out[:10]
+
+
+def build_titles_request(topic: str, language: str) -> str:
+    lang = config.LANGUAGES.get(language, language)
+    return "\n".join([
+        f"A creator is posting a vertical short video (TikTok/Reels/Shorts) about: {topic.strip()}",
+        f"All text in {lang}. Family-friendly, no clickbait lies, no real people's names or brands.",
+        "Return JSON: titles (5 different scroll-stopping titles, max 60 chars each, at most one emoji each), "
+        "caption (a 1-2 sentence post description that ends with a question to get comments, 1-2 emojis, no "
+        "hashtags), hashtags (10 words without #: 3 broad popular ones and 7 specific to the topic, lowercase, "
+        "no spaces).",
+    ])
+
+
+TITLES_SCHEMA = {"type": "object", "properties": {
+    "titles": {"type": "array", "items": {"type": "string"}}, "caption": {"type": "string"},
+    "hashtags": {"type": "array", "items": {"type": "string"}}}, "required": ["titles", "caption", "hashtags"]}
+
+
+def clean_titles(data: dict) -> dict:
+    titles = [str(t).strip().strip('"')[:80] for t in data.get("titles") or [] if str(t).strip()]
+    tags = []
+    for h in data.get("hashtags") or []:
+        h = "".join(str(h).lstrip("#").split()).lower()[:30]
+        if h and h not in tags:
+            tags.append(h)
+    return {"titles": titles[:5], "caption": str(data.get("caption", "")).strip()[:300], "hashtags": tags[:10]}
 
 
 # ---------- viral formatlar: mesajlaşma hikâyesi ve itiraf/hikâye ----------
@@ -446,11 +509,11 @@ class RealAI:
             "type": "object",
             "properties": {
                 "video_prompt": {"type": "string"}, "title": {"type": "string"},
-                "caption": {"type": "string"}, "summary": {"type": "string"},
+                "caption": {"type": "string"}, "summary": {"type": "string"}, "hook": {"type": "string"},
                 "hashtags": {"type": "array", "items": {"type": "string"}},
                 **({"shots": {"type": "array", "items": {"type": "string"}}} if len(clips) > 1 else {}),
             },
-            "required": ["video_prompt", "title", "caption", "hashtags", "summary",
+            "required": ["video_prompt", "title", "caption", "hashtags", "summary", "hook",
                          *(["shots"] if len(clips) > 1 else [])],
         }
         resp = self.client.models.generate_content(
@@ -467,6 +530,7 @@ class RealAI:
             hashtags=[h.strip().lstrip("#") for h in data.get("hashtags", []) if h.strip()][:8],
             shots=fit_shots([str(x).strip() for x in data.get("shots") or [] if str(x).strip()],
                             data["video_prompt"].strip(), len(clips)),
+            hook=str(data.get("hook", "")).strip()[:80],
         )
 
     def preview(self, *, idea: str, language: str) -> dict:
@@ -522,6 +586,23 @@ class RealAI:
                                                response_json_schema=CHANNEL_SCHEMA, temperature=1.0),
         )
         return clean_channel(json.loads(resp.text))
+
+    def _text_json(self, prompt: str, schema: dict, temperature: float = 1.0) -> dict:
+        from google.genai import types
+
+        resp = self.client.models.generate_content(
+            model=config.TEXT_MODEL, contents=prompt,
+            config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
+                                               temperature=temperature))
+        return json.loads(resp.text)
+
+    def hooks(self, *, topic: str, language: str) -> list[dict]:
+        """Ücretsiz kanca üretici: konudan 10 farklı türde açılış cümlesi (video üretmez)."""
+        return clean_hooks(self._text_json(build_hooks_request(topic, language), HOOKS_SCHEMA, 1.1))
+
+    def titles(self, *, topic: str, language: str) -> dict:
+        """Ücretsiz başlık üretici: 5 başlık, açıklama ve 10 hashtag (video üretmez)."""
+        return clean_titles(self._text_json(build_titles_request(topic, language), TITLES_SCHEMA, 1.0))
 
     def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
         """Kullanıcıya fikir önerir (ucuz metin modeli; video üretmez)."""
@@ -703,7 +784,8 @@ class FakeAI:
         prompt = f"[sahte] {idea or 'rastgele fikir'} #{n}"
         return Script(video_prompt=prompt, title=f"Deneme videosu {n} 😂",
                       caption="Bu bir deneme 💀", hashtags=["deneme", "shorts"], summary=f"fake idea {n}",
-                      shots=[f"{prompt} · sahne {i + 1}" for i in range(len(clips or [seconds]))])
+                      shots=[f"{prompt} · sahne {i + 1}" for i in range(len(clips or [seconds]))],
+                      hook="Sonunu bekle..." if language == "tr" else "Wait for the ending...")
 
     def preview(self, *, idea: str, language: str) -> dict:
         """Sahte mod: fikirden kalıp senaryo (demo; gerçek sürümde yapay zekâ yazar)."""
@@ -807,6 +889,52 @@ class FakeAI:
                       f"{short} pazartesi sabahına karşı", f"{t} hakkında verilmiş en kötü tavsiye",
                       f"{short} beklenmedik bir rakiple karşılaşıyor"],
             "times": ["12:00", "19:00", "21:30"], "hashtags": [short.lower(), "komik", "shorts", "yapayzeka", "keşfet"]})
+
+    def hooks(self, *, topic: str, language: str) -> list[dict]:
+        """Sahte mod: konudan kalıp kancalar (gerçek sürümde yapay zekâ yazar)."""
+        t = topic.strip().rstrip(".!?") or "Kediler"
+        low = t.lower()
+        if language == "en":
+            rows = [("question", f"Why does nobody talk about this {low} trick?"),
+                    ("curiosity", f"I tried this with {low} and didn't expect the ending"),
+                    ("bold", f"Everything you know about {low} is wrong"),
+                    ("list", f"3 {low} facts that sound fake but aren't"),
+                    ("story", f"It was 3 a.m. when the {low} thing happened…"),
+                    ("warning", f"Don't scroll if you love {low}"),
+                    ("contrast", f"{t}: what you expect vs what you get"),
+                    ("secret", f"The {low} secret pros never tell you"),
+                    ("question", f"Would you survive one day of {low}?"),
+                    ("curiosity", "Watch until the end, it gets weird")]
+        else:
+            rows = [("question", f"{t} hakkında bunu neden kimse söylemiyor?"),
+                    ("curiosity", f"{t} ile bunu denedim, sonunu hiç beklemiyordum"),
+                    ("bold", f"{t} hakkında bildiğin her şey yanlış"),
+                    ("list", f"{t} hakkında uydurma gibi duran 3 gerçek"),
+                    ("story", f"Saat gece 3'tü ve {low} ile ilgili o şey oldu…"),
+                    ("warning", f"{t} seviyorsan sakın geçme"),
+                    ("contrast", f"{t}: beklenti vs gerçek"),
+                    ("secret", f"{t} hakkında kimsenin anlatmadığı sır"),
+                    ("question", f"{t} ile tek bir gün dayanabilir misin?"),
+                    ("curiosity", "Sonuna kadar izle, iş garipleşiyor")]
+        return clean_hooks({"hooks": [{"type": k, "text": x} for k, x in rows]})
+
+    def titles(self, *, topic: str, language: str) -> dict:
+        """Sahte mod: konudan kalıp başlıklar ve hashtag'ler."""
+        t = topic.strip().rstrip(".!?") or "Kediler"
+        tag = "".join(ch for ch in t.lower() if ch.isalnum())[:20] or "video"
+        if language == "en":
+            return clean_titles({"titles": [f"{t} like you've never seen 😳", f"The truth about {t.lower()}",
+                                            f"I can't believe this {t.lower()} moment", f"{t}: wait for it…",
+                                            f"POV: {t.lower()} goes wrong 😂"],
+                                 "caption": f"This {t.lower()} moment got me 😂 Has this ever happened to you?",
+                                 "hashtags": ["fyp", "shorts", "viral", tag, f"{tag}tok", "funny", "relatable",
+                                              "story", "daily", "trend"]})
+        return clean_titles({"titles": [f"Böyle {t.lower()} görmediniz 😳", f"{t} hakkındaki gerçek",
+                                        f"Bu {t.lower()} anına inanamadım", f"{t}: sonunu bekle…",
+                                        f"POV: {t.lower()} ters gidiyor 😂"],
+                             "caption": f"Bu {t.lower()} anı beni bitirdi 😂 Senin de başına geldi mi?",
+                             "hashtags": ["keşfet", "shorts", "viral", tag, f"{tag}tok", "komik", "keşfetteyiz",
+                                          "hikaye", "günlük", "trend"]})
 
     def ideas(self, *, topic: str, language: str, past: list[str], n: int = 4) -> list[str]:
         import random
