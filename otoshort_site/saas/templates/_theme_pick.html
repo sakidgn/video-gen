@@ -1,4 +1,9 @@
-{# Arka plan rengi seçici: JS varsa sayfa yenilenmeden değişir (fx.js), yoksa /tema/ çerezi yazar. theme_labels: adlarıyla büyük sürüm #}
+{# Arka plan rengi seçici: koyu ve açık temalar + Sistem (cihazın ayarını izler). JS varsa sayfa yenilenmeden
+   değişir (fx.js), yoksa /tema/ çerezi yazar. theme_labels: adlarıyla büyük sürüm (Ayarlar sayfası) #}
 <div class="theme-pick {{ 'lg' if theme_labels }}" role="group" aria-label="{{ _('Arka plan rengi') }}">
-  {% for key, (label, color) in themes.items() %}<a href="/tema/{{ key }}?next={{ path|urlencode }}" data-theme-set="{{ key }}" data-color="{{ color }}" class="{{ 'on' if key == theme }}" style="--sw:{{ color }}" title="{{ _(label) }}" aria-label="{{ _(label) }}">{% if theme_labels %}<i></i><span>{{ _(label) }}</span>{% endif %}</a>{% endfor %}
+  {% for mode, mlabel in [('dark', _('Koyu')), ('light', _('Açık')), ('auto', '')] %}
+  <div class="tp-group">{% if mlabel %}<span class="tp-label">{{ mlabel }}</span>{% endif %}
+    {% for key, (label, color, m) in themes.items() if m == mode %}<a href="/tema/{{ key }}?next={{ path|urlencode }}" data-theme-set="{{ key }}" data-color="{{ color }}" class="{{ 'on' if key == theme }} {{ 'tp-auto' if m == 'auto' }}" style="--sw:{{ color }}" title="{{ _(label) }}" aria-label="{{ _(label) }}">{% if theme_labels or m == 'auto' %}<i></i><span>{{ _(label) }}</span>{% endif %}</a>{% endfor %}
+  </div>
+  {% endfor %}
 </div>

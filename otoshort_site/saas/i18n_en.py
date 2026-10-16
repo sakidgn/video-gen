@@ -1091,6 +1091,18 @@ EN = {
     'Kredi ve hareketler': 'Credits and history',
     'YouTube, TikTok, Instagram': 'YouTube, TikTok, Instagram',
     '{n} video': '{n} videos',
+    # Temalar
+    'Açık': 'Light',
+    'Bordo': 'Burgundy',
+    'Buz': 'Ice',
+    'Kahve': 'Coffee',
+    'Kar': 'Snow',
+    'Koyu': 'Dark',
+    'Krem': 'Cream',
+    'Nane': 'Mint',
+    'Petrol': 'Teal',
+    'Pudra': 'Blush',
+    'Sistem': 'System',
     # Seçim ve quiz formatları
     'Sesli ve konuşmalı · 4–60 sn': 'With voice and dialogue · 4–60 s',
     '{q} yapay zekâ': '{q} AI',

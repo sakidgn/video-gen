@@ -2349,3 +2349,14 @@ def test_panel_shows_plan_usage_and_manage_account(client):
     assert f"<b>{cost}</b> / {config.PLANS['pro']['credits']}" in page and "pn-bar" in page and "glow-ring" in page
     hesap = client.get("/hesap").text
     assert "Hesabı yönet" in hesap and 'href="/abonelik"' in hesap and 'action="/hesap/sil"' in hesap
+
+
+def test_light_dark_and_system_themes(client):
+    assert {m for _l, _c, m in config.THEMES.values()} == {"dark", "light", "auto"}
+    for name in ("krem", "sistem", "bordo"):
+        client.get(f"/tema/{name}?next=/")
+        page = client.get("/").text
+        assert f'data-theme="{name}"' in page and f'data-theme-set="{name}"' in page
+    css = client.get("/static/site.css").text
+    assert '[data-theme="kar"],[data-theme="krem"]' in css and "prefers-color-scheme:light" in css
+    assert "rgba(255,246,230" not in css  # koyu temaya özgü mürekkep rengi değişkene bağlı

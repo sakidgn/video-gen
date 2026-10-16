@@ -73,7 +73,7 @@ def constant_keys() -> set[str]:
     keys |= {x for pair in FORMATS.values() for x in pair} | set(BACKGROUNDS.values())
     for p in config.PLANS.values():
         keys |= {p["label"], p["desc"]}
-    keys |= {label for label, _color in config.THEMES.values()}
+    keys |= {label for label, _color, _mode in config.THEMES.values()}
     from .rehberler import texts
 
     keys |= texts()
