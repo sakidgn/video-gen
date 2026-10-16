@@ -1,35 +1,76 @@
 {% extends "app_base.html" %}
 {% block title %}{{ _('Abonelikler') }} · {{ site }}{% endblock %}
 {% block content %}
-<div class="page-head"><div class="t"><span class="eyebrow">{{ _('Abonelik ve kredi') }}</span><h1>{{ _('Abonelikler') }}</h1>
-  <p class="muted" style="margin:0">{% if my_plan %}{{ _h('<b>{plan}</b> aboneliğin <b>{date}</b> tarihine kadar açık.', plan=_(plans[my_plan].label), date=plan_until|tarih) }}{% else %}{{ _('Aboneliğin yok: Ekonomik yapay zekâyı kredi paketiyle kullanabilirsin. Diğerleri abonelikle açılır.') }}{% endif %}</p></div>
-  <a class="btn btn-ghost" href="/kredi">{{ icon('gem', 16) }} {{ _('Kredi paketleri') }}</a></div>
-<div class="cmp swipe-m">
-{% for c in cols %}{% set mine = (my_plan == c.key) %}
-  <div class="card cmp-col reveal {{ 'featured' if c.key == 'pro' }} {{ 'mine' if mine }}" data-delay="{{ loop.index0 }}">
-    {% if mine %}<span class="tag mine-tag">{{ _('MEVCUT PLANIN') }}</span>{% elif c.key == 'pro' %}<span class="tag">{{ _('EN POPÜLER') }}</span>{% endif %}
-    <h3>{{ _(c.label) }}</h3>
-    <p class="tiny faint cmp-desc">{{ _(c.desc) }}</p>
-    <div class="price"><b>{{ c.price }} ₺</b><span>/ {{ _('ay') }}</span></div>
-    {% if not c.key %}
-      <a class="btn btn-ghost btn-block" href="/kredi#kredi-grid">{{ _('Kredi yükle') }}</a>
-    {% else %}
-      <a class="btn {{ 'btn-primary' if c.key == 'pro' else 'btn-ghost' }} btn-block" href="/kredi?plan={{ c.key }}#kredi-grid">{{ _('Aboneliği uzat') if mine else _('Abone ol') }}</a>
-    {% endif %}
-    {% set pc = '%.2f'|format(c.per_credit) %}
-    <ul class="cmp-list">
-      <li class="{{ '' if c.credits else 'no' }}">{{ icon('check' if c.credits else 'x', 15) }}<span>{% if c.credits %}{{ _h('Her ay <b>{n} kredi</b>', n=c.credits) }}{% else %}{{ _('Aylık kredi yüklemesi') }}{% endif %}</span></li>
-      <li>{{ icon('check', 15) }}<span>{{ _('Kredi başı ≈ {x} ₺', x=pc.replace('.', ',') if lang == 'tr' else pc) }}</span></li>
-      {% for qk, q in qualities.items() %}{% set ok = qk in c.quals %}
-      <li class="{{ '' if ok else 'no' }}">{{ icon('check' if ok else 'x', 15) }}<span>{{ _('{q} yapay zekâ', q=_(q.label)) }} <small>{{ q.resolution }}</small></span></li>
-      {% endfor %}
-      <li>{{ icon('check', 15) }}<span>{{ _('Viral formatlar ve viral altyazı') }}</span></li>
-      <li>{{ icon('check', 15) }}<span>{{ _('Otomatik kanal ve otomatik paylaşım') }}</span></li>
-      <li>{{ icon('check', 15) }}<span>{{ _('Karakter kütüphanesi') }}</span></li>
-      <li>{{ icon('check', 15) }}<span>{{ _('Kalan kredi devreder') }}</span></li>
-    </ul>
-  </div>
-{% endfor %}
+<div class="page-head"><div class="t"><span class="eyebrow">{{ _('Abonelik') }}</span><h1>{{ _('Abonelikler') }}</h1>
+  <p class="muted" style="margin:0">{{ _('Her ay kredi + daha güçlü yapay zekâ. Otomatik çekim yok; süre bitince istersen uzatırsın.') }}</p></div>
+  <a class="btn btn-ghost" href="/kredi">{{ icon('gem', 16) }} {{ _('Sadece kredi yükle') }}</a></div>
+
+{% if my_plan %}
+<div class="card cur-plan glow-ring reveal">
+  <span class="icon-box accent">{{ icon('crown', 18) }}</span>
+  <div class="set-txt"><b>{{ _h('<b>{plan}</b> aboneliğin açık', plan=_(plans[my_plan].label)) }}</b>
+    <small>{{ _('{date} tarihine kadar', date=plan_until|tarih) }}{% if refills %} · {{ _('Yıllık: kalan {n} aylık kredi yüklemesi, sıradaki {date}', n=refills, date=next_refill|tarih) }}{% endif %}</small></div>
+  <a class="btn btn-primary btn-sm" href="/abonelik?plan={{ my_plan }}#odeme">{{ _('Uzat') }}</a>
 </div>
-<p class="small faint cmp-note">{{ icon('info', 14) }} {{ _('Otomatik çekim yok: abonelik 30 gün açık kalır, istersen uzatırsın. Ödeme havale/EFT ile, onaylanınca kredilerin hemen yüklenir.') }}</p>
+{% endif %}
+
+<div class="plans-wrap">
+  <input type="radio" name="per" id="per-m" class="per-in" {% if not yearly %}checked{% endif %}>
+  <input type="radio" name="per" id="per-y" class="per-in" {% if yearly %}checked{% endif %}>
+  <div class="per-toggle" role="group" aria-label="{{ _('Ödeme dönemi') }}">
+    <label for="per-m">{{ _('Aylık') }}</label>
+    <label for="per-y">{{ _('Yıllık') }} <span class="per-save">-%{{ save_pct }}</span></label>
+  </div>
+  <div class="cmp swipe-m">
+  {% for c in cols %}{% set mine = (my_plan == c.key) %}
+    <div class="card cmp-col reveal {{ 'featured glow-ring' if c.key == 'pro' }} {{ 'mine' if mine }}" data-delay="{{ loop.index0 }}">
+      {% if mine %}<span class="tag mine-tag">{{ _('MEVCUT PLANIN') }}</span>{% elif c.key == 'pro' %}<span class="tag hot-tag">{{ _('EN POPÜLER') }}</span>{% endif %}
+      <h3>{{ _(c.label) }}</h3>
+      <p class="tiny faint cmp-desc">{{ _(c.desc) }}</p>
+      {% if not c.key %}
+        <div class="price"><b>0 ₺</b><span>/ {{ _('ay') }}</span></div>
+        <p class="price-sub">{{ _('Kullandığın kadar öde') }}</p>
+        <a class="btn btn-ghost btn-block" href="/kredi">{{ _('Kredi yükle') }}</a>
+      {% else %}
+        <div class="pm"><div class="price"><b>{{ c.price }} ₺</b><span>/ {{ _('ay') }}</span></div>
+          <p class="price-sub">{{ _('Yıllıkta ayda {m} ₺ · %{p} kâr', m=c.yearly_month, p=save_pct) }}</p></div>
+        <div class="py"><div class="price"><b>{{ c.yearly_month }} ₺</b><span>/ {{ _('ay') }}</span></div>
+          <p class="price-sub">{{ _('Yıllık ödenir · {t} ₺ · %{p} kâr', t=c.yearly, p=save_pct) }}</p></div>
+        <a class="btn {{ 'btn-primary' if c.key == 'pro' else 'btn-ghost' }} btn-block pm" href="/abonelik?plan={{ c.key }}#odeme">{{ _('Aboneliği uzat') if mine else _('Abone ol') }}</a>
+        <a class="btn {{ 'btn-primary' if c.key == 'pro' else 'btn-ghost' }} btn-block py" href="/abonelik?plan={{ c.key }}&amp;donem=yillik#odeme">{{ _('Yıllık abone ol') }}</a>
+      {% endif %}
+      {% set pc = '%.2f'|format(c.per_credit) %}
+      <ul class="cmp-list">
+        <li class="{{ '' if c.credits else 'no' }}">{{ icon('check' if c.credits else 'x', 15) }}<span>{% if c.credits %}{{ _h('Her ay <b>{n} kredi</b>', n=c.credits) }}{% else %}{{ _('Aylık kredi yüklemesi') }}{% endif %}</span></li>
+        <li>{{ icon('check', 15) }}<span>{{ _('Kredi başı ≈ {x} ₺', x=pc.replace('.', ',') if lang == 'tr' else pc) }}</span></li>
+        {% for qk, q in qualities.items() %}{% set ok = qk in c.quals %}
+        <li class="{{ '' if ok else 'no' }}">{{ icon('check' if ok else 'x', 15) }}<span>{{ _('{q} yapay zekâ', q=_(q.label)) }} <small>{{ q.resolution }}</small></span></li>
+        {% endfor %}
+        <li>{{ icon('check', 15) }}<span>{{ _('Viral formatlar ve viral altyazı') }}</span></li>
+        <li>{{ icon('check', 15) }}<span>{{ _('Otomatik kanal ve otomatik paylaşım') }}</span></li>
+        <li>{{ icon('check', 15) }}<span>{{ _('Karakter kütüphanesi') }}</span></li>
+        <li>{{ icon('check', 15) }}<span>{{ _('Kalan kredi devreder') }}</span></li>
+      </ul>
+    </div>
+  {% endfor %}
+  </div>
+</div>
+
+<form class="card card-lg reveal sub-form" id="odeme" method="post" action="/kredi/bildirim">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <div class="step-title"><span class="n">1</span><h3>{{ _('Plan ve dönem') }}</h3></div>
+  <div class="opts opts-3" style="margin-bottom:12px">
+  {% for k, p in plans.items() %}
+    <label class="opt"><input type="radio" name="package" value="plan:{{ k }}" {% if k == want_plan %}checked{% endif %}>
+      <span class="opt-body"><span class="opt-tick"></span><span class="opt-title">{{ _(p.label) }}</span>
+        <span class="opt-sub">{{ _('{tl} ₺ / ay', tl=p.price) }} · {{ _('yıllık {t} ₺', t=p.price * yearly_months) }}</span>
+        <span class="opt-sub">{{ _('{n} kredi', n=p.credits) }} · {{ _(qualities[p.quality].label) }}</span></span></label>
+  {% endfor %}
+  </div>
+  <div class="seg per-seg">
+    <label class="opt"><input type="radio" name="donem" value="aylik" {% if not yearly %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ _('Aylık') }}</span><span class="opt-sub">{{ _('30 gün') }}</span></span></label>
+    <label class="opt"><input type="radio" name="donem" value="yillik" {% if yearly %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ _('Yıllık') }} <span class="per-save">-%{{ save_pct }}</span></span><span class="opt-sub">{{ _('12 ay · kredi her ay yüklenir') }}</span></span></label>
+  </div>
+  {% include '_havale.html' %}
+</form>
 {% endblock %}

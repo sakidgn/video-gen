@@ -134,6 +134,14 @@ PLANS = {
     "studyo": _plan("studyo", "Stüdyo", 1999, 2300, "standard", "Markalar ve ajanslar için"),
 }
 PLAN_DAYS = 30
+# Yıllık abonelik: 12 ay için bu kadar aylık ücret ödenir (10 → 2 ay bedava); kredi her ay yüklenir
+YEARLY_PAID_MONTHS = int(_env("YILLIK_ODENEN_AY", "10") or 10)
+YEARLY_SAVE_PCT = round((12 - YEARLY_PAID_MONTHS) * 100 / 12)
+
+
+def plan_price(plan: str, yearly: bool = False) -> int:
+    """Planın ödenecek tutarı (TL): aylık ya da 12 aylık toplam."""
+    return PLANS[plan]["price"] * (YEARLY_PAID_MONTHS if yearly else 1)
 FREE_QUALITIES = ("lite",)  # aboneliksiz (kredi paketiyle) kullanılabilen kalite
 
 

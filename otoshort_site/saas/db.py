@@ -60,6 +60,8 @@ NEW_COLUMNS = [
     ("users", "plan", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("users", "plan_until", "DATETIME"),
     ("users", "plan_reminded", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("users", "plan_refills", "INTEGER NOT NULL DEFAULT 0"),
+    ("users", "plan_next_refill", "DATETIME"),
     ("topups", "plan", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("jobs", "seconds", "INTEGER NOT NULL DEFAULT 8"),
     ("channels", "seconds", "INTEGER NOT NULL DEFAULT 8"),

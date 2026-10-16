@@ -375,7 +375,7 @@ def schedule_channels(at: datetime | None = None) -> list[int]:
                     notify(ch.user_id, "{channel}: aboneliğini yenile", "Otomatik kanalın durdu",
                            "<b>{channel}</b> kanalının seçtiği kalite aboneliğinde yok (ya da aboneliğin bitti). "
                            "Aboneliğini yenilediğinde ya da kanalın kalitesini değiştirdiğinde devam eder.",
-                           ("Abonelikler", f"{_site()}/kredi#abonelik"), channel=ch.name)
+                           ("Abonelikler", f"{_site()}/abonelik"), channel=ch.name)
             except IntegrityError:
                 pass  # aynı saat için iş zaten oluşturulmuş
     return created
@@ -390,8 +390,20 @@ def remind_plans() -> None:
     for uid, plan, until in due:
         notify(uid, "{site}: aboneliğin {date} tarihinde bitiyor", "Aboneliğin bitmek üzere",
                "<b>{plan}</b> aboneliğin {date} tarihinde bitiyor. Kesintisiz devam etmek için yenileme havaleni "
-               "bildir; yeni 30 gün kalan günlerinin üstüne eklenir.", ("Aboneliği yenile", f"{_site()}/kredi#abonelik"),
+               "bildir; yeni 30 gün kalan günlerinin üstüne eklenir.", ("Aboneliği yenile", f"{_site()}/abonelik#odeme"),
                plan=config.PLANS[plan]["label"], date=until.astimezone(ZoneInfo(config.TIMEZONE)).strftime("%d.%m.%Y"))
+
+
+def refill_plans() -> None:
+    """Yıllık aboneliklerde zamanı gelen aylık kredileri yükler ve haber verir."""
+    from . import abonelik
+
+    with db.session() as s:
+        done = abonelik.refill(s)
+    for uid, plan, n in done:
+        notify(uid, "{site}: bu ayın {n} kredisi yüklendi 💎", "Aylık kredin yüklendi",
+               "Yıllık <b>{plan}</b> aboneliğinin bu ayki <b>{n} kredisi</b> hesabına yüklendi.",
+               ("Video üret", f"{_site()}/video/yeni"), plan=config.PLANS[plan]["label"], n=n)
 
 
 def recover() -> None:
@@ -418,6 +430,7 @@ class Worker:
     def tick(self) -> None:
         schedule_channels()
         remind_plans()
+        refill_plans()
         self.daily_backup()
         self.publish_tick()
         while True:

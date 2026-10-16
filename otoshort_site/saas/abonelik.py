@@ -1,6 +1,7 @@
 """Abonelikler: Başlangıç / Pro / Stüdyo. Her plan kendi yapay zekâ kademesini (ve altındakileri) açar ve
 her 30 günde plan kredisini yükler. Ödeme havaleyle: kullanıcı bildirir, yönetici onaylayınca plan başlar/uzar.
-Otomatik çekim yok; bitişe 3 gün kala hatırlatma e-postası gider, süre dolunca üst kademeler kapanır."""
+Otomatik çekim yok; bitişe 3 gün kala hatırlatma e-postası gider, süre dolunca üst kademeler kapanır.
+Yıllık plan: 12 ay (10 ay ücreti); ilk ayın kredisi hemen, kalan 11 ayınki her 30 günde bir yüklenir."""
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, update
@@ -41,16 +42,49 @@ def check(s, user_id: int, quality: str) -> None:
         raise PlanRequired(quality)
 
 
-def activate(s, user_id: int, plan: str) -> datetime:
-    """Planı başlatır ya da uzatır (aynı plan: kalan günlerin üstüne 30 gün) ve planın kredisini yükler."""
+def split_plan(value: str) -> tuple[str, bool]:
+    """Ödeme kaydındaki plan: "pro" (aylık) ya da "pro:yillik" → (plan, yıllık mı)."""
+    plan, _, period = (value or "").partition(":")
+    return (plan, period == "yillik") if plan in config.PLANS else ("", False)
+
+
+def activate(s, user_id: int, plan: str, yearly: bool = False) -> datetime:
+    """Planı başlatır ya da uzatır (aynı plan: kalan günlerin üstüne) ve ilk ayın kredisini yükler.
+    Yıllıkta 12 × 30 gün eklenir, kalan 11 ayın kredisi refill() ile her ay yüklenir."""
     user = s.get(User, user_id)
     now = datetime.now(timezone.utc)
     current = _aware(user.plan_until)
-    start = current if user.plan == plan and current and current > now else now
-    until = start + timedelta(days=config.PLAN_DAYS)
-    s.execute(update(User).where(User.id == user_id).values(plan=plan, plan_until=until, plan_reminded=False))
-    credits.add(s, user_id, config.PLANS[plan]["credits"], f"Abonelik: {config.PLANS[plan]['label']}")
+    same = user.plan == plan and current and current > now
+    start = current if same else now
+    until = start + timedelta(days=config.PLAN_DAYS * (12 if yearly else 1))
+    values = {"plan": plan, "plan_until": until, "plan_reminded": False}
+    if yearly:
+        values["plan_refills"] = (user.plan_refills if same else 0) + 11
+        values["plan_next_refill"] = _aware(user.plan_next_refill) if same and user.plan_refills else \
+            now + timedelta(days=config.PLAN_DAYS)
+    elif not same:
+        values["plan_refills"], values["plan_next_refill"] = 0, None
+    s.execute(update(User).where(User.id == user_id).values(**values))
+    credits.add(s, user_id, config.PLANS[plan]["credits"],
+                f"Abonelik: {config.PLANS[plan]['label']}" + (" (yıllık)" if yearly else ""))
     return until
+
+
+def refill(s, at: datetime | None = None) -> list[tuple[int, str, int]]:
+    """Yıllık planlarda zamanı gelen aylık kredileri yükler; (kullanıcı, plan, kredi) listesi döner."""
+    at = at or datetime.now(timezone.utc)
+    out = []
+    for u in s.scalars(select(User).where(User.plan_refills > 0, User.plan_next_refill.is_not(None))):
+        nxt = _aware(u.plan_next_refill)
+        if nxt > at or not active_plan(u, at):
+            continue
+        res = s.execute(update(User).where(User.id == u.id, User.plan_refills == u.plan_refills).values(
+            plan_refills=u.plan_refills - 1, plan_next_refill=nxt + timedelta(days=config.PLAN_DAYS)))
+        if res.rowcount == 1:
+            n = config.PLANS[u.plan]["credits"]
+            credits.add(s, u.id, n, f"Abonelik: {config.PLANS[u.plan]['label']} (yıllık, aylık yükleme)")
+            out.append((u.id, u.plan, n))
+    return out
 
 
 def due_reminders(s, at: datetime | None = None) -> list[tuple[int, str, datetime]]:

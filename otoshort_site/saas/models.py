@@ -28,6 +28,8 @@ class User(Base):
     plan: Mapped[str] = mapped_column(String(20), default="")  # abonelik: baslangic / pro / studyo
     plan_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     plan_reminded: Mapped[bool] = mapped_column(Boolean, default=False)  # bitişe az kala hatırlatıldı
+    plan_refills: Mapped[int] = mapped_column(Integer, default=0)  # yıllık planda kalan aylık kredi yüklemesi
+    plan_next_refill: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     lang: Mapped[str] = mapped_column(String(5), default="tr")  # site ve e-posta dili
     blocked: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici askıya aldı: giriş yapamaz
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

@@ -245,6 +245,8 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(),
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
         theme=current_theme(request), themes=config.THEMES,
+        yearly_save=config.YEARLY_SAVE_PCT,
+        yearly_months=config.YEARLY_PAID_MONTHS,
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
@@ -1170,7 +1172,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def _plan_needed(request: Request, e: "abonelik.PlanRequired"):
         flash(request, "{quality} yapay zekâsı {plan} aboneliğinde. Aboneliğini seçip havaleni bildirince açılır.",
               "warn", quality=i18n.t(config.QUALITIES[e.quality]["label"]), plan=i18n.t(config.PLANS[e.plan]["label"]))
-        return go("/kredi#abonelik")
+        return go("/abonelik")
 
     def _generator(request: Request):
         gen = request.app.state.generator
@@ -1732,6 +1734,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     # --- kredi ---
     @app.get("/kredi", response_class=HTMLResponse)
     def credit_page(request: Request, user: User = Depends(require_user), plan: str = ""):
+        if plan in config.PLANS:  # eski bağlantılar: abonelik ödemesi artık Abonelikler sayfasında
+            return go(f"/abonelik?plan={plan}#odeme")
         with db.session() as s:
             txs = s.scalars(select(CreditTx).where(CreditTx.user_id == user.id).order_by(CreditTx.id.desc())
                             .limit(50)).all()
@@ -1739,8 +1743,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                                .limit(10)).all()
             loyal = growth.loyalty_progress(s, user.id)
         return render(request, "kredi.html", user, txs=txs, topups=topups, iban=config.IBAN,
-                      iban_name=config.IBAN_NAME, loyal=loyal, ref_pct=config.REFERRAL_PCT,
-                      want_plan=plan if plan in config.PLANS else "", plan_until=user.plan_until)
+                      iban_name=config.IBAN_NAME, loyal=loyal, ref_pct=config.REFERRAL_PCT)
 
     promo_limiter = RateLimiter(limit=8, window=600)
 
@@ -1761,14 +1764,20 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return go("/kredi")
 
     @app.get("/abonelik", response_class=HTMLResponse)
-    def plans_page(request: Request, user: User = Depends(require_user)):
-        """Abonelik karşılaştırması: aboneliksiz + planlar yan yana, açılan yapay zekâlar ve kredi başı fiyat."""
+    def plans_page(request: Request, user: User = Depends(require_user), plan: str = "", donem: str = ""):
+        """Abonelik karşılaştırması (aylık/yıllık) + abonelik havale formu. Kredi paketleri ayrı: /kredi."""
         cols = [{"key": "", "label": "Aboneliksiz", "desc": "Kredi paketiyle kullan", "price": 0, "credits": 0,
                  "quals": config.FREE_QUALITIES, "per_credit": config.PACKAGES[0][0] / config.PACKAGES[0][1]}]
         cols += [{"key": k, "label": p["label"], "desc": p["desc"], "price": p["price"], "credits": p["credits"],
                   "quals": config.plan_qualities(k), "per_credit": p["price"] / p["credits"], "quality": p["quality"]}
                  for k, p in config.PLANS.items()]
-        return render(request, "abonelik.html", user, cols=cols, plan_until=user.plan_until)
+        for c in cols[1:]:
+            c["yearly"] = config.plan_price(c["key"], True)
+            c["yearly_month"] = round(c["yearly"] / 12)
+        return render(request, "abonelik.html", user, cols=cols, plan_until=user.plan_until, iban=config.IBAN,
+                      iban_name=config.IBAN_NAME, want_plan=plan if plan in config.PLANS else "pro",
+                      yearly=donem == "yillik", save_pct=config.YEARLY_SAVE_PCT, refills=user.plan_refills,
+                      next_refill=user.plan_next_refill)
 
     @app.get("/ayarlar", response_class=HTMLResponse)
     def settings_page(request: Request, user: User = Depends(require_user)):
@@ -1797,30 +1806,35 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     @app.post("/kredi/bildirim", dependencies=[Depends(check_csrf)])
     def credit_notify(request: Request, user: User = Depends(require_user), package: str = Form(""),
-                      sender_name: str = Form(...), note: str = Form(""), accept: str = Form("")):
-        """Havale bildirimi: "package" kredi paketinin sırası ya da "plan:<anahtar>" (abonelik)."""
+                      donem: str = Form("aylik"), sender_name: str = Form(...), note: str = Form(""),
+                      accept: str = Form("")):
+        """Havale bildirimi: "package" kredi paketinin sırası ya da "plan:<anahtar>" (abonelik; donem=yillik ise
+        12 aylık). Abonelik bildirimleri Abonelikler sayfasından, kredi paketleri Kredi sayfasından gelir."""
+        plan = package.removeprefix("plan:") if package.startswith("plan:") else ""
+        back = "/abonelik#odeme" if plan else "/kredi"
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         if config.SHOWCASE:
-            flash(request, "Demo sürümde ödeme alınmıyor.", "warn")
-            return go("/kredi")
-        plan = package.removeprefix("plan:") if package.startswith("plan:") else ""
+            flash(request, "Bu sürümde ödeme alınmıyor.", "warn")
+            return go(back)
+        yearly = bool(plan) and donem == "yillik"
         valid = plan in config.PLANS if plan else package.isdigit() and int(package) < len(config.PACKAGES)
         if not valid or not sender_name.strip() or not accept:
             flash(request, "Paketi seç, gönderen adını yaz ve sözleşmeyi onayla.", "err")
-            return go("/kredi")
-        tl, cr = (config.PLANS[plan]["price"], config.PLANS[plan]["credits"]) if plan else config.PACKAGES[int(package)]
+            return go(back)
+        tl, cr = ((config.plan_price(plan, yearly), config.PLANS[plan]["credits"]) if plan
+                  else config.PACKAGES[int(package)])
         with db.session() as s:
             pending = s.scalar(select(func.count(TopUp.id)).where(TopUp.user_id == user.id,
                                                                   TopUp.status == "bekliyor"))
             if pending >= 3:
                 flash(request, "Onay bekleyen 3 bildirimin var, onaylanmalarını bekle.", "err")
-                return go("/kredi")
+                return go(back)
             s.add(TopUp(user_id=user.id, amount_tl=tl, credits=cr, sender_name=clean(sender_name, 120),
-                        note=clean(note, 300), plan=plan))
+                        note=clean(note, 300), plan=f"{plan}:yillik" if yearly else plan))
         notify_admins_topup(request, user.email, tl, clean(sender_name, 120))
         flash(request, "Bildirimin alındı. Havale kontrol edilince kredin yüklenecek (genelde birkaç saat).")
-        return go("/kredi")
+        return go(back)
 
     # --- admin ---
     def _daily_stats(s, days: int = 14) -> dict:
@@ -2046,12 +2060,13 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             referrer, ref_amount = None, 0
             plan_until = None
             if action == "onayla":
-                if t.plan in config.PLANS:  # abonelik: planı başlat/uzat, planın kredisini yükle
-                    plan_until = abonelik.activate(s, t.user_id, t.plan)
+                plan_key, yearly = abonelik.split_plan(t.plan)
+                if plan_key:  # abonelik: planı başlat/uzat, ilk ayın kredisini yükle
+                    plan_until = abonelik.activate(s, t.user_id, plan_key, yearly)
                 else:
                     credits.add(s, t.user_id, t.credits, f"Havale ile yükleme ({t.amount_tl} TL)")
                 referrer, ref_amount = growth.first_topup_rewards(s, t.user_id, t.credits)
-            uid, amount_tl, cr, plan = t.user_id, t.amount_tl, t.credits, t.plan
+            uid, amount_tl, cr, plan = t.user_id, t.amount_tl, t.credits, abonelik.split_plan(t.plan)[0]
         if action == "onayla" and plan_until:
             worker.notify(uid, "{site}: {plan} aboneliğin başladı 🚀", "Aboneliğin aktif!",
                           "{tl} ₺ havalen onaylandı. <b>{plan}</b> aboneliğin {date} tarihine kadar açık ve hesabına "

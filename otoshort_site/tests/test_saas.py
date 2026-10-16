@@ -1511,8 +1511,8 @@ def test_showcase_mode_is_safe_for_public_demo(client, monkeypatch):
                                "csrf": csrf(c, "/kayit")})
     assert "verify-bar" not in r.text and balance("admin@x.com") == 300  # doğrulama atlanır, hediye gelir
     assert c.get("/admin").status_code == 404  # yönetici e-postasıyla bile yönetim kapalı
-    assert "ödeme alınmıyor" in c.get("/kredi").text and 'action="/kredi/bildirim"' not in c.get("/kredi").text
-    c.post("/kredi/bildirim", data={"package": 0, "sender_name": "x", "accept": "1", "csrf": csrf(c, "/kredi")})
+    r = c.post("/kredi/bildirim", data={"package": 0, "sender_name": "x", "accept": "1", "csrf": csrf(c, "/kredi")})
+    assert "Bu sürümde ödeme alınmıyor." in r.text  # form görünür ama bildirim kaydedilmez
     from saas.models import TopUp
 
     with db.session() as s:
@@ -1991,7 +1991,7 @@ def test_subscriptions_unlock_ai_tiers_and_renewal(client, tmp_path, monkeypatch
     page = client.get("/video/yeni").text
     assert re.search(r'value="fast"[^>]*disabled', page) and "Pro aboneliğiyle" in page
     r = client.post("/video/yeni", data={"idea": "x", "quality": "fast", "csrf": t}, follow_redirects=False)
-    assert r.headers["location"] == "/kredi#abonelik" and balance("a@b.com") == 500  # kredi düşmedi
+    assert r.headers["location"] == "/abonelik" and balance("a@b.com") == 500  # kredi düşmedi
     client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": t})  # Ekonomik aboneliksiz açık
     assert balance("a@b.com") == 500 - config.price("lite", 8)
     # abonelik havalesi → yönetici onayı → plan açılır, planın kredisi yüklenir
@@ -2010,7 +2010,7 @@ def test_subscriptions_unlock_ai_tiers_and_renewal(client, tmp_path, monkeypatch
     r = client.post("/video/yeni", data={"idea": "y", "quality": "fast", "csrf": t}, follow_redirects=False)
     assert r.headers["location"].startswith("/video/")
     r = client.post("/video/yeni", data={"idea": "z", "quality": "standard", "csrf": t}, follow_redirects=False)
-    assert r.headers["location"] == "/kredi#abonelik"  # Premium Stüdyo'da
+    assert r.headers["location"] == "/abonelik"  # Premium Stüdyo'da
     # bitişe 3 günden az kala bir kez hatırlatma
     with db.session() as s:
         u = s.scalar(select(User).where(User.email == "a@b.com"))
@@ -2185,7 +2185,7 @@ def test_plans_comparison_page(client):
     signup(client, "cmp@b.com", plan="")
     page = client.get("/abonelik").text
     assert page.count("cmp-col") == 1 + len(config.PLANS)
-    assert "/kredi?plan=pro#kredi-grid" in page and "Aboneliksiz" in page and "Kredi başı ≈ 0,88 ₺" in page
+    assert "/abonelik?plan=pro#odeme" in page and "Aboneliksiz" in page and "Kredi başı ≈ 0,88 ₺" in page
     assert 'class="no"' in page  # aboneliksiz sütunda kapalı yapay zekâlar üstü çizili
     from saas import abonelik
 
@@ -2295,3 +2295,38 @@ def test_horror_facts_top5_true_false_and_flag_formats(client, tmp_path):
     home = client.get("/").text
     assert "data-vf-marquee" in home and home.count("/static/formatlar/secim.mp4") == 2  # 5 kart, iki kopya
     assert home.count('aria-hidden="true" tabindex="-1"') == 5  # ikinci kopya ekran okuyuculardan gizli
+
+
+
+def test_yearly_subscription_monthly_refills(client, tmp_path, monkeypatch):
+    from datetime import timedelta, timezone
+
+    from saas import abonelik
+    from saas.models import TopUp
+
+    signup(client, "y@b.com", plan="")
+    page = client.get("/abonelik?plan=studyo&donem=yillik").text
+    assert 'id="per-y" class="per-in" checked' in page and 'value="plan:studyo" checked' in page
+    assert f"%{config.YEARLY_SAVE_PCT}" in page and "glow-ring" in page and 'action="/kredi/bildirim"' in page
+    kredi = client.get("/kredi").text
+    assert 'value="plan:' not in kredi and 'href="/abonelik"' in kredi  # kredi sayfasında yalnızca paketler
+    assert client.get("/kredi?plan=pro", follow_redirects=False).headers["location"] == "/abonelik?plan=pro#odeme"
+    r = client.post("/kredi/bildirim", data={"package": "plan:pro", "donem": "yillik", "sender_name": "Ali Veli",
+                                              "accept": "1", "csrf": csrf(client, "/abonelik")}, follow_redirects=False)
+    assert r.headers["location"] == "/abonelik#odeme"
+    with db.session() as s:
+        t = s.scalar(select(TopUp))
+        assert (t.plan, t.amount_tl) == ("pro:yillik", config.plan_price("pro", True))
+        uid = s.scalar(select(User.id).where(User.email == "y@b.com"))
+        until = abonelik.activate(s, uid, "pro", yearly=True)
+    assert until - datetime.now(timezone.utc) > timedelta(days=355)
+    assert balance("y@b.com") == config.PLANS["pro"]["credits"]  # ilk ay hemen, gerisi aylık
+    with db.session() as s:
+        assert abonelik.refill(s) == []  # henüz zamanı gelmedi
+        later = datetime.now(timezone.utc) + timedelta(days=31)
+        assert abonelik.refill(s, later) == [(uid, "pro", config.PLANS["pro"]["credits"])]
+        assert abonelik.refill(s, later) == []  # aynı ay iki kez yüklenmez
+        u = s.get(User, uid)
+        assert u.plan_refills == 10
+    assert balance("y@b.com") == 2 * config.PLANS["pro"]["credits"]
+    assert "kalan 10 aylık kredi" in client.get("/abonelik").text

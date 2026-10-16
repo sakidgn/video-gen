@@ -1,0 +1,14 @@
+{# Havale adımları (2: banka bilgisi, 3: bildirim). Kredi ve abonelik formlarında ortak #}
+    <div class="step-title"><span class="n">2</span><h3>{{ _('Havale / EFT yap') }}</h3></div>
+    {% if lang == 'en' %}<p class="hint" style="margin:-4px 0 14px">{{ icon('info', 13) }} {{ _('Ödemeler şimdilik Türkiye’deki bir banka hesabına Türk lirası ile havale olarak alınıyor.') }}</p>{% endif %}
+    <div class="bank">
+      <div class="bl"><div><small>{{ _('Alıcı') }}</small><b id="b-name">{{ iban_name }}</b></div><button type="button" class="icon-btn" data-copy="b-name" aria-label="{{ _('Kopyala') }}">{{ icon('copy', 15) }}</button></div>
+      <div class="bl"><div><small>IBAN</small><b class="iban" id="b-iban">{{ iban }}</b></div><button type="button" class="icon-btn" data-copy="b-iban" aria-label="{{ _('Kopyala') }}">{{ icon('copy', 15) }}</button></div>
+      <div class="bl"><div><small>{{ _('Açıklama (önemli)') }}</small><b id="b-desc">{{ user.email }}</b></div><button type="button" class="icon-btn" data-copy="b-desc" aria-label="{{ _('Kopyala') }}">{{ icon('copy', 15) }}</button></div>
+    </div>
+    <div class="step-title"><span class="n">3</span><h3>{{ _('Havaleyi bildir') }}</h3></div>
+    <div class="field"><label class="label" for="sn">{{ _('Gönderen adı soyadı') }}</label><input class="input" id="sn" name="sender_name" maxlength="120" required placeholder="{{ _('Hesap sahibinin adı') }}"></div>
+    <div class="field"><label class="label" for="nt">{{ _('Not') }} <span class="opt">{{ _('(isteğe bağlı)') }}</span></label><input class="input" id="nt" name="note" maxlength="300"></div>
+    <label class="check" style="margin:20px 0 22px"><input type="checkbox" name="accept" value="1" required><span>{{ _h('<a href="{url}" target="_blank">Mesafeli satış sözleşmesini</a> okudum, kabul ediyorum.', url=L('/yasal/mesafeli')) }}</span></label>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">{{ icon('check', 17) }} {{ _('Havaleyi yaptım, bildir') }}</button>
+    <p class="hint center" style="margin-top:12px">{{ _('Havale kontrol edilince kredin yüklenir (genelde birkaç saat). Kartla ödeme yakında.') }}</p>

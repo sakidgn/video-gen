@@ -1298,3 +1298,38 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 .fp-flag b{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff}
 .fp-flag b.r{background:#ff3b5c;animation:fppop2 2.4s infinite}.fp-flag b.g{background:#22c55e;animation:fppop2 2.4s 1.2s infinite}
 @media(max-width:640px){.fmt-pick{grid-template-columns:repeat(2,minmax(0,1fr))}.fmt-pick .opt-sub{display:none}.fmt-pick .opt-price{font-size:12px;line-height:1.35}.fmt-pick .fmt-prev{height:70px}}
+
+/* ============ Önerilen plan: dönen renkli çerçeve (tüm temalarda aynı renkler) ============ */
+@property --ring{syntax:'<angle>';inherits:false;initial-value:0deg}
+.glow-ring{position:relative;border-color:transparent!important;box-shadow:0 0 0 1px rgba(255,61,139,.15),0 18px 60px -24px rgba(255,61,139,.45)}
+.glow-ring:before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:1;
+  background:conic-gradient(from var(--ring),#ff3d8b,#ff8a00,#ffd23f,#22d3ee,#a855f7,#ff3d8b);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  animation:ringspin 4s linear infinite}
+@keyframes ringspin{to{--ring:360deg}}
+@media(prefers-reduced-motion:reduce){.glow-ring:before{animation:none}}
+.hot-tag{background:linear-gradient(90deg,#ff3d8b,#ff8a00)!important;color:#fff!important;box-shadow:0 6px 18px -6px rgba(255,61,139,.7)}
+.plan-card .tag.hot-tag{position:absolute}
+
+/* ============ Aylık / yıllık geçiş ============ */
+.plans-wrap{position:relative}
+.per-in{position:absolute;opacity:0;pointer-events:none}
+.per-toggle{display:flex;width:max-content;margin:0 auto 26px;padding:5px;gap:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border-2)}
+.per-toggle label{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;border-radius:999px;cursor:pointer;font-weight:700;color:var(--text-2);transition:background .25s,color .25s}
+#per-m:checked~.per-toggle label[for=per-m],#per-y:checked~.per-toggle label[for=per-y],
+#pp-m:checked~.per-toggle label[for=pp-m],#pp-y:checked~.per-toggle label[for=pp-y]{background:linear-gradient(90deg,#ff3d8b,#ff8a00);color:#fff}
+.per-in:focus-visible~.per-toggle{outline:2px solid var(--accent);outline-offset:3px}
+.per-save{font-size:11px;font-weight:800;padding:3px 7px;border-radius:99px;background:rgba(255,210,63,.18);color:#ffd23f}
+#per-m:checked~.per-toggle .per-save,#pp-m:checked~.per-toggle .per-save{background:rgba(34,197,94,.16);color:#4ade80}
+.plans-wrap .py{display:none}
+#per-y:checked~.cmp .py,#pp-y:checked~.plan-cards .py{display:block}
+#per-y:checked~.cmp .pm,#pp-y:checked~.plan-cards .pm{display:none}
+.plans-wrap a.py{display:none}
+#per-y:checked~.cmp a.py,#pp-y:checked~.plan-cards a.py{display:inline-flex}
+.price-sub{margin:4px 0 0;font-size:calc(12.5px * var(--fs));color:var(--text-3)}
+.cur-plan{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.sub-form{margin-top:26px;max-width:900px}
+.per-seg{margin-bottom:6px}
+.sub-cta{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.sub-cta div{display:grid;gap:2px;flex:1}
+.glow-ring>.tag{z-index:2}
