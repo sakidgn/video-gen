@@ -26,7 +26,7 @@
       <label class="opt"><input type="radio" name="package" value="plan:{{ k }}" {% if k == want_plan %}checked{% endif %}>
         <span class="opt-body"><span class="opt-tick"></span><span class="opt-title">{{ _(p.label) }}</span>
           <span style="font-family:var(--display);font-size:24px;font-weight:600">{{ _('{tl} ₺', tl=p.price) }}<small class="faint" style="font-family:var(--font);font-size:12px"> / {{ _('ay') }}</small></span>
-          <span class="opt-sub">{{ _('{n} kredi', n=p.credits) }} · {{ qualities[p.quality].ai }}</span></span></label>
+          <span class="opt-sub">{{ _('{n} kredi', n=p.credits) }} · {{ _(qualities[p.quality].label) }}</span></span></label>
     {% endfor %}
     </div>
     <p class="tiny faint mono" style="margin:0 0 8px">{{ _('EK KREDİ PAKETİ') }}</p>

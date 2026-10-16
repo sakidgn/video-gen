@@ -1,4 +1,4 @@
-{# Video formatı: yapay zekâ videosu (Veo) ya da viral formatlar (mesajlaşma, hikâye, seçim, quiz). ch: düzenlenen kayıt #}
+{# Video formatı: yapay zekâ videosu ya da viral formatlar (mesajlaşma, hikâye, seçim, quiz). ch: düzenlenen kayıt #}
 {% set want_fmt = ch.format if ch and ch.format is defined and ch.format in formats else (start_format or '') %}
 <div class="step-title"><span class="n"></span><h3>{{ _('Format') }}</h3></div>
 <div class="opts fmt-pick" data-fmt-pick>

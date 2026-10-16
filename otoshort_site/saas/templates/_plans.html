@@ -5,7 +5,7 @@
     {% if k == 'pro' %}<span class="tag">{{ _('EN POPÜLER') }}</span>{% endif %}
     <div class="pc-top"><span class="icon-box {{ 'accent' if k == 'pro' }}">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[p.quality], 18) }}</span>
       <div><h3>{{ _(p.label) }}</h3><div class="tiny faint">{{ _(p.desc) }}</div></div></div>
-    <div class="pc-ai"><small>{{ _('Yapay zekâ') }}</small><b>{{ q.ai }}</b><span>{{ _(q.label) }} · {{ q.resolution }}</span></div>
+    <div class="pc-ai"><small>{{ _('Yapay zekâ') }}</small><b>{{ _(q.label) }}</b><span>{{ q.resolution }}</span></div>
     <div class="price"><b>{{ p.price }} ₺</b><span>/ {{ _('ay') }}</span></div>
     <ul>
       <li>{{ icon('check', 15) }} {{ _h('Her ay <b>{n} kredi</b>', n=p.credits) }}</li>

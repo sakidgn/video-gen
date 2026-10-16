@@ -21,7 +21,7 @@
       <li class="{{ '' if c.credits else 'no' }}">{{ icon('check' if c.credits else 'x', 15) }}<span>{% if c.credits %}{{ _h('Her ay <b>{n} kredi</b>', n=c.credits) }}{% else %}{{ _('Aylık kredi yüklemesi') }}{% endif %}</span></li>
       <li>{{ icon('check', 15) }}<span>{{ _('Kredi başı ≈ {x} ₺', x=pc.replace('.', ',') if lang == 'tr' else pc) }}</span></li>
       {% for qk, q in qualities.items() %}{% set ok = qk in c.quals %}
-      <li class="{{ '' if ok else 'no' }}">{{ icon('check' if ok else 'x', 15) }}<span>{{ q.ai }} <small>{{ _(q.label) }} · {{ q.resolution }}</small></span></li>
+      <li class="{{ '' if ok else 'no' }}">{{ icon('check' if ok else 'x', 15) }}<span>{{ _('{q} yapay zekâ', q=_(q.label)) }} <small>{{ q.resolution }}</small></span></li>
       {% endfor %}
       <li>{{ icon('check', 15) }}<span>{{ _('Viral formatlar ve viral altyazı') }}</span></li>
       <li>{{ icon('check', 15) }}<span>{{ _('Otomatik kanal ve otomatik paylaşım') }}</span></li>

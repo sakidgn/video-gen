@@ -700,7 +700,6 @@ html.lenis,html.lenis body{height:auto}html.lenis{scroll-behavior:auto}.lenis.le
 .plan-card li{display:flex;gap:9px;align-items:flex-start}.plan-card li .ic{color:var(--accent);flex:none;margin-top:3px}
 @media(max-width:900px){.plan-cards{grid-template-columns:1fr}}
 /* yapay zekâ kademesi: kilitli seçenek, model adı */
-.opt-ai{font-size:calc(11.5px * var(--fs));letter-spacing:.04em;color:var(--accent)}
 .opt.locked{cursor:default}.opt.locked .opt-body{opacity:.55}.opt.locked:hover .opt-body{transform:none}
 .opt-lock{display:inline-flex;align-items:center;gap:5px;margin-top:4px;font-size:calc(12px * var(--fs));font-weight:600;color:var(--text)}
 .opt.locked .opt-body:has(.opt-lock){opacity:.75}

@@ -1053,6 +1053,8 @@ EN = {
     'İki seçenek, geri sayım': 'Two options, countdown',
     'İzleyiciler yorumda tartışır': 'Viewers argue in the comments',
     # Seçim ve quiz formatları
+    'Sesli ve konuşmalı · 4–60 sn': 'With voice and dialogue · 4–60 s',
+    '{q} yapay zekâ': '{q} AI',
     'Blok parkur': 'Block parkour',
     'Karanlık sis': 'Dark fog',
     'Viral formatlar: 9 hazır kalıp': 'Viral formats: 9 ready-made templates',

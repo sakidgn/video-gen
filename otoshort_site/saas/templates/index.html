@@ -63,7 +63,7 @@
       <a class="vf-card" href="{{ '/video/yeni' if user else L('/kayit') }}"{% if copy %} aria-hidden="true" tabindex="-1"{% endif %}>
         <span class="vf-media vf-ai">{% with p=sample %}{% include "_phone_player.html" %}{% endwith %}</span>
         <span class="vf-chip">{{ icon('sparkles', 13) }} {{ _('Yapay zekâ videosu') }}</span>
-        <span class="vf-cap"><b>{{ _('Karakterli, konuşmalı sahne') }}</b><small>{{ _('Google Veo · 4–60 sn') }}</small></span>
+        <span class="vf-cap"><b>{{ _('Karakterli, konuşmalı sahne') }}</b><small>{{ _('Sesli ve konuşmalı · 4–60 sn') }}</small></span>
       </a>
     {% endfor %}
     </div>

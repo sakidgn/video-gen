@@ -3,7 +3,7 @@
     <div class="dt-head"><h3>{{ _('Video başı fiyat') }}</h3><span class="tiny faint">{{ _('1 kredi = 1 ₺ · üretilemezse iade') }}</span></div>
     <div class="dt-scroll"><table class="table">
       <tr><th>{{ _('Yapay zekâ') }}</th><th>{{ _('{s} sn’ye kadar', s=sec.base) }}</th><th>{{ _('Her ek saniye') }}</th><th>20 {{ _('sn') }}</th><th>30 {{ _('sn') }}</th><th>60 {{ _('sn') }}</th></tr>
-      {% for k, q in qualities.items() %}<tr><td><b>{{ _(q.label) }}</b><div class="tiny faint">{{ q.ai }} · {{ q.resolution }}</div></td>
+      {% for k, q in qualities.items() %}<tr><td><b>{{ _(q.label) }}</b><div class="tiny faint">{{ q.resolution }}</div></td>
         <td class="mono">{{ q.credits }}</td><td class="mono">+{{ q.per_sec }}</td><td class="mono">{{ price(k, 20) }}</td><td class="mono">{{ price(k, 30) }}</td><td class="mono">{{ price(k, 60) }}</td></tr>{% endfor %}
     </table></div>
   </div>

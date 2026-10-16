@@ -56,7 +56,7 @@
 {% for k, q in qualities.items() %}{% set locked = k not in my_quals %}
   <label class="opt {{ 'locked' if locked }}"><input type="radio" name="quality" value="{{ k }}" data-label="{{ _(q.label) }}" data-credits="{{ q.credits }}" data-per-sec="{{ q.per_sec }}" {% if locked %}disabled{% elif k == want_q %}checked{% endif %}>
     <span class="opt-body"><span class="opt-tick"></span><span class="icon-box">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[k], 17) }}</span>
-      <span class="opt-title">{{ _(q.label) }}</span><span class="opt-ai">{{ q.ai }}</span><span class="opt-sub">{{ _(q.desc) }}</span>
+      <span class="opt-title">{{ _(q.label) }}</span><span class="opt-sub">{{ _(q.desc) }}</span>
       <span class="opt-price">{{ _('{n} kredi', n=q.credits) }} · {{ _('{s} sn’ye kadar', s=sec.base) }} · {{ q.resolution }}</span>
       {% if locked %}<a class="opt-lock" href="/kredi#abonelik">{{ icon('lock', 12) }} {{ _('{plan} aboneliğiyle', plan=_(plans[plan_for(k)].label)) }}</a>{% endif %}</span></label>
 {% endfor %}
