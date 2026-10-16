@@ -42,17 +42,19 @@
 <section class="vf-sec" id="formatlar"><div class="wrap">
   <div class="sec-head reveal"><span class="eyebrow">{{ _('Şu an viral olan formatlar') }}</span>
     <h2>{{ _h('Tek tıkla <span class="hl">viral format.</span>') }}</h2>
-    <p class="lead">{{ _('Mesajlaşma hikâyeleri, itiraflar ve yapay zekâ videoları. Konuyu sen yaz; metin, ses ve video otomatik.') }}</p></div>
+    <p class="lead">{{ _('Mesajlaşma hikâyeleri, itiraflar, “Hangisini seçerdin?” oyunları, quizler ve yapay zekâ videoları. Konuyu sen yaz; metin, ses ve video otomatik.') }}</p></div>
   <div class="vf-row swipe-m">
     {% for k, ic, cap, sub in [('sohbet', 'mail', _('Yazışmayı yapay zekâ yazar'), _('İki farklı sesle okunur · {n} kredi', n=format_credits)),
-                              ('hikaye', 'film', _('Gönderi kartı + kelime kelime altyazı'), _('Seslendirmeli hikâye · {n} kredi', n=format_credits))] %}
+                              ('hikaye', 'film', _('Gönderi kartı + kelime kelime altyazı'), _('Seslendirmeli hikâye · {n} kredi', n=format_credits)),
+                              ('secim', 'zap', _('İzleyici yoruma cevabını yazar'), _('İki seçenek, geri sayım · {n} kredi', n=format_credits)),
+                              ('quiz', 'brain', _('Soru, şıklar, geri sayım, cevap'), _('Konuyu sen seç · {n} kredi', n=format_credits))] %}
     <a class="vf-card reveal" data-delay="{{ loop.index0 }}" href="{{ ('/video/yeni?format=' ~ k) if user else (L('/kayit') ~ '?format=' ~ k) }}">
       <video class="vf-media" muted loop playsinline preload="none" poster="{{ S('/static/formatlar/' ~ k ~ '.jpg') }}" data-vf="{{ S('/static/formatlar/' ~ k ~ '.mp4') }}" aria-hidden="true"></video>
       <span class="vf-chip">{{ icon(ic, 13) }} {{ _(formats[k][0]) }}</span>
       <span class="vf-cap"><b>{{ cap }}</b><small>{{ sub }}</small></span>
     </a>
     {% endfor %}
-    <a class="vf-card reveal" data-delay="2" href="{{ '/video/yeni' if user else L('/kayit') }}">
+    <a class="vf-card reveal" data-delay="4" href="{{ '/video/yeni' if user else L('/kayit') }}">
       <span class="vf-media vf-ai">{% with p=sample %}{% include "_phone_player.html" %}{% endwith %}</span>
       <span class="vf-chip">{{ icon('sparkles', 13) }} {{ _('Yapay zekâ videosu') }}</span>
       <span class="vf-cap"><b>{{ _('Karakterli, konuşmalı sahne') }}</b><small>{{ _('Google Veo · 4–60 sn') }}</small></span>

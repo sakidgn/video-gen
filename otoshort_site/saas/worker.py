@@ -200,6 +200,32 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             total = times[-1][1] + 1.2
             ass = formatlar.chat_ass(msgs, times, data["contact"], total)
             lines = [("> " if m["me"] else "< ") + m["text"] for m in msgs]
+        elif kind in ("secim", "quiz"):
+            w, voice = formatlar.words(language), ai_mod.VOICES[data["voice"]][0]
+            if kind == "secim":
+                rounds = data["rounds"][:10]
+                if not rounds:
+                    raise RuntimeError("Seçenekler yazılamadı")
+                texts = [w["wyr_say"], *(f"{r['a']}, {w['or_word']} {r['b']}?" for r in rounds)]
+                gaps = [0.4] + [formatlar.THINK] * len(rounds)
+                lines = [f"{r['a']} / {r['b']}" for r in rounds]
+            else:
+                qs = data["questions"][:8]
+                if not qs:
+                    raise RuntimeError("Quiz soruları yazılamadı")
+                texts, gaps = [f"{w['quiz_say']} {data['topic']}".strip()], [0.4]
+                for q in qs:
+                    texts += [q["q"] + " " + " ".join(f"{k}: {o}." for k, o in zip("ABC", q["options"])),
+                              f"{w['answer']}: {q['options'][q['answer']]}!"]
+                    gaps += [formatlar.THINK, 0.9]
+                lines = [f"{q['q']} → {q['options'][q['answer']]}" for q in qs]
+            texts.append(f"{w['score' if kind == 'quiz' else 'pick']} {w['comment']}")
+            gaps.append(0.0)
+            parts = [generator.speak(text=t, voice=voice, out=tmp / f"q{i}.wav") for i, t in enumerate(texts)]
+            times = formatlar.join_audio(parts, gaps, 0.4, 1.2, tmp / "ses.wav")
+            total = times[-1][1] + 1.2
+            ass = (formatlar.wyr_ass(rounds, times, total, language) if kind == "secim"
+                   else formatlar.quiz_ass(data["topic"], qs, times, total, language))
         else:
             sents = data["sentences"][:30] or [idea or "..."]
             voice = ai_mod.VOICES[data["voice"]][0]

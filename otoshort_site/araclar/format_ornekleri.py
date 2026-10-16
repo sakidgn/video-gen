@@ -1,4 +1,5 @@
-"""Ana sayfadaki "Viral formatlar" kartlarının örnek videolarını üretir (sitenin kendi format motoruyla).
+"""Ana sayfadaki "Viral formatlar" kartlarının örnek videolarını üretir (sitenin kendi format motoruyla):
+mesajlaşma, itiraf, "Hangisini seçerdin?" ve "Bil bakalım".
 Ses yok (kartlar sessiz oynar); süreler kelime sayısına göre. Çıktı: saas/static/formatlar/{ad}[-en].mp4 + .jpg
 
     python araclar/format_ornekleri.py
@@ -40,6 +41,20 @@ STORY = {
         "One day I left a tiny note under the lid: I see you.",
         "The next morning someone had written back: I see you too.",
         "The problem is, I live alone."]),
+}
+
+
+SECIM = {
+    "tr": [("Her sabah 5'te uyanmak", "Her gece 3'te uyumak"), ("Bir yıl internetsiz", "Bir yıl tatlısız"),
+           ("Bütün dilleri konuşmak", "Bütün hayvanlarla konuşmak")],
+    "en": [("Wake up at 5 am every day", "Go to bed at 3 am every night"), ("A year without internet",
+           "A year without dessert"), ("Speak every language", "Talk to every animal")],
+}
+QUIZ = {
+    "tr": ("Genel kültür", [("Dünyanın en büyük okyanusu hangisi?", ["Atlas Okyanusu", "Büyük Okyanus", "Hint Okyanusu"], 1),
+                            ("Güneş sistemindeki en büyük gezegen hangisi?", ["Jüpiter", "Satürn", "Neptün"], 0)]),
+    "en": ("General knowledge", [("What is the largest ocean on Earth?", ["Atlantic Ocean", "Pacific Ocean", "Indian Ocean"], 1),
+                                 ("Which is the largest planet in the solar system?", ["Jupiter", "Saturn", "Neptune"], 0)]),
 }
 
 
@@ -86,6 +101,26 @@ def main() -> None:
             F.render(F.story_ass(sents[0], community, sents, times, total, lang), tmp / "b.wav", total, "piksel",
                      tmp / "story.mp4")
             web(tmp / "story.mp4", f"hikaye{suffix}", fps=16, crf=32)  # piksel desen saniyede 8 kare değişir
+            w = F.words(lang)
+            rounds = [{"a": a, "b": b} for a, b in SECIM[lang]]
+            texts = [w["wyr_say"], *(f"{r['a']}, {w['or_word']} {r['b']}?" for r in rounds), w["pick"]]
+            gaps = [0.4] + [F.THINK] * len(rounds) + [0.0]
+            times = F.join_audio(silent_clips(texts, tmp), gaps, 0.4, 1.2, tmp / "c.wav")
+            total = times[-1][1] + 1.2
+            F.render(F.wyr_ass(rounds, times, total, lang), tmp / "c.wav", total, "pastel", tmp / "wyr.mp4")
+            web(tmp / "wyr.mp4", f"secim{suffix}", poster_at=times[1][1] + 1.6)  # kapakta geri sayım
+            topic, qs = QUIZ[lang]
+            questions = [{"q": q, "options": o, "answer": a} for q, o, a in qs]
+            texts, gaps = [f"{w['quiz_say']} {topic}"], [0.4]
+            for q in questions:
+                texts += [q["q"] + " " + " ".join(q["options"]), f"{w['answer']}: {q['options'][q['answer']]}"]
+                gaps += [F.THINK, 0.9]
+            texts.append(w["score"])
+            gaps.append(0.0)
+            times = F.join_audio(silent_clips(texts, tmp), gaps, 0.4, 1.2, tmp / "d.wav")
+            total = times[-1][1] + 1.2
+            F.render(F.quiz_ass(topic, questions, times, total, lang), tmp / "d.wav", total, "piksel", tmp / "quiz.mp4")
+            web(tmp / "quiz.mp4", f"quiz{suffix}", fps=16, crf=32, poster_at=times[2][0] + 0.8)  # kapakta doğru cevap
     for p in sorted(OUT.iterdir()):
         print(f"{p.name:20s} {p.stat().st_size // 1024} KB")
 

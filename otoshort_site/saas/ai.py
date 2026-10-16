@@ -212,8 +212,78 @@ STORY_SCHEMA = {
 }
 
 
+FORMAT_RETURN_TAIL = ("title (max 50 chars, 1-2 emojis), hashtags (3-6 words without #), "
+                      "summary (one English sentence).")
+
+
+def build_wyr_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+    lang = config.LANGUAGES.get(language, language)
+    n = max(3, min(8, round(seconds / 6.5)))
+    parts = [
+        f"Write a viral 'Would you rather' game for a {seconds}-second vertical video (TikTok/Reels/Shorts). Each "
+        "round shows two options on a split screen, a narrator reads them, then viewers get 3 seconds to pick.",
+        f"Theme from the user: {idea.strip()}" if idea.strip() else "Pick a fun, relatable theme.",
+        f"All text in {lang}. Exactly {n} rounds. Each option max 60 characters, concrete and vivid, written so it "
+        "completes 'Would you rather...'. Both options equally tempting (or equally painful) so the choice is hard. "
+        "Strong first round, hardest one last. Family-friendly: no violence, sexual content, real people or brands.",
+        f"Return JSON (text in {lang}): voice (female or male), rounds (array of {{a, b}}), caption (one short line "
+        "asking viewers to comment their picks, 1-3 emojis), " + FORMAT_RETURN_TAIL,
+    ]
+    if past:
+        parts.append("Do NOT repeat these earlier ideas:\n- " + "\n- ".join(past[-20:]))
+    return "\n".join(parts)
+
+
+WYR_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "voice": {"type": "string"},
+        "rounds": {"type": "array", "items": {"type": "object", "properties": {
+            "a": {"type": "string"}, "b": {"type": "string"}}, "required": ["a", "b"]}},
+        "title": {"type": "string"}, "caption": {"type": "string"}, "summary": {"type": "string"},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["rounds", "title", "caption", "hashtags", "summary"],
+}
+
+
+def build_quiz_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+    lang = config.LANGUAGES.get(language, language)
+    n = max(2, min(6, round(seconds / 10)))
+    parts = [
+        f"Write a viral trivia quiz for a {seconds}-second vertical video (TikTok/Reels/Shorts). Each question shows "
+        "three options; a narrator reads it, viewers get 3 seconds to guess, then the right answer is revealed.",
+        f"Topic from the user: {idea.strip()}" if idea.strip() else "Pick a fun general-knowledge topic.",
+        f"All text in {lang}. Exactly {n} questions, from easy to hard. Question max 90 characters, each option max "
+        "32 characters, exactly one correct option. Only well-known facts you are completely sure about; if unsure, "
+        "pick another question. Family-friendly.",
+        f"Return JSON (text in {lang}): topic (max 24 chars), voice (female or male), questions (array of "
+        "{q, options: [3 strings], answer: index 0-2 of the correct option}), caption (one short line asking how "
+        "many they got right, 1-3 emojis), " + FORMAT_RETURN_TAIL,
+    ]
+    if past:
+        parts.append("Do NOT repeat these earlier ideas:\n- " + "\n- ".join(past[-20:]))
+    return "\n".join(parts)
+
+
+QUIZ_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "topic": {"type": "string"}, "voice": {"type": "string"},
+        "questions": {"type": "array", "items": {"type": "object", "properties": {
+            "q": {"type": "string"}, "options": {"type": "array", "items": {"type": "string"}},
+            "answer": {"type": "integer"}}, "required": ["q", "options", "answer"]}},
+        "title": {"type": "string"}, "caption": {"type": "string"}, "summary": {"type": "string"},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["topic", "questions", "title", "caption", "hashtags", "summary"],
+}
+FORMAT_REQUESTS = {"sohbet": (build_chat_request, CHAT_SCHEMA), "hikaye": (build_story_request, STORY_SCHEMA),
+                   "secim": (build_wyr_request, WYR_SCHEMA), "quiz": (build_quiz_request, QUIZ_SCHEMA)}
+
+
 def clean_format(kind: str, data: dict) -> dict:
-    """Yapay zekânın döndürdüğü yazışma/hikâyeyi güvenli sınırlara getirir."""
+    """Yapay zekânın döndürdüğü yazışma/hikâye/seçim/quiz metnini güvenli sınırlara getirir."""
     common = {"title": str(data.get("title", "")).strip()[:120], "caption": str(data.get("caption", "")).strip()[:300],
               "summary": str(data.get("summary", "")).strip()[:300],
               "hashtags": [str(h).strip().lstrip("#")[:30] for h in data.get("hashtags") or [] if str(h).strip()][:8]}
@@ -223,6 +293,26 @@ def clean_format(kind: str, data: dict) -> dict:
                 for m in data.get("messages") or [] if isinstance(m, dict) and str(m.get("text", "")).strip()][:24]
         return {**common, "contact": str(data.get("contact", "")).strip()[:30] or "?", "messages": msgs,
                 "me_voice": voice(data.get("me_voice"), "female"), "contact_voice": voice(data.get("contact_voice"), "male")}
+    if kind == "secim":
+        rounds = [{"a": str(r.get("a", "")).strip()[:80], "b": str(r.get("b", "")).strip()[:80]}
+                  for r in data.get("rounds") or [] if isinstance(r, dict)]
+        return {**common, "rounds": [r for r in rounds if r["a"] and r["b"]][:10],
+                "voice": voice(data.get("voice"), "female")}
+    if kind == "quiz":
+        qs = []
+        for q in data.get("questions") or []:
+            if not isinstance(q, dict):
+                continue
+            opts = [str(o).strip()[:48] for o in q.get("options") or [] if str(o).strip()][:3]
+            try:
+                answer = int(q.get("answer"))
+            except (TypeError, ValueError):
+                continue
+            text = str(q.get("q", "")).strip()[:140]
+            if text and len(opts) == 3 and 0 <= answer < 3:
+                qs.append({"q": text, "options": opts, "answer": answer})
+        return {**common, "topic": str(data.get("topic", "")).strip()[:30], "questions": qs[:8],
+                "voice": voice(data.get("voice"), "male")}
     sents = [str(x).strip()[:300] for x in data.get("sentences") or [] if str(x).strip()][:40]
     return {**common, "community": str(data.get("community", "")).strip()[:30] or "?", "sentences": sents,
             "voice": voice(data.get("voice"), "male")}
@@ -304,10 +394,10 @@ class RealAI:
         return clean_preview(json.loads(resp.text))
 
     def write_format(self, *, kind: str, idea: str, language: str, seconds: int, past: list[str]) -> dict:
-        """Viral format metni: "sohbet" (yazışma) ya da "hikaye" (itiraf/hikâye anlatımı)."""
+        """Viral format metni: sohbet (yazışma), hikaye (itiraf), secim (hangisini seçerdin), quiz (bil bakalım)."""
         from google.genai import types
 
-        req, schema = ((build_chat_request, CHAT_SCHEMA) if kind == "sohbet" else (build_story_request, STORY_SCHEMA))
+        req, schema = FORMAT_REQUESTS[kind]
         resp = self.client.models.generate_content(
             model=config.TEXT_MODEL, contents=req(idea, language, seconds, past),
             config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
@@ -562,6 +652,17 @@ class FakeAI:
                 msgs.insert(0, (False, idea[:80] + "?"))
             return clean_format(kind, {**common, "contact": "Ahmet (ev arkadaşı)", "me_voice": "female",
                                        "contact_voice": "male", "messages": [{"me": m, "text": t} for m, t in msgs]})
+        if kind == "secim":
+            rounds = [("Her sabah 5'te uyanmak", "Her gece 3'te uyumak"), ("Uçabilmek ama sadece 1 metre",
+                      "Görünmez olmak ama sadece sen bakmazken"), ("Bir yıl internetsiz", "Bir yıl tatlısız"),
+                      ("Bütün dilleri konuşmak", "Bütün hayvanlarla konuşmak")]
+            return clean_format(kind, {**common, "voice": "female", "rounds": [{"a": a, "b": b} for a, b in rounds]})
+        if kind == "quiz":
+            qs = [("Dünyanın en büyük okyanusu hangisi?", ["Atlas Okyanusu", "Büyük Okyanus", "Hint Okyanusu"], 1),
+                  ("Bir yılda kaç hafta vardır?", ["48", "52", "56"], 1),
+                  ("Güneş sistemindeki en büyük gezegen hangisi?", ["Jüpiter", "Satürn", "Neptün"], 0)]
+            return clean_format(kind, {**common, "topic": idea[:24] or "Genel kültür", "voice": "male",
+                                       "questions": [{"q": q, "options": o, "answer": a} for q, o, a in qs]})
         sents = [idea or "Ev arkadaşım üç aydır benim yoğurdumu yiyordu ve bunu nasıl öğrendiğime inanamayacaksınız",
                  "Her sabah buzdolabını açtığımda yoğurdum biraz daha azalıyordu.",
                  "Bir gün kabın altına küçük bir not yazdım: Seni görüyorum.",

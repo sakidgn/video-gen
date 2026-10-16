@@ -2213,3 +2213,45 @@ def test_guides_public_and_in_app(client):
     signup(client, "guide@b.com")
     one = client.get("/rehberler/otomatik-kanal").text
     assert 'class="side' in one and 'href="/kanallar/yeni"' in one  # girişliyken panel düzeninde, buton doğrudan
+
+
+def test_would_you_rather_and_quiz_formats(client, tmp_path):
+    import subprocess
+
+    import imageio_ffmpeg
+
+    from saas import formatlar
+
+    signup(client, "q@b.com", plan="")
+    give("q@b.com", 100)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni?format=quiz").text
+    assert re.search(r'name="format" value="quiz"[^>]*checked', page) and "fp-wyr" in page and "fp-quiz" in page
+    client.post("/video/yeni", data={"idea": "", "format": "secim", "background": "pastel", "csrf": t})
+    client.post("/video/yeni", data={"idea": "Uzay", "format": "quiz", "background": "piksel", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        wyr, quiz = s.scalars(select(Job).order_by(Job.id)).all()
+    assert wyr.status == quiz.status == "hazir" and wyr.cost == quiz.cost == config.FORMAT_CREDITS
+    assert " / " in wyr.prompt and "→ Büyük Okyanus" in quiz.prompt  # senaryoda doğru cevaplar kayıtlı
+    for j in (wyr, quiz):
+        r = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-i", str(tmp_path / "videolar" / j.video_file)],
+                           capture_output=True, text=True)
+        assert "1280" in r.stderr and "Audio:" in r.stderr
+    assert "Bil bakalım" in client.get(f"/video/{quiz.id}").text
+    # quiz: doğru şık cevap anında yeşile döner; düşünme süresinde geri sayım ve dolan çubuk
+    qs = [{"q": "Soru?", "options": ["a", "b", "c"], "answer": 2}]
+    times = [(0.4, 1.2), (1.6, 3.0), (6.2, 7.0), (7.9, 9.0)]
+    ass = formatlar.quiz_ass("Konu", qs, times, 10.2, "tr")
+    green = [l for l in ass.splitlines() if formatlar._bgr(formatlar.GREEN) in l]
+    assert len(green) == 1 and green[0].startswith("Dialogue: 0,0:00:06.20")
+    assert "\\clip(80," in ass and ",3}" not in ass and "}3\n" in ass and "BİL BAKALIM · SORU 1/1" in ass
+    ass = formatlar.wyr_ass([{"a": "Uçmak", "b": "Görünmez olmak"}], [(0.4, 1.4), (1.8, 3.5), (6.5, 8.0)], 9.2, "en")
+    assert "WOULD YOU RATHER?" in ass and "}OR" in ass and "Tell us in the\\Ncomments!" in ass
+    # bozuk yapay zekâ çıktısı ayıklanır (yanlış cevap sırası, eksik şık)
+    clean = ai.clean_format("quiz", {"questions": [{"q": "x", "options": ["a", "b"], "answer": 0},
+                                                   {"q": "y", "options": ["a", "b", "c"], "answer": 5},
+                                                   {"q": "z", "options": ["a", "b", "c"], "answer": "1"}]})
+    assert [q["q"] for q in clean["questions"]] == ["z"] and clean["questions"][0]["answer"] == 1
+    home = client.get("/").text
+    assert "/static/formatlar/secim.mp4" in home and "/static/formatlar/quiz.jpg" in home

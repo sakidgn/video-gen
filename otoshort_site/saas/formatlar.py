@@ -1,4 +1,4 @@
-"""Viral formatlar: mesajlaşma hikâyesi ve itiraf/hikâye anlatımı.
+"""Viral formatlar: mesajlaşma hikâyesi, itiraf/hikâye anlatımı, "Hangisini seçerdin?" ve "Bil bakalım" quiz.
 Video modeli kullanılmaz: yapay zekâ metni yazar, seslendirme (TTS) okunur, ffmpeg + libass ile arka plan videosunun
 üstüne sohbet balonları / gönderi kartı ve kelime kelime altyazı çizilir. Bu yüzden ucuz ve hızlıdır."""
 import math
@@ -14,7 +14,32 @@ W, H = 720, 1280
 FORMATS = {  # anahtar: (etiket, açıklama)
     "sohbet": ("Mesajlaşma hikâyesi", "İki kişinin komik/dramatik yazışması, sesli okunur"),
     "hikaye": ("İtiraf / hikâye", "Gönderi kartı + seslendirme + kelime kelime altyazı"),
+    "secim": ("Hangisini seçerdin?", "İki seçenek ve geri sayım; izleyici cevabını yoruma yazar"),
+    "quiz": ("Bil bakalım", "Soru, üç şık, geri sayım ve doğru cevap"),
 }
+THINK = 3.0  # seçim/quiz turlarında izleyiciye düşünme süresi (sn)
+# Videoda çizilen ve seslendirilen kalıp sözler (videonun dilinde; listede olmayan dil İngilizce)
+WORDS = {
+    "tr": {"wyr": "HANGİSİNİ SEÇERDİN?", "wyr_say": "Hangisini seçerdin?", "or": "VEYA", "or_word": "yoksa",
+           "pick": "Sen hangisini seçerdin?", "comment": "Yorumlara yaz!", "quiz": "BİL BAKALIM",
+           "quiz_say": "Bil bakalım!", "q": "SORU", "answer": "Doğru cevap", "score": "Kaç tanesini bildin?"},
+    "en": {"wyr": "WOULD YOU RATHER?", "wyr_say": "Would you rather...", "or": "OR", "or_word": "or",
+           "pick": "Which one would you pick?", "comment": "Tell us in the comments!", "quiz": "QUIZ TIME",
+           "quiz_say": "Quiz time!", "q": "QUESTION", "answer": "The answer is", "score": "How many did you get right?"},
+    "de": {"wyr": "WAS WÜRDEST DU WÄHLEN?", "wyr_say": "Was würdest du wählen?", "or": "ODER", "or_word": "oder",
+           "pick": "Was würdest du wählen?", "comment": "Schreib es in die Kommentare!", "quiz": "QUIZ-ZEIT",
+           "quiz_say": "Quiz-Zeit!", "q": "FRAGE", "answer": "Die Antwort ist", "score": "Wie viele hattest du richtig?"},
+    "es": {"wyr": "¿QUÉ PREFIERES?", "wyr_say": "¿Qué prefieres?", "or": "O", "or_word": "o",
+           "pick": "¿Tú cuál elegirías?", "comment": "¡Cuéntanos en los comentarios!", "quiz": "¡HORA DEL QUIZ!",
+           "quiz_say": "¡Hora del quiz!", "q": "PREGUNTA", "answer": "La respuesta es", "score": "¿Cuántas acertaste?"},
+    "ar": {"wyr": "ماذا تختار؟", "wyr_say": "ماذا تختار؟", "or": "أو", "or_word": "أو", "pick": "أيهما تختار؟",
+           "comment": "اكتب في التعليقات!", "quiz": "اختبر معلوماتك", "quiz_say": "اختبر معلوماتك!", "q": "سؤال",
+           "answer": "الإجابة الصحيحة", "score": "كم إجابة صحيحة عرفت؟"},
+}
+
+
+def words(language: str) -> dict:
+    return WORDS.get(language, WORDS["en"])
 BACKGROUNDS = {  # anahtar: (etiket, ffmpeg lavfi kaynağı ya da None = kütüphanedeki video)
     "girdap": "Sonsuz girdap",
     "piksel": "Piksel evren",
@@ -171,6 +196,121 @@ def story_ass(title: str, community: str, sentences: list[str], times: list[tupl
     return "\n".join(out) + "\n"
 
 
+# ---------- "Hangisini seçerdin?" ve "Bil bakalım" ----------
+YELLOW, RED, BLUE2, GREEN, VIOLET = "#FFD23F", "#FF3B5C", "#2D7BFF", "#22C55E", "#6C5CE7"
+OUTLINE = "\\bord4\\3c&H000000&\\shad0"
+
+
+def _pop(ms: int = 180) -> str:
+    return f"\\fscx82\\fscy82\\t(0,{ms},\\fscx100\\fscy100)"
+
+
+def _bar(a: float, b: float) -> list[str]:
+    """Düşünme süresi çubuğu: a→b arasında soldan sağa dolar."""
+    x0, x1, y, ms = 80, 640, 1196, int((b - a) * 1000)
+    track = rrect(x1 - x0, 16, 8)
+    return [_ev(5, a, b, f"{{\\an7\\pos({x0},{y})\\p1\\c&HFFFFFF&\\1a&HA0&}}{track}"),
+            _ev(6, a, b, f"{{\\an7\\pos({x0},{y})\\p1\\c{_bgr(YELLOW)}\\clip({x0},{y - 4},{x0},{y + 20})"
+                         f"\\t(0,{ms},\\clip({x0},{y - 4},{x1},{y + 20}))}}{track}")]
+
+
+def _countdown(a: float, b: float, x: int, y: int, fs: int = 76, disc: int = 0) -> list[str]:
+    """3, 2, 1… sayıları (her biri kendi saniyesinde büyüyerek belirir). disc: arkasına koyu daire (çap)."""
+    n = max(1, round(b - a))
+    step = (b - a) / n
+    back = [_ev(6, a, b, f"{{\\an7\\pos({x - disc // 2},{y - disc // 2})\\p1\\c&H111111&\\1a&H08&}}"
+                         f"{rrect(disc, disc, disc / 2)}")] if disc else []
+    return back + [_ev(7, a + k * step, a + (k + 1) * step, f"{{\\an5\\pos({x},{y})\\fs{fs}\\b1\\c{_bgr(YELLOW)}{OUTLINE}"
+                                                      f"\\fscx135\\fscy135\\t(0,220,\\fscx100\\fscy100)}}{n - k}")
+            for k in range(n)]
+
+
+def _title_card(a: float, b: float, big: str, small: str) -> list[str]:
+    """Açılış / kapanış kartı: ortada koyu kart, büyük sarı başlık ve altında beyaz yazı."""
+    big_lines, small_lines = wrap(big, 14), wrap(small, 22)
+    h = 100 + len(big_lines) * 104 + len(small_lines) * 70
+    y = (H - h) / 2
+    out = [_ev(0, a, b, f"{{\\an7\\pos(60,{y:.0f})\\p1\\c&H111111&\\1a&H18&\\fad(120,120)}}{rrect(W - 120, h, 40)}"),
+           _ev(1, a, b, f"{{\\an8\\pos({W // 2},{y + 40:.0f})\\fs98\\b1\\c{_bgr(YELLOW)}\\fad(120,120){_pop()}}}"
+                        + "\\N".join(big_lines))]
+    if small_lines:
+        out.append(_ev(1, a, b, f"{{\\an8\\pos({W // 2},{y + 62 + len(big_lines) * 104:.0f})\\fs62\\b1\\c&HFFFFFF&"
+                                f"\\fad(120,120)}}" + "\\N".join(small_lines)))
+    return out
+
+
+def wyr_ass(rounds: list[dict], times: list[tuple[float, float]], total: float, language: str) -> str:
+    """rounds: [{"a", "b"}]; times: açılış, her tur, kapanış seslerinin (başlangıç, bitiş) saniyeleri.
+    Ekran ikiye bölünür (üst kırmızı, alt mavi), ortada VEYA; seçenekler okunduktan sonra 3-2-1 geri sayım."""
+    w = words(language)
+    out = _header()
+    out += _title_card(0, times[1][0] if len(times) > 1 else total, w["wyr"], "")
+    for i, r in enumerate(rounds):
+        start, spoken = times[i + 1]
+        end = times[i + 2][0] if i + 2 < len(times) else total
+        out.append(_ev(0, start, end, f"{{\\an7\\pos(36,150)\\p1\\c{_bgr(RED)}\\1a&H10&}}{rrect(W - 72, 500, 40)}"))
+        out.append(_ev(0, start, end, f"{{\\an7\\pos(36,690)\\p1\\c{_bgr(BLUE2)}\\1a&H10&}}{rrect(W - 72, 500, 40)}"))
+        out.append(_ev(2, start, end, f"{{\\an8\\pos({W // 2},48)\\fs60\\b1\\c&HFFFFFF&{OUTLINE}}}{w['wyr']}"))
+        out.append(_ev(2, start, end, f"{{\\an5\\pos({W // 2},400)\\fs82\\b1\\c&HFFFFFF&{OUTLINE}\\fad(150,0){_pop()}}}"
+                                      + "\\N".join(wrap(r["a"], 17))))
+        out.append(_ev(2, start, end, f"{{\\an5\\pos({W // 2},940)\\fs82\\b1\\c&HFFFFFF&{OUTLINE}\\fad(150,0){_pop()}}}"
+                                      + "\\N".join(wrap(r["b"], 17))))
+        out.append(_ev(3, start, end, f"{{\\an7\\pos({W // 2 - 66},604)\\p1\\c&HFFFFFF&}}{rrect(132, 132, 66)}"))
+        think = min(end, spoken + 0.15)
+        out.append(_ev(4, start, think, f"{{\\an5\\pos({W // 2},670)\\fs46\\b1\\c&H111111&}}{w['or']}"))
+        if end - think > 0.6:
+            out += _countdown(think, end, W // 2, 670, 96)
+            out += _bar(think, end)
+    if len(times) > len(rounds) + 1:
+        out += _title_card(times[-1][0], total, w["pick"], w["comment"])
+    return "\n".join(out) + "\n"
+
+
+def quiz_ass(topic: str, questions: list[dict], times: list[tuple[float, float]], total: float, language: str) -> str:
+    """questions: [{"q", "options": [3], "answer": 0-2}]; times: açılış, her soru için (soru, cevap), kapanış.
+    Soru kartı ve şıklar görünür, okunduktan sonra geri sayım, sonra doğru şık yeşile döner."""
+    w = words(language)
+    out = _header()
+    out += _title_card(0, times[1][0] if len(times) > 1 else total, w["quiz"], topic)
+    n = len(questions)
+    for i, q in enumerate(questions):
+        start, spoken = times[1 + 2 * i]
+        reveal = times[2 + 2 * i][0] if 2 + 2 * i < len(times) else total
+        end = times[3 + 2 * i][0] if 3 + 2 * i < len(times) else total
+        out.append(_ev(2, start, end, f"{{\\an8\\pos({W // 2},62)\\fs50\\b1\\c{_bgr(YELLOW)}{OUTLINE}}}"
+                                      f"{w['quiz']} · {w['q']} {i + 1}/{n}"))
+        q_lines = wrap(q["q"], 24)
+        card_h = 70 + len(q_lines) * 70
+        opt_lines = [wrap(opt, 26) for opt in q["options"]]
+        heights = [108 if len(x) == 1 else 160 for x in opt_lines]
+        # soru kartı + şıklar + geri sayım ekranın ortasında dursun
+        top = max(130, (H - (card_h + 34 + sum(h + 20 for h in heights) + 190)) / 2)
+        out.append(_ev(0, start, end, f"{{\\an7\\pos(40,{top:.0f})\\p1\\c&HFFFFFF&\\fad(120,0)}}{rrect(W - 80, card_h, 32)}"))
+        out.append(_ev(1, start, end, f"{{\\an7\\pos(70,{top + 32:.0f})\\fs62\\b1\\c&H111111&\\fad(120,0)}}"
+                                      + "\\N".join(q_lines)))
+        y = top + card_h + 34
+        for j, (o_lines, bh) in enumerate(zip(opt_lines, heights)):
+            good = j == q["answer"]
+            delay = "\\fad(150,0)"
+            out.append(_ev(0, start, reveal, f"{{\\an7\\pos(40,{y:.0f})\\p1\\c&HFFFFFF&\\1a&H18&{delay}}}{rrect(W - 80, bh, 26)}"))
+            out.append(_ev(0, reveal, end, f"{{\\an7\\pos(40,{y:.0f})\\p1\\c{_bgr(GREEN if good else '#2A2A30')}"
+                                           f"\\1a&H{'00' if good else '18'}&{_pop(160) if good else ''}}}{rrect(W - 80, bh, 26)}"))
+            out.append(_ev(1, start, end, f"{{\\an7\\pos(64,{y + bh / 2 - 28:.0f})\\p1\\c{_bgr(VIOLET)}{delay}}}{rrect(56, 56, 28)}"))
+            out.append(_ev(2, start, end, f"{{\\an5\\pos(92,{y + bh / 2:.0f})\\fs42\\b1\\c&HFFFFFF&{delay}}}{'ABC'[j]}"))
+            out.append(_ev(2, start, reveal, f"{{\\an4\\pos(140,{y + bh / 2:.0f})\\fs50\\b1\\c&H111111&{delay}}}"
+                                             + "\\N".join(o_lines)))
+            out.append(_ev(2, reveal, end, f"{{\\an4\\pos(140,{y + bh / 2:.0f})\\fs50\\b1"
+                                           f"\\c{'&HFFFFFF&' if good else '&H9A9A9A&'}}}" + "\\N".join(o_lines)))
+            y += bh + 20
+        think = min(reveal, spoken + 0.15)
+        if reveal - think > 0.6:
+            out += _countdown(think, reveal, W // 2, round(y + 100), 96, 150)
+            out += _bar(think, reveal)
+    if len(times) > 2 * n + 1:
+        out += _title_card(times[-1][0], total, w["score"], w["comment"])
+    return "\n".join(out) + "\n"
+
+
 # ---------- arka plan ----------
 def _bg_source(kind: str, seconds: float) -> list[str]:
     d = f"{seconds:.2f}"
@@ -221,8 +361,11 @@ def render(ass_text: str, audio: Path, seconds: float, background: str, out: Pat
     return out
 
 
-def join_audio(clips: list[Path], gap: float, lead: float, tail: float, out: Path) -> list[tuple[float, float]]:
-    """Ses parçalarını aralarına sessizlik koyarak birleştirir; her parçanın (başlangıç, bitiş) zamanını döndürür."""
+def join_audio(clips: list[Path], gap: float | list[float], lead: float, tail: float,
+               out: Path) -> list[tuple[float, float]]:
+    """Ses parçalarını aralarına sessizlik koyarak birleştirir; her parçanın (başlangıç, bitiş) zamanını döndürür.
+    gap: her parçadan sonraki sessizlik (tek sayı ya da parça başına liste; ör. quizde düşünme süresi)."""
+    gaps = list(gap) if isinstance(gap, (list, tuple)) else [gap] * len(clips)
     import imageio_ffmpeg
 
     from .media import _probe
@@ -236,10 +379,10 @@ def join_audio(clips: list[Path], gap: float, lead: float, tail: float, out: Pat
             args += ["-i", f"a{i}.wav"]
             dur = _probe(c)[1]
             times.append((t, t + dur))
-            t += dur + gap
+            t += dur + gaps[i]
             parts.append(f"[{i}:a]aresample=44100,aformat=channel_layouts=stereo,"
                          f"adelay={int(times[-1][0] * 1000)}|{int(times[-1][0] * 1000)}[a{i}]")
-        total = t - gap + tail
+        total = t - gaps[-1] + tail
         mix = "".join(f"[a{i}]" for i in range(len(clips)))
         filt = ";".join(parts) + f";{mix}amix=inputs={len(clips)}:normalize=0,apad,atrim=0:{total:.3f}[o]"
         subprocess.run([ff, "-y", "-loglevel", "error", *args, "-filter_complex", filt, "-map", "[o]", "out.wav"],

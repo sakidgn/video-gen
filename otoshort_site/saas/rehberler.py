@@ -44,19 +44,20 @@ GUIDES = [
          ("AI etiketini unutma",
           "Platform kuralları gereği yapay zekâyla üretilen videolar “AI” etiketiyle paylaşılmalıdır."),
      ], "cta": ("/baglantilar", "Hesap bağla")},
-    {"slug": "viral-formatlar", "icon": "message", "min": 2, "title": "Mesajlaşma ve itiraf videoları",
-     "desc": "Video modeli kullanmayan, ucuz ve çok izlenen iki format.",
+    {"slug": "viral-formatlar", "icon": "message", "min": 2, "title": "Viral formatlar: mesajlaşma, itiraf, seçim, quiz",
+     "desc": "Video modeli kullanmayan, ucuz ve çok izlenen dört format.",
      "steps": [
          ("Formatı seç",
-          "Video üret sayfasının üstünden Mesajlaşma hikâyesi ya da İtiraf / hikâye formatını seç."),
+          "Video üret sayfasının üstünden Mesajlaşma hikâyesi, İtiraf / hikâye, Hangisini seçerdin? ya da Bil bakalım "
+          "formatını seç."),
          ("Konuyu yaz",
-          "Örn: “Annem gece 3'te neden çevrimiçi olduğumu soruyor.” Yapay zekâ mesajları ya da hikâyeyi yazar ve "
-          "sesli okur."),
+          "Örn: “Annem gece 3'te neden çevrimiçi olduğumu soruyor” ya da quiz için “Uzay”. Yapay zekâ mesajları, "
+          "hikâyeyi, seçenekleri ya da soruları yazar ve sesli okur."),
          ("Arka planı seç",
           "Hareketli desenlerden birini seç ya da kütüphanendeki bir videoyu arka plan yap."),
          ("Neden işe yarıyor?",
-          "İzleyici sonraki mesajı merak ettiği için videoyu sonuna kadar izler; izlenme süresi uzar, platform "
-          "videoyu daha çok kişiye gösterir."),
+          "İzleyici sonraki mesajı ya da doğru cevabı merak ettiği için videoyu sonuna kadar izler; seçim ve quiz "
+          "videoları yorum da getirir. Platform böyle videoları daha çok kişiye gösterir."),
      ], "cta": ("/video/yeni?format=sohbet", "Formatı dene")},
     {"slug": "karakterler", "icon": "users", "min": 2, "title": "Karakter kütüphanesiyle tutarlı maskot",
      "desc": "Aynı karakteri her videoda aynı görünüşle kullan.",
