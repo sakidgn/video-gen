@@ -39,15 +39,21 @@ rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle a�
 - **Onaylı paylaşım:** otomatik kanalda "Onaylı paylaşım" seçilirse video hazır olunca e-posta gelir, video sayfasında
   "Onayla ve paylaş" denince yüklenir; "Paylaşma" denirse hiçbir yere gitmez.
 
-## Fiyatlar ve hediyeler (bedava kredi yok)
-Video: Ekonomik 39, Standart 75, Premium 290 kredi (1 kredi = 1 ₺; `KREDI_LITE/FAST/STANDARD` ile değişir).
-Paketler: 250 ₺ → 250, 500 ₺ → 525, 1000 ₺ → 1100 kredi. Hediyeler hep ödemeye bağlı, bizden para çıkmaz:
-- **Davet:** arkadaşın ilk yüklemesi onaylanınca yüklemenin %15'i davet edene (`DAVET_ODULU_YUZDE`), %10 fazlası arkadaşa
-  (`DAVET_HEDIYE_YUZDE`).
-- **Erken erişim:** listedeki e-postayla açılan hesap ilk yüklemede %20 fazla kredi alır (`ERKEN_ERISIM_YUZDE`; davet
-  hediyesiyle toplanmaz, büyüğü). Listeye davet eden, arkadaşı ilk yüklemesini yapınca davet ödülünü alır.
-- **Sadakat:** hazır videolara harcanan her 400 kredide 1 Ekonomik video hediye (`SADAKAT_ESIK`).
-Kendini davet etse bile kâr eksiye düşmez (en kötü durumda video başı ~%25 kâr kalır).
+## Abonelikler, süre ve fiyatlar
+- **3 abonelik, 3 yapay zekâ** (30 gün, havaleyle; otomatik çekim yok, bitişe 3 gün kala e-posta):
+  Başlangıç 299 ₺ → 330 kredi/ay, Veo 3.1 Lite · Pro 749 ₺ → 850 kredi, + Veo 3.1 Fast ·
+  Stüdyo 1999 ₺ → 2300 kredi, + Veo 3.1 (1080p). Aboneliği olmayan Ekonomik'i kredi paketiyle kullanır.
+  Kullanıcı /kredi'de planı seçip havaleyi bildirir; yönetim panelinde "… aboneliği" rozetiyle görünür, onaylanınca
+  plan açılır ve kredisi yüklenir. Kalan kredi devreder.
+- **Süre çubuğu** (4–60 sn): 10 sn'ye kadar sabit (Ekonomik 49, Standart 99, Premium 390 kredi), üstü saniye başı
+  (+5 / +10 / +39). Uzun video, Veo'nun 4/6/8 sn'lik sahnelerinin üretilip birleştirilmesiyle yapılır.
+- **Hediyeler bedava değil, ödemeye bağlı:** davet = arkadaşın ilk yüklemesinin %15'i (gelene %10 fazla),
+  erken erişim = ilk yüklemede %20, sadakat = her 400 kredilik videoda 1 Ekonomik video.
+- Hepsi `.env` ile değişir (bkz. `.env.ornek`). Maliyete göre kâr ~%40.
+
+## Fikir ve öneriler
+Sitede /oneri sayfası (alt menü, panel menüsü ve ana sayfa): kullanıcılar ve ziyaretçiler fikir, istek ya da sorun
+yazar. Gelenler yönetim panelinde **Fikir ve öneriler** (/admin/oneriler) altında, yöneticilere e-posta da gider.
 
 ## Gerçek API denemesi (satıştan önce)
 1. `.env.ornek` dosyasını `.env` adıyla kopyala, `GEMINI_API_KEY=` satırına Google AI Studio anahtarını yaz

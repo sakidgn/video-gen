@@ -58,18 +58,88 @@ WORKER_ENABLED = _env("ISCI", "1") != "0"
 # model: "google:<veo modeli>" (ön ek yazılmazsa google) ya da "fal:<fal.ai uç noktası>"; her kademe farklı firma olabilir.
 # MODEL_<KADEME>_ARGS: fal.ai'ye gönderilecek ek JSON (ör. {"duration": "5"}); MODEL_<KADEME>_REF: referans görselli
 # (image-to-video) fal uç noktası. Google Veo 3.1 referans görseli kendisi destekler.
-def _quality(key: str, label: str, model: str, resolution: str, credits: int, desc: str) -> dict:
+def _quality(key: str, label: str, model: str, resolution: str, credits: int, per_sec: int, ai: str,
+             desc: str) -> dict:
     env = key.upper()
+    clips = [int(x) for x in _env(f"MODEL_{env}_SURELER", "4 6 8").split() if x.isdigit()] or [8]
     return {"label": label, "model": _env(f"MODEL_{env}", model), "args": _env(f"MODEL_{env}_ARGS"),
             "ref_model": _env(f"MODEL_{env}_REF"), "resolution": _env(f"MODEL_{env}_COZUNURLUK", resolution),
-            "credits": int(_env(f"KREDI_{env}", str(credits)) or credits), "desc": desc}
+            "credits": int(_env(f"KREDI_{env}", str(credits)) or credits),  # BASE_SECONDS'a kadar sabit fiyat
+            "per_sec": int(_env(f"KREDI_{env}_SANIYE", str(per_sec)) or per_sec),  # üstündeki her saniye
+            "ai": _env(f"MODEL_{env}_AD", ai), "clips": sorted(set(clips)), "desc": desc}
 
 
 QUALITIES = {
-    "lite": _quality("lite", "Ekonomik", "veo-3.1-lite-generate-preview", "720p", 39, "Hızlı ve ucuz, denemeler için"),
-    "fast": _quality("fast", "Standart", "veo-3.1-fast-generate-preview", "720p", 75, "Çoğu kanal için en iyi denge"),
-    "standard": _quality("standard", "Premium", "veo-3.1-generate-preview", "1080p", 290, "En yüksek kalite"),
+    "lite": _quality("lite", "Ekonomik", "veo-3.1-lite-generate-preview", "720p", 49, 5, "Google Veo 3.1 Lite",
+                     "Hızlı ve ucuz, denemeler için"),
+    "fast": _quality("fast", "Standart", "veo-3.1-fast-generate-preview", "720p", 99, 10, "Google Veo 3.1 Fast",
+                     "Çoğu kanal için en iyi denge"),
+    "standard": _quality("standard", "Premium", "veo-3.1-generate-preview", "1080p", 390, 39, "Google Veo 3.1",
+                         "En yüksek kalite, 1080p"),
 }
+# Video süresi: kullanıcı çubukla seçer. BASE_SECONDS'a kadar kalitenin sabit fiyatı, üstü saniye başı.
+# Uzun video birden çok sahnenin (Veo: 4/6/8 sn) üretilip birleştirilmesiyle yapılır.
+MIN_SECONDS = int(_env("SURE_EN_AZ", "4") or 4)
+MAX_SECONDS = int(_env("SURE_EN_COK", "60") or 60)
+BASE_SECONDS = int(_env("SURE_SABIT_FIYAT", "10") or 10)
+DEFAULT_SECONDS = 8
+
+
+def clamp_seconds(value) -> int:
+    try:
+        v = int(value)
+    except (TypeError, ValueError):
+        v = DEFAULT_SECONDS
+    return max(MIN_SECONDS, min(MAX_SECONDS, v))
+
+
+def price(quality: str, seconds: int) -> int:
+    """Videonun kredi fiyatı: BASE_SECONDS'a kadar sabit, üstündeki her saniye kalitenin saniye fiyatı."""
+    q = QUALITIES[quality]
+    return q["credits"] + q["per_sec"] * max(0, clamp_seconds(seconds) - BASE_SECONDS)
+
+
+def plan_clips(quality: str, seconds: int) -> list[int]:
+    """İstenen süreyi en az sahne ve en az fazlalıkla karşılayan sahne süreleri (sonra tam süreye kırpılır)."""
+    from itertools import combinations_with_replacement
+
+    seconds, opts = clamp_seconds(seconds), QUALITIES[quality]["clips"]
+    n = -(-seconds // max(opts))
+    while True:
+        combos = [c for c in combinations_with_replacement(sorted(opts, reverse=True), n) if sum(c) >= seconds]
+        if combos:
+            return list(min(combos, key=lambda c: (sum(c), -c[0])))
+        n += 1
+
+
+# Abonelikler: her plan kendi yapay zekâsını (ve altındakileri) açar, her ay kredisini yükler (30 gün, havale ile).
+# Aboneliği olmayan Ekonomik'i kredi paketiyle kullanabilir.
+def _plan(key: str, label: str, price_tl: int, credits: int, quality: str, desc: str) -> dict:
+    env = key.upper()
+    return {"label": label, "price": int(_env(f"PLAN_{env}_FIYAT", str(price_tl)) or price_tl),
+            "credits": int(_env(f"PLAN_{env}_KREDI", str(credits)) or credits), "quality": quality, "desc": desc}
+
+
+PLANS = {
+    "baslangic": _plan("baslangic", "Başlangıç", 299, 330, "lite", "Yeni başlayan kanallar için"),
+    "pro": _plan("pro", "Pro", 749, 850, "fast", "Her gün video paylaşanlar için"),
+    "studyo": _plan("studyo", "Stüdyo", 1999, 2300, "standard", "Markalar ve ajanslar için"),
+}
+PLAN_DAYS = 30
+FREE_QUALITIES = ("lite",)  # aboneliksiz (kredi paketiyle) kullanılabilen kalite
+
+
+def plan_qualities(plan: str) -> tuple:
+    """Planın açtığı kaliteler: kendi kademesi ve altındakiler."""
+    order = list(QUALITIES)
+    if plan not in PLANS:
+        return FREE_QUALITIES
+    return tuple(dict.fromkeys([*FREE_QUALITIES, *order[:order.index(PLANS[plan]["quality"]) + 1]]))
+
+
+def plan_for_quality(quality: str) -> str:
+    """Bu kaliteyi açan en ucuz plan."""
+    return next((k for k in PLANS if quality in plan_qualities(k)), "")
 FAL_KEY = _env("FAL_KEY")
 # Otomatik paylaşım uygulama anahtarları (YouTube, Google ile girişteki istemciyi kullanır)
 TIKTOK_CLIENT_KEY = _env("TIKTOK_CLIENT_KEY")
@@ -99,9 +169,14 @@ def supports_refs(quality: str) -> bool:
 
 
 DURATION_SECONDS = 8
-# Yönetim panelindeki kâr tahmini için: 8 sn videonun Google fiyatı (USD) ve dolar kuru
+# Yönetim panelindeki kâr tahmini için: 8 sn videonun sağlayıcı fiyatı (USD) ve dolar kuru
 VIDEO_COST_USD = {k: float(_env(f"MALIYET_{k.upper()}", v) or v) for k, v in
                   {"lite": "0.40", "fast": "0.80", "standard": "3.20"}.items()}
+
+
+def cost_usd(quality: str, seconds: int) -> float:
+    """Videonun tahmini sağlayıcı maliyeti: üretilen sahnelerin toplam süresi × saniye fiyatı."""
+    return VIDEO_COST_USD.get(quality, 0) / 8 * sum(plan_clips(quality, seconds))
 USD_TRY = float(_env("DOLAR_KURU", "42") or 42)
 
 # Kredi paketleri: (TL, verilen kredi)

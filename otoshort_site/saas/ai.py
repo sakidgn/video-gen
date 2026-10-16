@@ -2,7 +2,7 @@
 import json
 import subprocess
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import config
@@ -19,22 +19,33 @@ class Script:
     caption: str
     hashtags: list[str]
     summary: str
+    shots: list[str] = field(default_factory=list)  # çok sahneli videoda sahne başına Veo komutu
+
+
+def fit_shots(shots: list[str], fallback: str, n: int) -> list[str]:
+    """Tam n sahne komutu: eksikse son sahne devam ettirilir, fazlası atılır."""
+    shots = shots[:n] or [fallback]
+    while len(shots) < n:
+        shots.append(shots[-1] + " Continue the same scene with the same characters.")
+    return shots
 
 
 RULES = (
-    "Rules: family-friendly comedy, nobody gets seriously hurt; no real people or celebrities; "
-    "no copyrighted or trademarked characters, brands or logos (if the user names one, replace it with an "
-    "original look-alike-free character); no swearing; no on-screen text, subtitles, watermarks, usernames "
-    "or social media interface in the video."
+    "Rules: family-friendly; match the tone the user asks for (funny by default; promotional, educational, "
+    "emotional or calm if the idea calls for it); nobody gets seriously hurt; no real people or celebrities; "
+    "no copyrighted or trademarked characters, brands or logos of others (if the user names one, replace it with "
+    "an original look-alike-free character); the user's own business or product may be named in the dialogue; "
+    "no swearing; no on-screen text, subtitles, watermarks, usernames or social media interface in the video."
 )
 
 
 def build_script_request(*, idea: str, characters: str, style: str, language: str, past: list[str],
-                         has_ref: bool = False) -> str:
+                         has_ref: bool = False, seconds: int = 8, clips: list[int] | None = None) -> str:
     lang = config.LANGUAGES.get(language, language)
     style_desc = config.STYLES.get(style, style)
+    clips = clips or [seconds]
     parts = [
-        f"Write one {config.DURATION_SECONDS}-second vertical (9:16) short video for TikTok/Reels/Shorts.",
+        f"Write one {seconds}-second vertical (9:16) short video for TikTok/Reels/Shorts.",
         f"Visual style: {style_desc}.",
         f"Characters: {characters.strip() or 'invent 1-2 memorable original characters'}.",
         *(["A reference image of the main character is provided to the video model: describe that character "
@@ -42,11 +53,19 @@ def build_script_request(*, idea: str, characters: str, style: str, language: st
         f"Idea from the user: {idea.strip()}" if idea.strip() else "Invent a fresh, funny, surprising idea.",
         f"Spoken dialogue language: {lang}.",
         RULES,
+        *([f"The video model makes at most {max(clips)} seconds at a time, so tell it in {len(clips)} consecutive "
+           f"shots of {', '.join(map(str, clips))} seconds that are joined into one video. Return shots: an array of "
+           f"exactly {len(clips)} detailed English Veo prompts, one per shot, in order. Each shot prompt must be "
+           "self-contained: repeat the full look of every character and the setting word for word so they stay "
+           "identical, continue the story from the previous shot, and include only the dialogue lines (in "
+           f"{lang}) that fit that shot's length. Hook in shot 1, payoff or call-to-action in the last shot."]
+          if len(clips) > 1 else []),
         "Return JSON with: video_prompt (a detailed English prompt for the Veo video model: describe "
         "characters' look, setting, camera, action beat by beat, sound effects and the exact dialogue lines in "
-        f"{lang}; strong hook in the first second, punchline at the end), title (max 50 chars, in {lang}, 1-2 "
-        f"emojis), caption (one short line in {lang} with 1-3 emojis, no hashtags), hashtags (3-6 words without "
-        "#), summary (one English sentence).",
+        f"{lang}; strong hook in the first second, punchline at the end"
+        + ("; for a multi-shot video a one-paragraph overview of the whole video" if len(clips) > 1 else "") +
+        f"), title (max 50 chars, in {lang}, 1-2 emojis), caption (one short line in {lang} with 1-3 emojis, no "
+        "hashtags), hashtags (3-6 words without #), summary (one English sentence).",
     ]
     if past:
         parts.append("Do NOT repeat these earlier ideas:\n- " + "\n- ".join(past[-30:]))
@@ -117,22 +136,26 @@ class RealAI:
             client = genai.Client(http_options=types.HttpOptions(timeout=120_000))
         self.client = client
 
-    def write_script(self, *, idea, characters, style, language, past, has_ref=False) -> Script:
+    def write_script(self, *, idea, characters, style, language, past, has_ref=False, seconds=8,
+                     clips=None) -> Script:
         from google.genai import types
 
+        clips = clips or [seconds]
         schema = {
             "type": "object",
             "properties": {
                 "video_prompt": {"type": "string"}, "title": {"type": "string"},
                 "caption": {"type": "string"}, "summary": {"type": "string"},
                 "hashtags": {"type": "array", "items": {"type": "string"}},
+                **({"shots": {"type": "array", "items": {"type": "string"}}} if len(clips) > 1 else {}),
             },
-            "required": ["video_prompt", "title", "caption", "hashtags", "summary"],
+            "required": ["video_prompt", "title", "caption", "hashtags", "summary",
+                         *(["shots"] if len(clips) > 1 else [])],
         }
         resp = self.client.models.generate_content(
             model=config.TEXT_MODEL,
             contents=build_script_request(idea=idea, characters=characters, style=style, language=language,
-                                          past=past, has_ref=has_ref),
+                                          past=past, has_ref=has_ref, seconds=seconds, clips=clips),
             config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
                                                temperature=1.1),
         )
@@ -141,6 +164,8 @@ class RealAI:
             video_prompt=data["video_prompt"].strip(), title=data["title"].strip()[:120],
             caption=data["caption"].strip(), summary=data["summary"].strip(),
             hashtags=[h.strip().lstrip("#") for h in data.get("hashtags", []) if h.strip()][:8],
+            shots=fit_shots([str(x).strip() for x in data.get("shots") or [] if str(x).strip()],
+                            data["video_prompt"].strip(), len(clips)),
         )
 
     def preview(self, *, idea: str, language: str) -> dict:
@@ -199,18 +224,18 @@ class RealAI:
         return [seg for seg in json.loads(resp.text).get("segments", []) if str(seg.get("text", "")).strip()]
 
     def make_video(self, *, prompt: str, quality: str, out: Path, refs: list[Path] | None = None,
-                   poll_s: int = 10, timeout_s: int = 900) -> Path:
-        """Kalitenin ayarlı sağlayıcısıyla (Google Veo ya da fal.ai) videoyu üretip out'a kaydeder."""
+                   seconds: int = 8, poll_s: int = 10, timeout_s: int = 900) -> Path:
+        """Kalitenin ayarlı sağlayıcısıyla (Google Veo ya da fal.ai) bir sahneyi üretip out'a kaydeder."""
         name, model = config.provider(quality)
         refs = list(refs or [])[:3]
         if name == "fal":
             return FalVideo().make(quality=quality, model=model, prompt=prompt, out=out, refs=refs,
-                                   poll_s=poll_s, timeout_s=timeout_s)
-        return self._veo(model=model, prompt=prompt, quality=quality, out=out, refs=refs, poll_s=poll_s,
-                         timeout_s=timeout_s)
+                                   seconds=seconds, poll_s=poll_s, timeout_s=timeout_s)
+        return self._veo(model=model, prompt=prompt, quality=quality, out=out, refs=refs, seconds=seconds,
+                         poll_s=poll_s, timeout_s=timeout_s)
 
-    def _veo(self, *, model: str, prompt: str, quality: str, out: Path, refs: list[Path], poll_s: int,
-             timeout_s: int) -> Path:
+    def _veo(self, *, model: str, prompt: str, quality: str, out: Path, refs: list[Path], seconds: int,
+             poll_s: int, timeout_s: int) -> Path:
         from google.genai import types
 
         q = config.QUALITIES[quality]
@@ -224,7 +249,7 @@ class RealAI:
             model=model,
             prompt=prompt,
             config=types.GenerateVideosConfig(
-                aspect_ratio="9:16", resolution=q["resolution"], duration_seconds=config.DURATION_SECONDS,
+                aspect_ratio="9:16", resolution=q["resolution"], duration_seconds=seconds,
                 negative_prompt=NEGATIVE, number_of_videos=1, **extra,
             ),
         )
@@ -266,10 +291,10 @@ class FalVideo:
     def _headers(self) -> dict:
         return {"Authorization": f"Key {self.key}", "Content-Type": "application/json"}
 
-    def payload(self, quality: str, prompt: str, refs: list[Path]) -> dict:
+    def payload(self, quality: str, prompt: str, refs: list[Path], seconds: int = 8) -> dict:
         import base64
 
-        data = {"prompt": prompt, "aspect_ratio": "9:16", "duration": str(config.DURATION_SECONDS),
+        data = {"prompt": prompt, "aspect_ratio": "9:16", "duration": str(seconds),
                 "negative_prompt": NEGATIVE, "generate_audio": True}
         if config.QUALITIES[quality]["args"]:
             data.update(json.loads(config.QUALITIES[quality]["args"]))
@@ -277,11 +302,11 @@ class FalVideo:
             data["image_url"] = "data:image/png;base64," + base64.b64encode(refs[0].read_bytes()).decode()
         return data
 
-    def make(self, *, quality: str, model: str, prompt: str, out: Path, refs: list[Path], poll_s: int = 10,
-             timeout_s: int = 900) -> Path:
+    def make(self, *, quality: str, model: str, prompt: str, out: Path, refs: list[Path], seconds: int = 8,
+             poll_s: int = 10, timeout_s: int = 900) -> Path:
         endpoint = config.QUALITIES[quality]["ref_model"] if refs and config.QUALITIES[quality]["ref_model"] else model
         r = self.http.post(f"{self.BASE}/{endpoint}", headers=self._headers(),
-                           json=self.payload(quality, prompt, refs if endpoint != model else []), timeout=60)
+                           json=self.payload(quality, prompt, refs if endpoint != model else [], seconds), timeout=60)
         self._check(r)
         job = r.json()
         start = time.time()
@@ -327,11 +352,14 @@ class FakeAI:
         self.pretty = pretty  # True: karakterli demo klip (~10 sn sürer); False: hızlı test görüntüsü
         self.calls = 0
 
-    def write_script(self, *, idea, characters, style, language, past, has_ref=False) -> Script:
+    def write_script(self, *, idea, characters, style, language, past, has_ref=False, seconds=8,
+                     clips=None) -> Script:
         self.calls += 1
         n = len(past) + 1
-        return Script(video_prompt=f"[sahte] {idea or 'rastgele fikir'} #{n}", title=f"Deneme videosu {n} 😂",
-                      caption="Bu bir deneme 💀", hashtags=["deneme", "shorts"], summary=f"fake idea {n}")
+        prompt = f"[sahte] {idea or 'rastgele fikir'} #{n}"
+        return Script(video_prompt=prompt, title=f"Deneme videosu {n} 😂",
+                      caption="Bu bir deneme 💀", hashtags=["deneme", "shorts"], summary=f"fake idea {n}",
+                      shots=[f"{prompt} · sahne {i + 1}" for i in range(len(clips or [seconds]))])
 
     def preview(self, *, idea: str, language: str) -> dict:
         """Sahte mod: fikirden kalıp senaryo (demo; gerçek sürümde yapay zekâ yazar)."""
@@ -360,17 +388,20 @@ class FakeAI:
         return [{"start": 0.3, "end": 2.6, "text": "Bu son indirim benim!"},
                 {"start": 2.8, "end": 5.4, "text": "Muz bile şahit"}, {"start": 5.6, "end": 7.8, "text": "Kasiyer nerede?!"}]
 
-    def make_video(self, *, prompt: str, quality: str, out: Path, refs=None, **_) -> Path:
+    def make_video(self, *, prompt: str, quality: str, out: Path, refs=None, seconds: int = 8, **_) -> Path:
         self.last_refs = list(refs or [])
+        self.clip_seconds = [*getattr(self, "clip_seconds", []), seconds]
         if self.fail_with:
             raise self.fail_with
         out.parent.mkdir(parents=True, exist_ok=True)
         try:
             import imageio_ffmpeg
 
-            src = _demo_clip_args(prompt) if self.pretty else ["-f", "lavfi", "-i", "testsrc=size=360x640:rate=10:duration=2"]
-            subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", *src,
-                            "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "veryfast", str(out)],
+            src = _demo_clip_args(prompt, seconds) if self.pretty else [
+                "-f", "lavfi", "-i", "testsrc=size=360x640:rate=10:duration=2"]
+            subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error",
+                            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", *src, "-shortest",
+                            "-pix_fmt", "yuv420p", "-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac", str(out)],
                            check=True, timeout=120)
         except Exception:
             out.write_bytes(b"\x00" * 1024)
@@ -383,8 +414,8 @@ DEMO_PALETTES = [  # (arka plan üst, alt, karakter rengi) — sıcak, sinematik
 ]
 
 
-def _demo_clip_args(seed: str) -> list[str]:
-    """Sahte mod için 8 sn'lik demo klip: degrade arka plan, zıplayan gözlü bir karakter.
+def _demo_clip_args(seed: str, seconds: int = 8) -> list[str]:
+    """Sahte mod için demo klip: degrade arka plan, zıplayan gözlü bir karakter.
     Hız için 270x480 / 15 fps çizilip 360x640'a büyütülür."""
     top, bottom, (cr, cg, cb) = DEMO_PALETTES[sum(map(ord, seed)) % len(DEMO_PALETTES)]
     k = 0.75
@@ -407,7 +438,7 @@ def _demo_clip_args(seed: str) -> list[str]:
             e = f"if(lt(hypot((X-{x})/{rx},(Y-{y})/{ry}),1),{val},{e})"
         exprs.append(e)
     return ["-f", "lavfi", "-i", f"gradients=s=270x480:c0={top}:c1={bottom}:x0=0:y0=0:x1=270:y1=480:speed=0.015:"
-            "duration=8:rate=15", "-vf", f"geq=r='{exprs[0]}':g='{exprs[1]}':b='{exprs[2]}',scale=360:640:flags=bicubic"]
+            f"duration={seconds}:rate=15", "-vf", f"geq=r='{exprs[0]}':g='{exprs[1]}':b='{exprs[2]}',scale=360:640:flags=bicubic"]
 
 
 def default_ai():

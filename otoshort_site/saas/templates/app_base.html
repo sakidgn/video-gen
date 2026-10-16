@@ -12,6 +12,7 @@
       <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
     {% endfor %}
     <a class="side-link {{ 'on' if active == '/baglantilar' }}" href="/baglantilar">{% if active == '/baglantilar' %}<span class="side-pill"></span>{% endif %}{{ icon('share', 18) }} {{ _('Bağlantılar') }}</a>
+    <a class="side-link {{ 'on' if active == '/oneri' }}" href="/oneri">{% if active == '/oneri' %}<span class="side-pill"></span>{% endif %}{{ icon('edit', 18) }} {{ _('Fikrini paylaş') }}</a>
     <a class="side-link {{ 'on' if active == '/davet' }}" href="/davet">{% if active == '/davet' %}<span class="side-pill"></span>{% endif %}{{ icon('gift', 18) }} {{ _('Davet et') }}</a>
     <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{% if active == '/hesap' %}<span class="side-pill"></span>{% endif %}{{ icon('user', 18) }} {{ _('Hesabım') }}</a>
     {% set other = 'tr' if lang == 'en' else 'en' %}<a class="side-link" href="/dil/{{ other }}?next={{ path|urlencode }}" lang="{{ other }}">{{ icon('globe', 18) }} {{ langs[other] }}</a>

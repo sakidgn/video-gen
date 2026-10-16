@@ -292,7 +292,11 @@
     const packs = JSON.parse(calc.dataset.packages || '[]'), big = packs[packs.length - 1];
     const fmt = n => n.toLocaleString(locale);
     const upd = () => {
-      const n = +$('[data-calc-range]', calc).value, q = +$('input[name=calc-q]:checked', calc).value, day = n * q;
+      const sr = $('[data-calc-secs]', calc), secs = sr ? +sr.value : 8, base = sr ? +sr.dataset.base : 10;
+      const priceOf = el => +el.value + (+el.dataset.perSec || 0) * Math.max(0, secs - base);
+      $$('input[name=calc-q]', calc).forEach(el => { const c = el.closest('label').querySelector('[data-calc-price]'); if (c) c.textContent = priceOf(el); });
+      if (sr) { $('[data-calc-s-out]', calc).textContent = secs; sr.style.setProperty('--v', ((secs - sr.min) / (sr.max - sr.min) * 100) + '%'); }
+      const n = +$('[data-calc-range]', calc).value, q = priceOf($('input[name=calc-q]:checked', calc)), day = n * q;
       $('[data-calc-n]', calc).textContent = n; $('[data-calc-day]', calc).textContent = fmt(day);
       $('[data-calc-month]', calc).textContent = fmt(day * 30);
       const r = $('[data-calc-range]', calc); r.style.setProperty('--v', ((n - r.min) / (r.max - r.min) * 100) + '%');
@@ -336,12 +340,20 @@
       const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
       if (st) set('#pv-style', st.dataset.label);
       if (lg) { set('#pv-lang', lg.dataset.label); set('#pv-code', lg.value.toUpperCase()); }
-      if (q) { const c = +q.dataset.credits; set('#pv-quality', q.dataset.label); set('#pv-cost', c);
+      const dr = $('[data-dur-range]', studio), dw = $('[data-dur]', studio), secs = dr ? +dr.value : 8;
+      const cost = q ? +q.dataset.credits + (+q.dataset.perSec || 0) * Math.max(0, secs - (dw ? +dw.dataset.base : 10)) : 0;
+      if (dw) { const base = +dw.dataset.base, extra = Math.max(0, secs - base), scenes = Math.ceil(secs / 8);
+        $$('[data-dur-out]').forEach(el => { el.textContent = secs; }); set('[data-dur-price]', cost);
+        dr.style.setProperty('--fill', ((secs - dr.min) * 100 / (dr.max - dr.min)) + '%');
+        let note = extra ? fill(dw.dataset.tplExtra, { base, x: extra, p: q ? q.dataset.perSec : 0 }) : fill(dw.dataset.tplFlat, { base });
+        if (scenes > 1) note += ' · ' + fill(dw.dataset.tplScenes, { n: scenes });
+        set('[data-dur-note]', note); }
+      if (q) { const c = cost; set('#pv-quality', q.dataset.label); set('#pv-cost', c);
         const left = $('#pv-left'); if (left) { left.textContent = bal - c; left.style.color = bal - c < 0 ? 'var(--err)' : ''; }
         const go = $('#pv-go'); if (go) go.disabled = false; }
       const per = $('#pv-per'), times = $('input[name=times]', studio);
       if (per && times && q) { const n = times.value.split(/[\s,]+/).filter(x => /^\d{1,2}:\d{2}$/.test(x)).length;
-        per.textContent = fill(per.dataset.tpl, { n, c: q.dataset.credits, total: n * q.dataset.credits }); }
+        per.textContent = fill(per.dataset.tpl, { n, c: cost, total: n * cost }); }
     };
     studio.addEventListener('change', upd); studio.addEventListener('input', upd); upd();
     // Fikir önerileri (yapay zekânın getirdikleri de dahil: olay yakalama kapsayıcıda)

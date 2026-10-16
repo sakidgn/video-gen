@@ -1,0 +1,25 @@
+{% extends "app_base.html" %}
+{% block title %}Fikir ve öneriler · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="t"><a class="faint small row" href="/admin" style="gap:6px">{{ icon('arrow-left', 15) }} Yönetim paneli</a><h1>Fikir ve öneriler</h1>
+    <p class="muted">Kullanıcılardan ve ziyaretçilerden gelen mesajlar. E-posta varsa cevap verebilirsin.</p></div>
+</div>
+<div class="seg" style="margin-bottom:16px"><a class="pill {{ 'on' if not tur }}" href="/admin/oneriler">Tümü</a>{% for k, v in kinds.items() %}<a class="pill {{ 'on' if tur == k }}" href="/admin/oneriler?tur={{ k }}">{{ v }}</a>{% endfor %}</div>
+{% if items %}
+<div class="fb-list">
+{% for f in items %}
+  <div class="card fb reveal {{ 'new' if f.status == 'yeni' }}">
+    <div class="row between" style="gap:10px;flex-wrap:wrap">
+      <span class="row" style="gap:8px"><span class="badge {{ 'b-wait' if f.status == 'yeni' else 'b-off' }}">{{ kinds.get(f.kind, f.kind) }}</span>
+        <span class="small">{% if f.email %}<a href="mailto:{{ f.email }}">{{ f.email }}</a>{% else %}<span class="faint">Ziyaretçi (e-posta yok)</span>{% endif %}{% if f.user_id %} · <a href="/admin/kullanici/{{ f.user_id }}">#{{ f.user_id }}</a>{% endif %}</span></span>
+      <span class="tiny faint mono">{{ f.created_at|tarih }} · {{ f.lang|upper }}</span></div>
+    <p class="fb-msg">{{ f.message }}</p>
+    {% if f.status == 'yeni' %}<form method="post" action="/admin/oneri/{{ f.id }}/okundu"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('check', 14) }} Okundu</button></form>{% endif %}
+  </div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card empty"><span class="icon-box accent">{{ icon('edit', 24) }}</span><h3 style="font-size:20px">Henüz mesaj yok</h3><p>Gelen fikirler ve istekler burada görünecek.</p></div>
+{% endif %}
+{% endblock %}

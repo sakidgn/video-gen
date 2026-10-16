@@ -21,11 +21,11 @@
         <button type="button" data-idea="{{ i }}">{{ icon('sparkles', 13) }} {{ i }}</button>{% endfor %}
       </div>
       {% with ch = v %}{% include "_video_fields.html" %}{% endwith %}
-      <div class="step-title"><span class="n">7</span><h3>{{ _('Video saatleri') }}</h3><span class="faint">{{ _('Türkiye saati') }}</span></div>
+      <div class="step-title"><span class="n">8</span><h3>{{ _('Video saatleri') }}</h3><span class="faint">{{ _('Türkiye saati') }}</span></div>
       <input class="input mono" name="times" value="{{ v.times if v else '12:00 19:00' }}" placeholder="09:45 13:00 18:30">
       <div class="times">{% for t in ['08:00','09:45','12:00','13:00','15:45','18:30','19:00','21:15','22:30'] %}<button type="button" data-time="{{ t }}">{{ t }}</button>{% endfor %}</div>
       <p class="hint" style="margin-top:8px">{{ _('Her saat günde 1 video demek. Listeden seç ya da kendin yaz (SS:DD, aralarında boşluk).') }}</p>
-      <div class="step-title"><span class="n">8</span><h3>{{ _('Otomatik paylaşım') }}</h3><span class="faint">{{ _('isteğe bağlı') }}</span></div>
+      <div class="step-title"><span class="n">9</span><h3>{{ _('Otomatik paylaşım') }}</h3><span class="faint">{{ _('isteğe bağlı') }}</span></div>
       {% set chosen = (ch.publish_to if ch else '').split() %}
       <div class="pub-pick">
         {% for p, meta in platforms.items() %}

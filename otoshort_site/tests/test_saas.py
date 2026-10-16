@@ -26,7 +26,7 @@ def csrf(c, url="/"):
     return re.search(r'name="csrf" value="([^"]+)"', c.get(url).text).group(1)
 
 
-def signup(c, email, pw="sifre1234", verify=True):
+def signup(c, email, pw="sifre1234", verify=True, plan="studyo"):
     r = c.post("/kayit", data={"email": email, "password": pw, "name": "Ali", "accept": "1", "consent": "1",
                                "csrf": csrf(c, "/kayit")}, follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/panel"
@@ -35,6 +35,10 @@ def signup(c, email, pw="sifre1234", verify=True):
             u = s.scalar(select(User).where(User.email == email))
             u.email_verified = True
             u.is_admin = email in config.ADMIN_EMAILS  # gerçekte doğrulama bağlantısında verilir
+            if plan:  # testlerde tüm yapay zekâ kademeleri açık olsun (abonelik kilidi ayrı test edilir)
+                from datetime import timedelta, timezone
+
+                u.plan, u.plan_until = plan, datetime.now(timezone.utc) + timedelta(days=30)
 
 
 def last_mail(tmp_path):
@@ -1676,13 +1680,13 @@ def test_loyalty_gives_one_video_per_threshold(client, tmp_path, monkeypatch):
     give("a@b.com", 500)
     t = csrf(client, "/video/yeni")
     lite = config.QUALITIES["lite"]["credits"]
-    for i in range(3):  # 3 × 39 = 117 kredi → 1 hediye
+    for i in range(3):  # 3 × 49 = 147 kredi → 1 hediye (eşik 100)
         client.post("/video/yeni", data={"idea": f"x{i}", "quality": "lite", "csrf": t})
     run_queue(ai.FakeAI())
     assert balance("a@b.com") == 500 - 3 * lite + lite
     assert "1 video bizden" in last_mail(tmp_path) or "Sadakat" in client.get("/kredi").text
     page = client.get("/kredi").text
-    assert "17 / 100" in page and "Sadakat hediyesi" in page
+    assert f"{(3 * lite) % 100} / 100" in page and "Sadakat hediyesi" in page
     from saas import growth
 
     with db.session() as s:
@@ -1947,3 +1951,105 @@ def test_approval_mode_waits_for_owner_before_posting(client, tmp_path, monkeypa
     with db.session() as s:
         last = s.scalar(select(Publication).order_by(Publication.id.desc()))
     assert last.status == "bekliyor" and "yeni videon hazır" in last_mail(tmp_path)
+
+
+def test_duration_slider_prices_and_multi_scene_video(client):
+    assert config.price("lite", 4) == config.price("lite", 10) == config.QUALITIES["lite"]["credits"]
+    assert config.price("lite", 11) == config.QUALITIES["lite"]["credits"] + config.QUALITIES["lite"]["per_sec"]
+    assert config.plan_clips("fast", 8) == [8] and sum(config.plan_clips("fast", 17)) == 18
+    assert config.clamp_seconds(999) == config.MAX_SECONDS and config.clamp_seconds("x") == config.DEFAULT_SECONDS
+    signup(client, "a@b.com")
+    give("a@b.com", 2000)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni").text
+    assert 'name="seconds"' in page and 'data-per-sec=' in page
+    client.post("/video/yeni", data={"idea": "uzun", "quality": "fast", "seconds": "20", "csrf": t})
+    gen = ai.FakeAI()
+    run_queue(gen)
+    with db.session() as s:
+        job = s.scalar(select(Job))
+    assert job.status == "hazir" and job.seconds == 20 and job.cost == config.price("fast", 20)
+    assert gen.clip_seconds == config.plan_clips("fast", 20) and len(gen.clip_seconds) == 3  # 8+8+4
+    assert job.prompt.count("sahne") == 3 and balance("a@b.com") == 2000 - job.cost
+    vids = list((config.DATA_DIR / "videolar").glob(f"{job.id}*.mp4"))
+    assert [v.name for v in vids] == [f"{job.id}.mp4"]  # sahne dosyaları silindi
+    assert "20 sn" in client.get(f"/video/{job.id}").text
+
+
+def test_subscriptions_unlock_ai_tiers_and_renewal(client, tmp_path, monkeypatch):
+    from datetime import timedelta, timezone
+
+    from saas import abonelik
+
+    signup(client, "a@b.com", plan="")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni").text
+    assert re.search(r'value="fast"[^>]*disabled', page) and "Pro aboneliğiyle" in page
+    r = client.post("/video/yeni", data={"idea": "x", "quality": "fast", "csrf": t}, follow_redirects=False)
+    assert r.headers["location"] == "/kredi#abonelik" and balance("a@b.com") == 500  # kredi düşmedi
+    client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": t})  # Ekonomik aboneliksiz açık
+    assert balance("a@b.com") == 500 - config.price("lite", 8)
+    # abonelik havalesi → yönetici onayı → plan açılır, planın kredisi yüklenir
+    assert "Abonelikler" in client.get("/kredi").text
+    client.post("/kredi/bildirim", data={"package": "plan:pro", "sender_name": "A B", "accept": "1", "csrf": t})
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    assert "Pro aboneliği" in admin.get("/admin").text
+    before = balance("a@b.com")
+    approve_topups(admin)
+    assert balance("a@b.com") >= before + config.PLANS["pro"]["credits"]
+    assert "aboneliğin başladı" in last_mail(tmp_path)
+    with db.session() as s:
+        u = s.scalar(select(User).where(User.email == "a@b.com"))
+        assert abonelik.active_plan(u) == "pro" and abonelik.allowed(u) == ("lite", "fast")
+    r = client.post("/video/yeni", data={"idea": "y", "quality": "fast", "csrf": t}, follow_redirects=False)
+    assert r.headers["location"].startswith("/video/")
+    r = client.post("/video/yeni", data={"idea": "z", "quality": "standard", "csrf": t}, follow_redirects=False)
+    assert r.headers["location"] == "/kredi#abonelik"  # Premium Stüdyo'da
+    # bitişe 3 günden az kala bir kez hatırlatma
+    with db.session() as s:
+        u = s.scalar(select(User).where(User.email == "a@b.com"))
+        u.plan_until = datetime.now(timezone.utc) + timedelta(days=2)
+    worker.remind_plans()
+    assert "bitiyor" in last_mail(tmp_path)
+    n = len(list((tmp_path / "epostalar").glob("*.html")))
+    worker.remind_plans()
+    assert len(list((tmp_path / "epostalar").glob("*.html"))) == n
+    # süre dolunca kanal üst kademede üretmez, kredi düşmez
+    client.post("/kanallar/yeni", data={"name": "K", "quality": "fast", "times": "09:00", "csrf": t})
+    with db.session() as s:
+        cid = s.scalar(select(Channel.id))
+        s.scalar(select(User).where(User.email == "a@b.com")).plan_until = datetime.now(timezone.utc) - timedelta(days=1)
+    bal = balance("a@b.com")
+    assert worker.schedule_channels(datetime(2026, 1, 5, 9, 1, tzinfo=ZoneInfo(config.TIMEZONE))) == []
+    with db.session() as s:
+        assert "aboneliğin" in s.get(Channel, cid).notice and balance("a@b.com") == bal
+
+
+def test_feedback_form_reaches_admin(client, tmp_path):
+    from saas.models import Feedback
+
+    anon = TestClient(client.app)
+    page = anon.get("/oneri").text
+    assert "bizimle paylaş" in page and 'name="email"' in page
+    t = csrf(anon, "/oneri")
+    assert "Birkaç kelimeyle" in anon.post("/oneri", data={"message": "a", "csrf": t}).text
+    anon.post("/oneri", data={"message": "spam", "website": "x", "csrf": t})  # bot tuzağı
+    r = anon.post("/oneri", data={"kind": "istek", "message": "Arka plan müziği seçebilelim", "email": "z@b.com",
+                                  "csrf": t})
+    assert "Teşekkürler" in r.text and "Arka plan müziği" in last_mail(tmp_path)
+    with db.session() as s:
+        rows = s.scalars(select(Feedback)).all()
+    assert [(f.kind, f.email) for f in rows] == [("istek", "z@b.com")]
+    assert anon.get("/admin/oneriler", follow_redirects=False).status_code == 303
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    assert "1 yeni" in admin.get("/admin").text
+    page = admin.get("/admin/oneriler").text
+    assert "Arka plan müziği" in page and "z@b.com" in page
+    admin.post(f"/admin/oneri/{rows[0].id}/okundu", data={"csrf": csrf(admin, "/admin")})
+    with db.session() as s:
+        assert s.get(Feedback, rows[0].id).status == "okundu"
+    assert "Fikirlerinizi ve düşüncelerinizi" in anon.get("/").text and "Neler üretebilirsin" in anon.get("/").text
+    _assert_english(TestClient(client.app).get("/en/oneri").text, "/en/oneri")

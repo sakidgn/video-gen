@@ -43,13 +43,23 @@
 {% endfor %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 4 }}</span><h3>{{ _('Kalite') }}</h3></div>
+<div class="step-title"><span class="n">{{ n0 + 4 }}</span><h3>{{ _('Yapay zekâ') }}</h3>{% if my_plan %}<span class="faint">{{ _('{plan} aboneliği', plan=_(plans[my_plan].label)) }}</span>{% endif %}</div>
+{% set want_q = ch.quality if ch and ch.quality in my_quals else ('fast' if 'fast' in my_quals else my_quals[0]) %}
 <div class="opts opts-3">
-{% for k, q in qualities.items() %}
-  <label class="opt"><input type="radio" name="quality" value="{{ k }}" data-label="{{ _(q.label) }}" data-credits="{{ q.credits }}" {% if (ch and ch.quality == k) or (not ch and k == 'fast') %}checked{% endif %}>
+{% for k, q in qualities.items() %}{% set locked = k not in my_quals %}
+  <label class="opt {{ 'locked' if locked }}"><input type="radio" name="quality" value="{{ k }}" data-label="{{ _(q.label) }}" data-credits="{{ q.credits }}" data-per-sec="{{ q.per_sec }}" {% if locked %}disabled{% elif k == want_q %}checked{% endif %}>
     <span class="opt-body"><span class="opt-tick"></span><span class="icon-box">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[k], 17) }}</span>
-      <span class="opt-title">{{ _(q.label) }}</span><span class="opt-sub">{{ _(q.desc) }}</span><span class="opt-price">{{ _('{n} kredi', n=q.credits) }} · {{ q.resolution }}</span></span></label>
+      <span class="opt-title">{{ _(q.label) }}</span><span class="opt-ai">{{ q.ai }}</span><span class="opt-sub">{{ _(q.desc) }}</span>
+      <span class="opt-price">{{ _('{n} kredi', n=q.credits) }} · {{ _('{s} sn’ye kadar', s=sec.base) }} · {{ q.resolution }}</span>
+      {% if locked %}<a class="opt-lock" href="/kredi#abonelik">{{ icon('lock', 12) }} {{ _('{plan} aboneliğiyle', plan=_(plans[plan_for(k)].label)) }}</a>{% endif %}</span></label>
 {% endfor %}
+</div>
+
+<div class="step-title"><span class="n">{{ n0 + 5 }}</span><h3>{{ _('Süre') }}</h3><span class="dur-val"><b data-dur-out>{{ (ch.seconds if ch and ch.seconds is defined and ch.seconds else sec.default) }}</b> {{ _('sn') }}</span></div>
+<div class="dur" data-dur data-base="{{ sec.base }}" data-tpl-flat="{{ _('{base} sn’ye kadar sabit fiyat') }}" data-tpl-extra="{{ _('{base} sn üstü +{x} sn × {p} kredi') }}" data-tpl-scenes="{{ _('{n} sahne birleştirilir') }}">
+  <input class="dur-range" type="range" name="seconds" min="{{ sec.min }}" max="{{ sec.max }}" step="1" value="{{ ch.seconds if ch and ch.seconds is defined and ch.seconds else sec.default }}" aria-label="{{ _('Video süresi (saniye)') }}" data-dur-range>
+  <div class="dur-scale" aria-hidden="true"><span>{{ sec.min }} {{ _('sn') }}</span><span class="dur-base" style="--p:{{ ((sec.base - sec.min) * 100 / (sec.max - sec.min))|round(2) }}%">{{ sec.base }}</span><span>{{ sec.max }} {{ _('sn') }}</span></div>
+  <p class="hint dur-note"><span data-dur-note>–</span> · <b><span data-dur-price>–</span> {{ _('kredi') }}</b></p>
 </div>
 {% set sub_on = ch.subtitles if ch else true %}{% set sub_style = (ch.subtitle_style if ch and ch.subtitle_style is defined else 'viral') %}
 <div class="subs-box">

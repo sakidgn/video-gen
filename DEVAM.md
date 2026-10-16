@@ -96,6 +96,10 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   paketler 250/525/1100. Bedava kredi yok: davet = ilk yüklemenin %15'i (davet edene) / %10'u (gelene), erken erişim =
   ilk yüklemede %20, sadakat = her 400 kredilik videoda 1 Ekonomik (`growth.first_topup_rewards`, `growth.loyalty`).
   Emojiler arayüzden kalktı (şablon kartında tarz illüstrasyonu, kayan şeritte serif yazı, CSS `.mascot` portakal).
+- Abonelik + süre (Ekim 2026): 3 plan (`config.PLANS`, `saas/abonelik.py`; her biri bir Veo kademesi açar, havaleyle
+  30 gün, `TopUp.plan`), aboneliksiz sadece Ekonomik. Süre çubuğu 4–60 sn (`config.price`, `plan_clips`): 10 sn'ye kadar
+  sabit, üstü saniye başı; çok sahne `worker.make_scenes` + `media.join_clips`. "Neler üretebilirsin" örnekleri
+  (`fikirler.USE_CASES`), fikir/öneri formu (/oneri, `Feedback`, /admin/oneriler).
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

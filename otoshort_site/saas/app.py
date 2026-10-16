@@ -14,10 +14,10 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
-from . import (config, credits, db, growth, i18n, karakter, mailer, media, oauth, publisher, secretbox, social, tokens,
+from . import (abonelik, config, credits, db, growth, i18n, karakter, mailer, media, oauth, publisher, secretbox, social, tokens,
                worker)
 from .icons import LOGO, brand, icon
-from .models import Channel, Character, CreditTx, Job, PromoCode, Publication, SocialAccount, TopUp, User, now
+from .models import Channel, Character, CreditTx, Feedback, Job, PromoCode, Publication, SocialAccount, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
 
 log = logging.getLogger("saas")
@@ -39,6 +39,10 @@ SECURITY_HEADERS = {
 FAQS = [
     ("Videoları nereye paylaşabilirim?",
      "TikTok, Instagram Reels, YouTube Shorts ve dikey video kabul eden her yere. Paylaşırken platformun “yapay zekâ ile oluşturuldu” etiketini açmayı unutma."),
+    ("Abonelikler nasıl çalışıyor?",
+     "Üç abonelik var, her biri farklı bir yapay zekâyı açar: Başlangıç (Ekonomik), Pro (Standart) ve Stüdyo (Premium 1080p). Her 30 günde planın kredisi hesabına yüklenir, kalan kredin devreder. Otomatik çekim yok: süren bitmeden hatırlatırız, yenilemek istersen havaleni bildirirsin."),
+    ("Video kaç saniye olabilir?",
+     "Süreyi çubukla sen seçersin (4–60 sn). 10 saniyeye kadar sabit fiyat, üstündeki her saniye seçtiğin yapay zekânın saniye fiyatı kadar. Uzun videolar birkaç sahnenin birleştirilmesiyle üretilir."),
     ("Kredi kartı gerekiyor mu?",
      "Hayır. Şimdilik kredi yüklemesi banka havalesi / EFT ile yapılıyor. Kartla ödeme yakında geliyor."),
     ("Ünlü karakterleri ya da kişileri kullanabilir miyim?",
@@ -54,7 +58,7 @@ FAQS = [
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
-PUBLIC_PAGES = ["/", "/kesfet", "/sablonlar", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
+PUBLIC_PAGES = ["/", "/kesfet", "/sablonlar", "/oneri", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
 
 
 class CachedStatic(StaticFiles):
@@ -232,6 +236,11 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         prelaunch=config.PRELAUNCH, early_pct=config.EARLY_TOPUP_PCT, ref_pct=config.REFERRAL_PCT, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
         quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS, legal=config.LEGAL,
         ref_qualities=[k for k in config.QUALITIES if config.supports_refs(k)],
+        plans=config.PLANS, price=config.price, sec=dict(min=config.MIN_SECONDS, max=config.MAX_SECONDS,
+                                                         base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
+        my_plan=abonelik.active_plan(user) if user else "",
+        my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
+        plan_for=config.plan_for_quality,
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
@@ -359,6 +368,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
         return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase,
                       tpls=sablonlar.all_for(i18n.current())[:6], tpl_cats=sablonlar.CATEGORIES,
+                      use_cases=fikirler.use_cases(i18n.current()),
                       ideas=[{**i, "l": i18n.t(config.STYLE_LABELS[i["s"]])} for i in fikirler.for_lang(i18n.current())])
 
     def _public_q():
@@ -871,7 +881,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 pre = job if job and job.user_id == user.id else None
         elif sablon and (t := sablonlar.get(sablon, i18n.current())):  # hazır şablonun karakter ve tarzıyla
             pre, tpl_name = sablonlar.as_channel(t, i18n.current()), t.name
+        from . import fikirler
+
         return render(request, "video_yeni.html", user, idea=clean(idea) or (pre.idea if pre else ""), pre=pre,
+                      use_cases=fikirler.use_cases(i18n.current()),
                       tpl_name=tpl_name, **_cast_ctx(user.id, [karakter_id]))
 
     @app.get("/takvim", response_class=HTMLResponse)
@@ -906,7 +919,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         for ch in chans:
             if not ch.active:
                 continue
-            cost = config.QUALITIES[ch.quality]["credits"]
+            cost = config.price(ch.quality, ch.seconds)
             for d in days:
                 if d < today:
                     continue
@@ -942,6 +955,50 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                       week_count=len(week), week_cost=sum(i["cost"] for i in week), runs_out=runs_out,
                       has_channels=bool(chans))
 
+    # --- fikir ve öneriler ---
+    feedback_limiter = RateLimiter(limit=5, window=3600)
+    FEEDBACK_KINDS = {"oneri": "Fikir / öneri", "istek": "Özellik isteği", "sorun": "Sorun bildir", "diger": "Diğer"}
+
+    @app.get("/oneri", response_class=HTMLResponse)
+    def feedback_page(request: Request, tur: str = ""):
+        return render(request, "oneri.html", current_user(request), kinds=FEEDBACK_KINDS,
+                      kind=tur if tur in FEEDBACK_KINDS else "oneri")
+
+    @app.post("/oneri", dependencies=[Depends(check_csrf)])
+    def feedback_send(request: Request, kind: str = Form("oneri"), message: str = Form(""), email: str = Form(""),
+                      website: str = Form("")):
+        user = current_user(request)
+        back = i18n.localized_path("/oneri", public=tuple(PUBLIC_PAGES))
+        message, email = clean(message, 2000), clean(email, 255).lower()
+        if website:  # bot tuzağı (görünmez alan)
+            return go(back)
+        ip = request.client.host if request.client else "?"
+        if len(message) < 5:
+            flash(request, "Birkaç kelimeyle de olsa yaz lütfen.", "err")
+            return go(back)
+        if email and not EMAIL_RE.match(email):
+            flash(request, "Geçerli bir e-posta yaz ya da boş bırak.", "err")
+            return go(back)
+        if not feedback_limiter.allow(f"f:{user.id if user else ip}"):
+            flash(request, "Çok fazla mesaj gönderdin. Biraz sonra tekrar dene.", "err")
+            return go(back)
+        kind = kind if kind in FEEDBACK_KINDS else "diger"
+        with db.session() as s:
+            s.add(Feedback(user_id=user.id if user else None, email=user.email if user else email, kind=kind,
+                           message=message, lang=i18n.current()))
+        from html import escape
+
+        html = mailer.render(f"Yeni {FEEDBACK_KINDS[kind].lower()}",
+                             f"<b>{escape(user.email if user else email or 'Ziyaretçi')}</b> yazdı:<br><br>"
+                             f"{escape(message)}", ("Önerileri gör", f"{site_url(request)}/admin/oneriler"), lang="tr")
+        for to in sorted(config.ADMIN_EMAILS):
+            try:
+                mailer.send(to, f"{config.SITE_NAME}: yeni {FEEDBACK_KINDS[kind].lower()}", html)
+            except Exception:
+                log.exception("Öneri bildirimi gönderilemedi")
+        flash(request, "Teşekkürler! Mesajın bize ulaştı; hepsini tek tek okuyoruz. 💛")
+        return go(back)
+
     @app.get("/sablonlar", response_class=HTMLResponse)
     def templates_page(request: Request, kategori: str = ""):
         from . import sablonlar
@@ -956,7 +1013,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                         characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
                         quality: str = Form("fast"), ref: UploadFile | None = File(None), ref_keep: str = Form(""),
                         ref_remove: str = Form(""), subtitles: str = Form(""), cast: list[str] = Form([]),
-                        subtitle_style: str = Form("viral")):
+                        subtitle_style: str = Form("viral"), seconds: int = Form(config.DEFAULT_SECONDS)):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
@@ -970,11 +1027,13 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                     s, user.id, idea=clean(idea), characters=characters,
                     style=_valid_choice(style, config.STYLES, "cartoon"),
                     language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image,
-                    subtitles=bool(subtitles), subtitle_style=subtitle_style)
+                    subtitles=bool(subtitles), subtitle_style=subtitle_style, seconds=seconds)
                 job_id = job.id
         except credits.NotEnoughCredits:
-            flash(request, "Yeterli kredin yok. Bu kalite {n} kredi.", "err", n=config.QUALITIES[quality]["credits"])
+            flash(request, "Yeterli kredin yok. Bu video {n} kredi.", "err", n=config.price(quality, seconds))
             return go("/kredi")
+        except abonelik.PlanRequired as e:
+            return _plan_needed(request, e)
         return go(f"/video/{job_id}")
 
     @app.get("/videolar", response_class=HTMLResponse)
@@ -1058,14 +1117,22 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 raise HTTPException(404)
             params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
                           quality=old.quality, ref_image=old.ref_image, subtitles=old.subtitles,
-                          subtitle_style=old.subtitle_style)
+                          subtitle_style=old.subtitle_style, seconds=old.seconds)
         try:
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
         except credits.NotEnoughCredits:
-            flash(request, "Yeterli kredin yok. Bu kalite {n} kredi.", "err", n=config.QUALITIES[params["quality"]]["credits"])
+            flash(request, "Yeterli kredin yok. Bu video {n} kredi.", "err",
+                  n=config.price(params["quality"], params["seconds"]))
             return go("/kredi")
+        except abonelik.PlanRequired as e:
+            return _plan_needed(request, e)
         return go(f"/video/{new_id}")
+
+    def _plan_needed(request: Request, e: "abonelik.PlanRequired"):
+        flash(request, "{quality} yapay zekâsı {plan} aboneliğinde. Aboneliğini seçip havaleni bildirince açılır.",
+              "warn", quality=i18n.t(config.QUALITIES[e.quality]["label"]), plan=i18n.t(config.PLANS[e.plan]["label"]))
+        return go("/kredi#abonelik")
 
     def _generator(request: Request):
         gen = request.app.state.generator
@@ -1311,6 +1378,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             quality=_valid_choice(form.get("quality", ""), config.QUALITIES, "fast"),
             times=" ".join(sorted(set(times), key=lambda t: (int(t.split(":")[0]), t)))[:200] or "12:00",
             subtitles=bool(form.get("subtitles")),
+            seconds=config.clamp_seconds(form.get("seconds", config.DEFAULT_SECONDS)),
             subtitle_style=_valid_choice(str(form.get("subtitle_style", "")), media.SUB_STYLES, ""),
             publish_to=" ".join(p for p in social.PLATFORMS if form.get(f"pub_{p}")),
             approval=form.get("approval") == "1",
@@ -1341,6 +1409,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return blocked
         form = await request.form()
         data = _channel_from_form(form)
+        if data["quality"] not in abonelik.allowed(user):
+            return _plan_needed(request, abonelik.PlanRequired(data["quality"]))
         ref_image = await read_reference(request, form.get("ref"), user.id)
         if ref_image is None:
             return go("/kanallar/yeni")
@@ -1372,6 +1442,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     async def channel_edit(request: Request, cid: int, user: User = Depends(require_user)):
         form = await request.form()
         data = _channel_from_form(form)
+        if data["quality"] not in abonelik.allowed(user):
+            return _plan_needed(request, abonelik.PlanRequired(data["quality"]))
         with db.session() as s:
             current = _own_channel(s, user, cid).ref_image
         ref_image = "" if form.get("ref_remove") else await read_reference(request, form.get("ref"), user.id, current)
@@ -1527,6 +1599,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         except credits.NotEnoughCredits:
             flash(request, "Yeterli kredin yok.", "err")
             return go("/kredi")
+        except abonelik.PlanRequired as e:
+            return _plan_needed(request, e)
         return go(f"/video/{new_id}")
 
     @app.post("/kanallar/{cid}/sil", dependencies=[Depends(check_csrf)])
@@ -1541,7 +1615,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     # --- kredi ---
     @app.get("/kredi", response_class=HTMLResponse)
-    def credit_page(request: Request, user: User = Depends(require_user)):
+    def credit_page(request: Request, user: User = Depends(require_user), plan: str = ""):
         with db.session() as s:
             txs = s.scalars(select(CreditTx).where(CreditTx.user_id == user.id).order_by(CreditTx.id.desc())
                             .limit(50)).all()
@@ -1549,7 +1623,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                                .limit(10)).all()
             loyal = growth.loyalty_progress(s, user.id)
         return render(request, "kredi.html", user, txs=txs, topups=topups, iban=config.IBAN,
-                      iban_name=config.IBAN_NAME, loyal=loyal, ref_pct=config.REFERRAL_PCT)
+                      iban_name=config.IBAN_NAME, loyal=loyal, ref_pct=config.REFERRAL_PCT,
+                      want_plan=plan if plan in config.PLANS else "", plan_until=user.plan_until)
 
     promo_limiter = RateLimiter(limit=8, window=600)
 
@@ -1579,17 +1654,20 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                       friend_pct=config.REFERRAL_FRIEND_PCT)
 
     @app.post("/kredi/bildirim", dependencies=[Depends(check_csrf)])
-    def credit_notify(request: Request, user: User = Depends(require_user), package: int = Form(...),
+    def credit_notify(request: Request, user: User = Depends(require_user), package: str = Form(""),
                       sender_name: str = Form(...), note: str = Form(""), accept: str = Form("")):
+        """Havale bildirimi: "package" kredi paketinin sırası ya da "plan:<anahtar>" (abonelik)."""
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         if config.SHOWCASE:
             flash(request, "Demo sürümde ödeme alınmıyor.", "warn")
             return go("/kredi")
-        if not 0 <= package < len(config.PACKAGES) or not sender_name.strip() or not accept:
+        plan = package.removeprefix("plan:") if package.startswith("plan:") else ""
+        valid = plan in config.PLANS if plan else package.isdigit() and int(package) < len(config.PACKAGES)
+        if not valid or not sender_name.strip() or not accept:
             flash(request, "Paketi seç, gönderen adını yaz ve sözleşmeyi onayla.", "err")
             return go("/kredi")
-        tl, cr = config.PACKAGES[package]
+        tl, cr = (config.PLANS[plan]["price"], config.PLANS[plan]["credits"]) if plan else config.PACKAGES[int(package)]
         with db.session() as s:
             pending = s.scalar(select(func.count(TopUp.id)).where(TopUp.user_id == user.id,
                                                                   TopUp.status == "bekliyor"))
@@ -1597,7 +1675,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 flash(request, "Onay bekleyen 3 bildirimin var, onaylanmalarını bekle.", "err")
                 return go("/kredi")
             s.add(TopUp(user_id=user.id, amount_tl=tl, credits=cr, sender_name=clean(sender_name, 120),
-                        note=clean(note, 300)))
+                        note=clean(note, 300), plan=plan))
         notify_admins_topup(request, user.email, tl, clean(sender_name, 120))
         flash(request, "Bildirimin alındı. Havale kontrol edilince kredin yüklenecek (genelde birkaç saat).")
         return go("/kredi")
@@ -1620,10 +1698,11 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             if day(dt) in series:
                 series[day(dt)]["users"] += 1
         cost_usd = 0.0
-        for dt, q in s.execute(select(Job.finished_at, Job.quality).where(Job.status == "hazir", Job.finished_at >= since)):
+        for dt, q, sec in s.execute(select(Job.finished_at, Job.quality, Job.seconds)
+                                    .where(Job.status == "hazir", Job.finished_at >= since)):
             if day(dt) in series:
                 series[day(dt)]["videos"] += 1
-                cost_usd += config.VIDEO_COST_USD.get(q, 0)
+                cost_usd += config.cost_usd(q, sec or 8)
         for dt, tl in s.execute(select(TopUp.decided_at, TopUp.amount_tl).where(TopUp.status == "onaylandi",
                                                                                TopUp.decided_at >= since)):
             if day(dt) in series:
@@ -1660,6 +1739,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
             stats = {
                 "waitlist": s.scalar(select(func.count(Waitlist.id))),
+                "feedback_new": s.scalar(select(func.count(Feedback.id)).where(Feedback.status == "yeni")),
                 "users": s.scalar(select(func.count(User.id))),
                 "videos": s.scalar(select(func.count(Job.id)).where(Job.status == "hazir")),
                 "queue": s.scalar(select(func.count(Job.id)).where(Job.status.in_(["sirada", "uretiliyor"]))),
@@ -1672,6 +1752,19 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return render(request, "admin.html", user, topups=topups, users=users, jobs=jobs, stats=stats, promos=promos,
                       daily=daily, usd_try=config.USD_TRY, public_jobs=public_jobs, ready=hazirlik.summary(),
                       failed=failed)
+
+    @app.get("/admin/oneriler", response_class=HTMLResponse)
+    def admin_feedback(request: Request, user: User = Depends(require_admin), tur: str = ""):
+        with db.session() as s:
+            q = select(Feedback).order_by(Feedback.id.desc()).limit(200)
+            items = s.scalars(q.where(Feedback.kind == tur) if tur else q).all()
+        return render(request, "admin_oneriler.html", user, items=items, kinds=FEEDBACK_KINDS, tur=tur)
+
+    @app.post("/admin/oneri/{fid}/okundu", dependencies=[Depends(check_csrf)])
+    def admin_feedback_read(fid: int, user: User = Depends(require_admin)):
+        with db.session() as s:
+            s.execute(update(Feedback).where(Feedback.id == fid).values(status="okundu"))
+        return go("/admin/oneriler")
 
     @app.get("/admin/kullanicilar", response_class=HTMLResponse)
     def admin_users(request: Request, user: User = Depends(require_admin), q: str = "", sayfa: int = 1):
@@ -1809,11 +1902,21 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 return go("/admin")
             t = s.get(TopUp, tid)
             referrer, ref_amount = None, 0
+            plan_until = None
             if action == "onayla":
-                credits.add(s, t.user_id, t.credits, f"Havale ile yükleme ({t.amount_tl} TL)")
+                if t.plan in config.PLANS:  # abonelik: planı başlat/uzat, planın kredisini yükle
+                    plan_until = abonelik.activate(s, t.user_id, t.plan)
+                else:
+                    credits.add(s, t.user_id, t.credits, f"Havale ile yükleme ({t.amount_tl} TL)")
                 referrer, ref_amount = growth.first_topup_rewards(s, t.user_id, t.credits)
-            uid, amount_tl, cr = t.user_id, t.amount_tl, t.credits
-        if action == "onayla":
+            uid, amount_tl, cr, plan = t.user_id, t.amount_tl, t.credits, t.plan
+        if action == "onayla" and plan_until:
+            worker.notify(uid, "{site}: {plan} aboneliğin başladı 🚀", "Aboneliğin aktif!",
+                          "{tl} ₺ havalen onaylandı. <b>{plan}</b> aboneliğin {date} tarihine kadar açık ve hesabına "
+                          "<b>{n} kredi</b> yüklendi.", ("Video üret", f"{site_url(request)}/video/yeni"),
+                          tl=amount_tl, n=cr, plan=config.PLANS[plan]["label"],
+                          date=plan_until.astimezone(ZoneInfo(config.TIMEZONE)).strftime("%d.%m.%Y"))
+        elif action == "onayla":
             worker.notify(uid, "{site}: kredin yüklendi 💎", "Kredin yüklendi!",
                           "{tl} ₺ havalen onaylandı ve hesabına <b>{n} kredi</b> yüklendi. Üretmeye başlayabilirsin.",
                           ("Video üret", f"{site_url(request)}/video/yeni"), tl=amount_tl, n=cr)

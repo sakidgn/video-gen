@@ -191,6 +191,64 @@ def video_size(path: Path) -> tuple[int, int]:
     return (int(m.group(1)), int(m.group(2))) if m else (720, 1280)
 
 
+def _probe(path: Path) -> tuple[bool, float]:
+    """(sesi var mı, süre sn)"""
+    import re
+
+    import imageio_ffmpeg
+
+    r = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-hide_banner", "-i", str(path)], capture_output=True,
+                       text=True, timeout=30)
+    m = re.search(r"Duration: (\d+):(\d+):([\d.]+)", r.stderr)
+    return "Audio:" in r.stderr, (int(m[1]) * 3600 + int(m[2]) * 60 + float(m[3])) if m else 8.0
+
+
+def join_clips(clips: list[Path], out: Path, seconds: int) -> Path:
+    """Sahneleri sırayla tek videoya birleştirir ve istenen süreye kırpar (sesi olmayan sahneye sessizlik eklenir)."""
+    import tempfile
+
+    import imageio_ffmpeg
+
+    ff = imageio_ffmpeg.get_ffmpeg_exe()
+    w, h = video_size(clips[0])
+    with tempfile.TemporaryDirectory() as d:
+        args, parts = [], []
+        for i, c in enumerate(clips):
+            name = f"s{i}.mp4"
+            shutil.copy(c, Path(d) / name)  # Windows yollarındaki ':' filtreyi bozmasın
+            args += ["-i", name]
+        n = len(clips)
+        for i, c in enumerate(clips):
+            parts.append(f"[{i}:v]scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,"
+                         f"setsar=1,fps=30,format=yuv420p[v{i}]")
+            has_audio, dur = _probe(c)
+            if has_audio:  # ses görüntüden kısa/uzunsa sahne sınırında kayma olmasın: görüntü süresine eşitlenir
+                parts.append(f"[{i}:a]aresample=44100,aformat=channel_layouts=stereo,apad,atrim=duration={dur:.3f}[a{i}]")
+            else:
+                parts.append(f"anullsrc=r=44100:cl=stereo,atrim=duration={dur:.3f}[a{i}]")
+        chain = "".join(f"[v{i}][a{i}]" for i in range(n))
+        filt = ";".join(parts) + f";{chain}concat=n={n}:v=1:a=1[v][a]"
+        subprocess.run([ff, "-y", "-loglevel", "error", *args, "-filter_complex", filt, "-map", "[v]", "-map", "[a]",
+                        "-t", str(seconds), "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-c:a", "aac",
+                        "-movflags", "+faststart", "out.mp4"], cwd=d, check=True, timeout=600)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(Path(d) / "out.mp4"), out)
+    return out
+
+
+def trim(video: Path, seconds: int) -> None:
+    """Tek sahne istenenden uzunsa (ör. 5 sn için 6 sn üretildi) yerinde kırpar."""
+    import tempfile
+
+    import imageio_ffmpeg
+
+    with tempfile.TemporaryDirectory() as d:
+        shutil.copy(video, Path(d) / "in.mp4")
+        subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", "in.mp4", "-t", str(seconds),
+                        "-c", "copy", "out.mp4"], cwd=d, check=True, timeout=120)
+        shutil.move(str(Path(d) / "out.mp4"), video)
+
+
 def burn_subtitles(video: Path, segments: list[dict], style: str = "", language: str = "tr") -> Path | None:
     """Altyazıyı videoya basar. Orijinal '<ad>-ham.mp4' olarak saklanır. Altyazı yoksa None."""
     import tempfile

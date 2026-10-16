@@ -84,7 +84,7 @@
       {% if job.user_id == user.id %}
       <div class="again">
         <form method="post" action="/video/{{ job.id }}/tekrar"><input type="hidden" name="csrf" value="{{ csrf }}">
-          <button class="btn btn-ghost btn-sm" type="submit">{{ icon('repeat', 14) }} {{ _('Benzerini üret') }} · <span class="mono">{{ qualities[job.quality].credits }}</span> {{ _('kredi') }}</button></form>
+          <button class="btn btn-ghost btn-sm" type="submit">{{ icon('repeat', 14) }} {{ _('Benzerini üret') }} · <span class="mono">{{ price(job.quality, job.seconds) }}</span> {{ _('kredi') }}</button></form>
         <a class="btn btn-text btn-sm" href="/video/yeni?from={{ job.id }}">{{ icon('edit', 14) }} {{ _('Düzenleyip üret') }}</a>
       </div>
       {% endif %}
@@ -127,7 +127,7 @@
         {% if job.characters %}<dt>{{ _('Karakterler') }}</dt><dd>{{ job.characters }}</dd>{% endif %}
         {% if job.ref_image %}<dt>{{ _('Referans') }}</dt><dd><img class="ref-mini" src="/referans/{{ job.ref_image }}" alt="{{ _('Referans karakter') }}" data-hide-broken></dd>{% endif %}
         <dt>{{ _('Tarz') }}</dt><dd>{{ _(styles.get(job.style, job.style)) }}</dd>
-        <dt>{{ _('Dil') }}</dt><dd>{{ languages.get(job.language, job.language) }}{% if job.subtitles %} · {{ _('viral altyazılı') if job.subtitle_style == 'viral' else _('altyazılı') }}{% endif %}</dd>
+        <dt>{{ _('Dil') }}</dt><dd>{{ languages.get(job.language, job.language) }} · {{ job.seconds }} {{ _('sn') }}{% if job.subtitles %} · {{ _('viral altyazılı') if job.subtitle_style == 'viral' else _('altyazılı') }}{% endif %}</dd>
         <dt>{{ _('Kalite') }}</dt><dd>{{ _(qualities[job.quality].label) }} · <span class="mono">{{ job.cost }}</span> {{ _('kredi') }}</dd>
         {% if job.channel %}<dt>{{ _('Kanal') }}</dt><dd><a href="/kanallar/{{ job.channel_id }}" style="text-decoration:underline;text-underline-offset:3px">{{ job.channel.name }}</a></dd>{% endif %}
         <dt>{{ _('Tarih') }}</dt><dd class="mono small">{{ job.created_at|tarih }}</dd>

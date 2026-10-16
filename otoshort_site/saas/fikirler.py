@@ -63,3 +63,30 @@ IDEAS = [
 
 def for_lang(lang: str) -> list[dict]:
     return [{"e": e, "s": s, "t": en if lang == "en" else tr} for e, s, tr, en in IDEAS]
+
+
+# "Neler üretebilirsin?" örnekleri: (ikon, başlık TR, örnek TR, başlık EN, örnek EN). Konuyu kullanıcı kendi seçer;
+# bunlar yalnızca ilham verir ve tıklayınca stüdyodaki fikir kutusunu doldurur.
+USE_CASES = [
+    ("sparkles", "Komik skeç", "Kedi, sahibinin online toplantısına gizlice katılıp patronu yönetmeye çalışıyor",
+     "Comedy sketch", "A cat sneaks into its owner's video call and tries to boss the boss around"),
+    ("tag", "Marka tanıtımı", "Kahve dükkânım için sıcak ve samimi bir tanıtım: sabah ilk kahvesiyle gülümseyen insanlar",
+     "Brand intro", "A warm, friendly intro for my coffee shop: people smiling over their first coffee of the day"),
+    ("gem", "Ürün reklamı", "El yapımı doğal sabunlarımızın ferah, sakin bir reklamı; köpükler ve yeşil yapraklar",
+     "Product ad", "A fresh, calm ad for our handmade natural soaps; soft foam and green leaves"),
+    ("brain", "Eğitici video", "Gökkuşağı nasıl oluşur? Meraklı bir bilim insanı çocuklara kısaca anlatıyor",
+     "Explainer", "How does a rainbow form? A curious scientist explains it to kids in a few seconds"),
+    ("film", "Hikâye / masal", "Yalnız bir deniz feneri bekçisi ile bir martının duygusal arkadaşlığı",
+     "Story", "A lonely lighthouse keeper and a seagull become unlikely friends"),
+    ("rocket", "Motivasyon", "Sabah beşte yağmurda koşuya çıkan bir sporcu; güne başlama motivasyonu",
+     "Motivation", "An athlete heads out for a run at 5 a.m. in the rain; a morning motivation clip"),
+    ("calendar", "Etkinlik duyurusu", "Cumartesi akşamki canlı müzik gecemizin enerjik duyurusu",
+     "Event promo", "An energetic promo for our live music night this Saturday"),
+    ("globe", "Mekân tanıtımı", "Deniz manzaralı kafemizin gün batımında huzurlu bir tanıtımı",
+     "Place tour", "A peaceful sunset tour of our seaside café"),
+]
+
+
+def use_cases(lang: str) -> list[dict]:
+    en = lang == "en"
+    return [{"icon": ic, "title": te if en else tt, "example": ee if en else et} for ic, tt, et, te, ee in USE_CASES]

@@ -7,6 +7,8 @@
   <div><b>{% if ready.blockers %}Yayına hazırlık: {{ ready.blockers }} zorunlu eksik{% else %}Yayına hazır{% endif %}</b>
     <span class="small muted">{{ ready.ok }} / {{ ready.total }} kontrol tamam · anahtarlar, e-posta, https, yasal bilgiler, fiyat/maliyet</span></div>
   {{ icon('arrow-right', 16) }}</a>
+<a class="card ready-cta {{ '' if stats.feedback_new else 'ok' }} reveal" href="/admin/oneriler" style="margin-bottom:24px"><span class="icon-box {{ 'accent' if stats.feedback_new }}">{{ icon('edit', 18) }}</span>
+  <div><b>Fikir ve öneriler{% if stats.feedback_new %}: {{ stats.feedback_new }} yeni{% endif %}</b><span class="small muted">Kullanıcıların ve ziyaretçilerin istekleri, fikirleri, sorun bildirimleri</span></div>{{ icon('arrow-right', 16) }}</a>
 <div class="card ready-cta ok reveal" style="margin-bottom:24px"><span class="icon-box">{{ icon('mail', 18) }}</span>
   <div><b>Erken erişim listesi: {{ stats.waitlist }} kişi</b><span class="small muted">Açılışta duyuru gönderilecek e-postalar. Vitrinde toplananlar için: python -m saas.erken_erisim disari liste.csv --vitrin</span></div>
   <a class="btn btn-ghost btn-sm" href="/admin/erken-erisim.csv">{{ icon('download', 14) }} CSV indir</a></div>
@@ -34,7 +36,7 @@
 <div class="card reveal" style="margin-bottom:24px">
   <div class="card-head"><h3>{{ icon('bank', 18) }} Onay bekleyen havaleler</h3><span class="tiny faint">Onaylamadan önce paranın hesaba geldiğini kontrol et</span></div>
   {% if topups %}<div class="table-wrap"><table><tr><th>Tarih</th><th>Kullanıcı</th><th>Gönderen</th><th>Tutar</th><th>Not</th><th></th></tr>
-  {% for t in topups %}<tr><td class="mono small">{{ t.created_at|tarih }}</td><td>{{ t.user.email }}</td><td>{{ t.sender_name }}</td><td><b>{{ t.amount_tl }} ₺</b> <span class="faint">→ {{ t.credits }}</span></td><td class="small faint">{{ t.note }}</td>
+  {% for t in topups %}<tr><td class="mono small">{{ t.created_at|tarih }}</td><td>{{ t.user.email }}</td><td>{{ t.sender_name }}</td><td><b>{{ t.amount_tl }} ₺</b> <span class="faint">→ {{ t.credits }}</span>{% if t.plan %} <span class="badge b-ok">{{ plans[t.plan].label if t.plan in plans else t.plan }} aboneliği</span>{% endif %}</td><td class="small faint">{{ t.note }}</td>
   <td><div class="row" style="justify-content:flex-end;flex-wrap:nowrap"><form method="post" action="/admin/yukleme/{{ t.id }}/onayla"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-primary btn-sm">{{ icon('check', 14) }} Onayla</button></form>
   <form method="post" action="/admin/yukleme/{{ t.id }}/reddet" data-confirm="Reddedilsin mi?"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-danger btn-sm">Reddet</button></form></div></td></tr>{% endfor %}
   </table></div>{% else %}<p class="muted small">Bekleyen havale yok.</p>{% endif %}

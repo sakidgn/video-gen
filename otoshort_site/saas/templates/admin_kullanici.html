@@ -13,6 +13,7 @@
     <div class="card reveal"><div class="card-head"><h3>{{ icon('user', 18) }} Hesap</h3></div>
       <dl class="kv">
         <dt>Bakiye</dt><dd><b class="mono">{{ target.credits }}</b> kredi</dd>
+        <dt>Abonelik</dt><dd>{% if target.plan in plans %}{{ plans[target.plan].label }} · {{ target.plan_until|tarih }}{% else %}yok{% endif %}</dd>
         <dt>E-posta</dt><dd>{{ 'Doğrulandı' if target.email_verified else 'Doğrulanmadı' }}</dd>
         <dt>Giriş</dt><dd>{{ 'Google' if target.google_sub else '' }}{{ ' + ' if target.google_sub and target.pw_hash }}{{ 'Şifre' if target.pw_hash }}</dd>
         <dt>Dil</dt><dd>{{ langs.get(target.lang, target.lang) }}</dd>

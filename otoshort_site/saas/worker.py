@@ -68,17 +68,22 @@ def channel_params(s, ch: Channel) -> dict:
 
     characters, ref_image = karakter.cast(s, ch.user_id, ch.cast_ids, ch.characters, ch.ref_image)
     return dict(idea=ch.topic, characters=characters, style=ch.style, language=ch.language, quality=ch.quality,
-                channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles, subtitle_style=ch.subtitle_style)
+                channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles, subtitle_style=ch.subtitle_style,
+                seconds=ch.seconds)
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
                channel_id: int | None = None, slot: str | None = None, ref_image: str = "",
-               subtitles: bool = False, subtitle_style: str = "viral") -> Job:
+               subtitles: bool = False, subtitle_style: str = "viral", seconds: int = 8) -> Job:
     """İşi oluşturur ve krediyi düşer (yetmezse credits.NotEnoughCredits)."""
-    cost = config.QUALITIES[quality]["credits"]
+    from . import abonelik
+
+    abonelik.check(s, user_id, quality)  # bu yapay zekâ kullanıcının aboneliğinde yoksa PlanRequired
+    seconds = config.clamp_seconds(seconds)
+    cost = config.price(quality, seconds)
     job = Job(user_id=user_id, channel_id=channel_id, slot=slot, idea=idea, characters=characters, style=style,
               language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles),
-              subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "")
+              subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "", seconds=seconds)
     s.add(job)
     s.flush()
     credits.charge(s, user_id, cost, f"Video #{job.id} ({config.QUALITIES[quality]['label']})", job.id)
@@ -96,7 +101,7 @@ def run_job(job_id: int, generator) -> None:
         job = s.get(Job, job_id)
         past = _past_summaries(s, job)
         params = dict(idea=job.idea, characters=job.characters, style=job.style, language=job.language)
-        quality = job.quality
+        quality, seconds = job.quality, config.clamp_seconds(job.seconds)
         want_subs, sub_style = job.subtitles, job.subtitle_style
         from . import media
 
@@ -105,13 +110,15 @@ def run_job(job_id: int, generator) -> None:
         if refs:
             params["has_ref"] = True
     try:
-        script = generator.write_script(**params, past=past)
+        clips = config.plan_clips(quality, seconds)
+        script = generator.write_script(**params, past=past, seconds=seconds, clips=clips)
+        shots = ai_mod.fit_shots(script.shots, script.video_prompt, len(clips))
         with db.session() as s:
             s.execute(update(Job).where(Job.id == job_id).values(
-                prompt=script.video_prompt, title=script.title, caption=script.caption,
-                hashtags=" ".join(script.hashtags), summary=script.summary))
+                prompt="\n\n".join(shots) if len(shots) > 1 else script.video_prompt, title=script.title,
+                caption=script.caption, hashtags=" ".join(script.hashtags), summary=script.summary))
         rel = f"{job_id}.mp4"
-        generator.make_video(prompt=script.video_prompt, quality=quality, out=video_dir() / rel, refs=refs)
+        make_scenes(generator, shots, clips, quality, refs, video_dir() / rel, seconds)
         raw = add_subtitles(generator, video_dir() / rel, params["language"], sub_style) if want_subs else None
         make_poster(video_dir() / rel)
         with db.session() as s:
@@ -152,6 +159,31 @@ def run_job(job_id: int, generator) -> None:
         fail_job(job_id, msg, f"{type(e).__name__}: {e}")
 
 
+def make_scenes(generator, shots: list[str], clips: list[int], quality: str, refs: list, out: Path,
+                seconds: int) -> Path:
+    """Sahneleri üretir; birden fazlaysa birleştirip tam süreye kırpar. Bir sahne bile üretilemezse iş başarısız."""
+    from . import media
+
+    if len(clips) == 1:
+        generator.make_video(prompt=shots[0], quality=quality, out=out, refs=refs, seconds=clips[0])
+        if clips[0] > seconds:
+            try:
+                media.trim(out, seconds)
+            except Exception:
+                log.exception("Video kırpılamadı: %s", out.name)
+        return out
+    parts = []
+    try:
+        for i, (prompt, sec) in enumerate(zip(shots, clips)):
+            part = out.with_name(f"{out.stem}-sahne{i + 1}.mp4")
+            generator.make_video(prompt=prompt, quality=quality, out=part, refs=refs, seconds=sec)
+            parts.append(part)
+        return media.join_clips(parts, out, seconds)
+    finally:
+        for part in parts:
+            part.unlink(missing_ok=True)
+
+
 def add_subtitles(generator, video: Path, language: str, style: str = "") -> Path | None:
     """Konuşmaları döküp videoya basar. Başarısız olursa video altyazısız kalır (iş yine de hazır sayılır).
     style="viral": kelime kelime renklenen Shorts altyazısı (kelime zamanları da istenir)."""
@@ -189,6 +221,8 @@ def claim_next() -> int | None:
 
 def schedule_channels(at: datetime | None = None) -> list[int]:
     """Saati gelen kanal videolarını oluşturur. Oluşan iş id'lerini döndürür."""
+    from . import abonelik
+
     tz = ZoneInfo(config.TIMEZONE)
     at = (at or datetime.now(tz)).astimezone(tz)
     created = []
@@ -222,9 +256,32 @@ def schedule_channels(at: datetime | None = None) -> list[int]:
                            "<b>{channel}</b> kanalının {slot} videosu kredi yetersiz olduğu için üretilmedi. "
                            "Kredi yüklediğinde kanal kaldığı yerden devam eder.", ("Kredi yükle", f"{_site()}/kredi"),
                            channel=ch.name, slot=slot)
+            except abonelik.PlanRequired:  # abonelik bitti: bu kalitede üretilmez, kredi düşmez
+                with db.session() as s:
+                    first = not s.get(Channel, ch.id).notice
+                    s.execute(update(Channel).where(Channel.id == ch.id).values(
+                        notice=f"{slot} videosu aboneliğin bu kaliteyi kapsamadığı için üretilmedi."))
+                if first:
+                    notify(ch.user_id, "{channel}: aboneliğini yenile", "Otomatik kanalın durdu",
+                           "<b>{channel}</b> kanalının seçtiği kalite aboneliğinde yok (ya da aboneliğin bitti). "
+                           "Aboneliğini yenilediğinde ya da kanalın kalitesini değiştirdiğinde devam eder.",
+                           ("Abonelikler", f"{_site()}/kredi#abonelik"), channel=ch.name)
             except IntegrityError:
                 pass  # aynı saat için iş zaten oluşturulmuş
     return created
+
+
+def remind_plans() -> None:
+    """Aboneliği 3 gün içinde bitecek olanlara bir kez hatırlatma (otomatik çekim yok)."""
+    from . import abonelik
+
+    with db.session() as s:
+        due = abonelik.due_reminders(s)
+    for uid, plan, until in due:
+        notify(uid, "{site}: aboneliğin {date} tarihinde bitiyor", "Aboneliğin bitmek üzere",
+               "<b>{plan}</b> aboneliğin {date} tarihinde bitiyor. Kesintisiz devam etmek için yenileme havaleni "
+               "bildir; yeni 30 gün kalan günlerinin üstüne eklenir.", ("Aboneliği yenile", f"{_site()}/kredi#abonelik"),
+               plan=config.PLANS[plan]["label"], date=until.astimezone(ZoneInfo(config.TIMEZONE)).strftime("%d.%m.%Y"))
 
 
 def recover() -> None:
@@ -250,6 +307,7 @@ class Worker:
 
     def tick(self) -> None:
         schedule_channels()
+        remind_plans()
         self.daily_backup()
         self.publish_tick()
         while True:

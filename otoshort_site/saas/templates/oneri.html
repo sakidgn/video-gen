@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Fikrini paylaş') }} · {{ site }}{% endblock %}
+{% block content %}
+<section style="padding-top:56px"><div class="wrap narrow">
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Fikir ve öneriler') }}</span>
+    <h1 class="fb-h">{{ _h('Fikirlerini ve düşüncelerini <span class="hl">bizimle paylaş.</span>') }}</h1>
+    <p class="lead">{{ _('Bir özellik mi istiyorsun, bir şey mi canını sıktı, aklına harika bir fikir mi geldi? Yaz; hepsini tek tek okuyoruz ve siteyi buna göre geliştiriyoruz.') }}</p></div>
+  <form class="card card-lg fb-form reveal" method="post" action="{{ L('/oneri') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="fb-kinds seg" role="radiogroup" aria-label="{{ _('Mesaj türü') }}">
+      {% for k, v in kinds.items() %}<label class="opt"><input type="radio" name="kind" value="{{ k }}" {% if k == kind %}checked{% endif %}>
+        <span class="opt-body">{{ icon({'oneri':'sparkles','istek':'wand','sorun':'alert','diger':'mail'}[k], 15) }}<span class="opt-title">{{ _(v) }}</span></span></label>{% endfor %}
+    </div>
+    <label class="field"><span class="label">{{ _('Mesajın') }}</span>
+      <textarea class="textarea" name="message" minlength="5" maxlength="2000" required rows="6" placeholder="{{ _('Örn: Videolara arka plan müziği seçebilsem çok iyi olurdu.') }}"></textarea></label>
+    {% if not user %}<label class="field"><span class="label">{{ _('E-posta') }} <span class="opt">{{ _('(isteğe bağlı, cevap verelim diye)') }}</span></span>
+      <input class="input" type="email" name="email" maxlength="255" autocomplete="email" placeholder="ornek@eposta.com"></label>{% endif %}
+    <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="btn btn-primary btn-lg" type="submit">{{ icon('share', 16) }} {{ _('Gönder') }}</button>
+    <p class="hint">{{ _('Kişisel bilgilerini yazma. Mesajın yalnızca siteyi geliştirmek için okunur.') }}</p>
+  </form>
+</div></section>
+{% endblock %}

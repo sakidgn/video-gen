@@ -5,7 +5,7 @@
   {"@type": "SoftwareApplication", "name": site, "applicationCategory": "MultimediaApplication", "operatingSystem": "Web",
    "url": canonical, "image": base_url ~ S("/static/og.png"), "inLanguage": lang,
    "description": _("Yapay zekâ ile sesli, dikey TikTok, Reels ve Shorts videoları üret; otomatik kanallarla her gün yeni video."),
-   "offers": {"@type": "AggregateOffer", "priceCurrency": "TRY", "lowPrice": qualities.lite.credits, "highPrice": qualities.standard.credits}},
+   "offers": {"@type": "AggregateOffer", "priceCurrency": "TRY", "lowPrice": qualities.lite.credits, "highPrice": plans.studyo.price}},
   {"@type": "FAQPage", "mainEntity": faqs_ld}]}|tojson }}</script>
 {% endblock %}
 {% block content %}
@@ -26,7 +26,7 @@
     </div>
     <div class="hf-meta hf-in" style="--i:4">
       <span class="hf-plat" aria-label="{{ _('TikTok, Instagram Reels ve YouTube Shorts için hazır') }}">{{ brand('tiktok', 17) }}{{ brand('instagram', 17) }}{{ brand('youtube', 19) }}</span>
-      <span class="trust"><span>{{ _('Kamera ve montaj gerekmez') }}</span><span>{{ _('Abonelik yok') }}</span><span>{{ _('Başarısız videoda iade') }}</span></span>
+      <span class="trust"><span>{{ _('Kamera ve montaj gerekmez') }}</span><span>{{ _('Otomatik çekim yok') }}</span><span>{{ _('Başarısız videoda iade') }}</span></span>
     </div>
   </div>
   <a class="hf-scroll" href="#vitrin" aria-label="{{ _('Aşağı kaydır') }}">{{ icon('chevron-down', 22) }}</a>
@@ -128,6 +128,18 @@
     <span class="tm-cat">{{ _(tpl_cats[t.category]) }}</span><b>{{ t.name }}</b><span class="tm-go">{{ icon('arrow-right', 14) }}</span></a>{% endfor %}</div>
 </div></section>
 
+<section id="neler" style="padding-top:40px"><div class="wrap">
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Neler üretebilirsin?') }}</span><h2>{{ _h('Konuyu <span class="hl">sen seç.</span>') }}</h2>
+    <p class="lead">{{ _('Komik skeçten marka tanıtımına, eğitici videodan etkinlik duyurusuna: aklındakini yaz, yapay zekâ çeksin. Birkaç örnek:') }}</p></div>
+  <div class="uc-grid">
+    {% for u in use_cases %}
+    <a class="uc reveal" data-delay="{{ loop.index0 % 4 }}" href="{{ ('/video/yeni?idea=' if user else L('/kayit') ~ '?fikir=') ~ (u.example|urlencode) }}">
+      <span class="icon-box">{{ icon(u.icon, 17) }}</span><b>{{ u.title }}</b><q>{{ u.example }}</q>
+      <span class="uc-go">{{ _('Bu fikirle dene') }} {{ icon('arrow-right', 13) }}</span></a>
+    {% endfor %}
+  </div>
+</div></section>
+
 <section id="otomatik" style="padding-top:20px"><div class="wrap">
   <div class="auto">
     <div class="auto-copy reveal">
@@ -209,18 +221,18 @@
 {% endif %}
 
 <section id="fiyat" style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">{{ _('Fiyatlar') }}</span><h2>{{ _h('Kullandığın <span class="hl">kadar</span> öde.') }}</h2><p class="lead">{{ _('Abonelik yok, gizli ücret yok. 1 kredi = 1 ₺. Video üretilemezse kredin iade.') }}</p></div>
-  <div class="plans">
-    {% for key, q in qualities.items() %}
-    <div class="card plan reveal {{ 'glow-border' if key == 'fast' }}" data-delay="{{ loop.index0 }}" data-tilt="4">
-      {% if key == 'fast' %}<span class="tag">{{ _('EN POPÜLER') }}</span>{% endif %}
-      <div class="row" style="gap:12px"><span class="icon-box {{ 'accent' if key == 'fast' }}">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[key], 18) }}</span><div><h3>{{ _(q.label) }}</h3><div class="tiny faint">{{ _(q.desc) }}</div></div></div>
-      <div class="price"><b>{{ q.credits }}</b><span>{{ _('kredi / video') }}</span></div>
-      <ul><li>{{ icon('check', 15) }} {{ _('8 saniye') }} · 9:16 · {{ q.resolution }}</li><li>{{ icon('check', 15) }} {{ _('Sesli ve konuşmalı') }}</li><li>{{ icon('check', 15) }} {{ _('Başlık + açıklama + hashtag') }}</li></ul>
-      <a class="btn {{ 'btn-primary' if key == 'fast' else 'btn-ghost' }} btn-block" href="{{ start }}" style="margin-top:auto">{{ _('Başla') }}</a>
-    </div>
-    {% endfor %}
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Fiyatlar') }}</span><h2>{{ _h('Üç abonelik, <span class="hl">üç yapay zekâ.</span>') }}</h2>
+    <p class="lead">{{ _('Her plan farklı bir yapay zekâyla gelir. Süreyi sen seçersin: {b} saniyeye kadar sabit fiyat, üstü saniye başı. Otomatik çekim yok, istediğin zaman bırak.', b=sec.base) }}</p></div>
+  {% include "_plans.html" %}
+  <div class="card dur-table reveal">
+    <div class="dt-head"><h3>{{ _('Video başı fiyat') }}</h3><span class="tiny faint">{{ _('1 kredi = 1 ₺ · üretilemezse iade') }}</span></div>
+    <div class="dt-scroll"><table class="table">
+      <tr><th>{{ _('Yapay zekâ') }}</th><th>{{ _('{s} sn’ye kadar', s=sec.base) }}</th><th>{{ _('Her ek saniye') }}</th><th>20 {{ _('sn') }}</th><th>30 {{ _('sn') }}</th><th>60 {{ _('sn') }}</th></tr>
+      {% for k, q in qualities.items() %}<tr><td><b>{{ _(q.label) }}</b><div class="tiny faint">{{ q.ai }} · {{ q.resolution }}</div></td>
+        <td class="mono">{{ q.credits }}</td><td class="mono">+{{ q.per_sec }}</td><td class="mono">{{ price(k, 20) }}</td><td class="mono">{{ price(k, 30) }}</td><td class="mono">{{ price(k, 60) }}</td></tr>{% endfor %}
+    </table></div>
   </div>
+  <div class="packs-head reveal"><b>{{ _('Abonelik istemiyor musun?') }}</b> <span class="muted small">{{ _('Ekonomik yapay zekâyı kredi paketiyle kullan.') }}</span></div>
   <div class="packs">
     {% for tl, cr in packages %}
     <div class="card pack reveal" data-delay="{{ loop.index0 }}"><div><b>{{ _('{tl} ₺', tl=tl) }}</b><div class="tiny faint">{{ _('{n} kredi', n=cr) }}</div></div>{% if cr > tl %}<span class="bonus">{{ _('+%{p} hediye', p=((cr - tl) * 100 / tl)|round|int) }}</span>{% else %}<span class="tiny faint">{{ _('Başlangıç') }}</span>{% endif %}</div>
@@ -232,7 +244,9 @@
     <div class="calc-ctrl">
       <label class="label" for="calc-n">{{ _h('Günde {n} video', n=_h('<b class="calc-n" data-calc-n>3</b>')) }}</label>
       <input id="calc-n" class="range" type="range" min="1" max="10" value="3" data-calc-range>
-      <div class="seg calc-q">{% for k, q in qualities.items() %}<label class="opt"><input type="radio" name="calc-q" value="{{ q.credits }}" {% if k == 'fast' %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ _(q.label) }}</span><span class="code">{{ q.credits }}</span></span></label>{% endfor %}</div>
+      <label class="label" for="calc-s">{{ _h('Video başı {n} saniye', n=_h('<b class="calc-n" data-calc-s-out>8</b>')) }}</label>
+      <input id="calc-s" class="range" type="range" min="{{ sec.min }}" max="{{ sec.max }}" value="8" data-calc-secs data-base="{{ sec.base }}">
+      <div class="seg calc-q">{% for k, q in qualities.items() %}<label class="opt"><input type="radio" name="calc-q" value="{{ q.credits }}" data-per-sec="{{ q.per_sec }}" {% if k == 'fast' %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ _(q.label) }}</span><span class="code" data-calc-price>{{ q.credits }}</span></span></label>{% endfor %}</div>
     </div>
     <div class="calc-out">
       <div><span class="k">{{ _('Günlük') }}</span><b><span data-calc-day>195</span> <small>{{ _('kredi') }}</small></b></div>
@@ -265,6 +279,12 @@
     <details class="reveal"><summary>{{ _(q) }} {{ icon('chevron-down', 18) }}</summary><p>{{ _(a) }}</p></details>
     {% endfor %}
   </div>
+</div></section>
+
+<section style="padding-top:28px"><div class="wrap narrow">
+  <a class="card fb-cta reveal" href="{{ L('/oneri') }}"><span class="icon-box accent">{{ icon('edit', 18) }}</span>
+    <div><b>{{ _('Fikirlerinizi ve düşüncelerinizi bizimle paylaşın') }}</b><span class="small muted">{{ _('İstediğin özelliği, aklına gelen fikri ya da yaşadığın sorunu yaz; siteyi birlikte geliştirelim.') }}</span></div>
+    {{ icon('arrow-right', 16) }}</a>
 </div></section>
 
 <section style="padding-top:20px"><div class="wrap">

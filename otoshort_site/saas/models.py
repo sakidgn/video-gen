@@ -25,6 +25,9 @@ class User(Base):
     referred_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # davet eden kullanıcının id'si
     ref_rewarded: Mapped[bool] = mapped_column(Boolean, default=False)  # davet ödülü verildi mi
     loyalty_given: Mapped[int] = mapped_column(Integer, default=0)  # verilen sadakat hediyesi sayısı
+    plan: Mapped[str] = mapped_column(String(20), default="")  # abonelik: baslangic / pro / studyo
+    plan_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    plan_reminded: Mapped[bool] = mapped_column(Boolean, default=False)  # bitişe az kala hatırlatıldı
     lang: Mapped[str] = mapped_column(String(5), default="tr")  # site ve e-posta dili
     blocked: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici askıya aldı: giriş yapamaz
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
@@ -73,6 +76,7 @@ class TopUp(Base):
     credits: Mapped[int] = mapped_column(Integer)
     sender_name: Mapped[str] = mapped_column(String(120))
     note: Mapped[str] = mapped_column(String(300), default="")
+    plan: Mapped[str] = mapped_column(String(20), default="")  # abonelik ödemesiyse planın anahtarı
     status: Mapped[str] = mapped_column(String(20), default="bekliyor")  # bekliyor / onaylandi / reddedildi
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -96,6 +100,7 @@ class Channel(Base):
     ref_image: Mapped[str] = mapped_column(String(120), default="")  # referans karakter görseli ("uid/ad.png")
     subtitles: Mapped[bool] = mapped_column(Boolean, default=False)  # videolara altyazı basılsın mı
     subtitle_style: Mapped[str] = mapped_column(String(10), default="viral")  # "viral" kelime kelime, "" klasik
+    seconds: Mapped[int] = mapped_column(Integer, default=8)  # her videonun süresi
     publish_to: Mapped[str] = mapped_column(String(60), default="")  # otomatik paylaşım: "youtube tiktok instagram"
     cast_ids: Mapped[str] = mapped_column(String(60), default="")  # kayıtlı karakterler: "3 7"
     approval: Mapped[bool] = mapped_column(Boolean, default=False)  # onaylı paylaşım: kullanıcı onaylayınca yüklenir
@@ -140,6 +145,7 @@ class Job(Base):
     ref_image: Mapped[str] = mapped_column(String(120), default="")
     subtitles: Mapped[bool] = mapped_column(Boolean, default=False)
     subtitle_style: Mapped[str] = mapped_column(String(10), default="viral")
+    seconds: Mapped[int] = mapped_column(Integer, default=8)
     raw_file: Mapped[str] = mapped_column(String(300), default="")  # altyazısız orijinal
     public: Mapped[bool] = mapped_column(Boolean, default=False)  # sahibi Keşfet'te paylaşmayı seçti
     featured: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici öne çıkardı
@@ -199,3 +205,16 @@ class Waitlist(Base):
     earned: Mapped[int] = mapped_column(Integer, default=0)  # davetlerden kazanılan toplam (sınır için)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
+
+
+class Feedback(Base):
+    """Kullanıcı ve ziyaretçilerin fikir, istek ve sorun bildirimleri (yönetim panelinde okunur)."""
+    __tablename__ = "feedback"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), default="")  # cevap için (isteğe bağlı)
+    kind: Mapped[str] = mapped_column(String(20), default="oneri")  # oneri / istek / sorun / diger
+    message: Mapped[str] = mapped_column(Text)
+    lang: Mapped[str] = mapped_column(String(5), default="tr")
+    status: Mapped[str] = mapped_column(String(20), default="yeni", index=True)  # yeni / okundu
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

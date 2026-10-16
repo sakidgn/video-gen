@@ -2,8 +2,15 @@
 {% block title %}{{ _('Kredi') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><span class="eyebrow">{{ _('Kredi') }}</span><h1>{{ _('Kredi yükle') }}</h1><p class="muted">{{ _('1 kredi = 1 ₺ · Video üretilemezse kredin otomatik iade edilir.') }}</p></div>
+  <div class="t"><span class="eyebrow">{{ _('Kredi ve abonelik') }}</span><h1>{{ _('Abonelik ve kredi') }}</h1><p class="muted">{{ _('1 kredi = 1 ₺ · Video üretilemezse kredin otomatik iade edilir.') }}</p></div>
   <span class="pill" style="height:36px;padding:0 14px">{{ icon('gem', 15) }} <span class="mono">{{ user.credits }}</span> {{ _('kredi') }}</span>
+</div>
+<div id="abonelik" class="plans-box reveal">
+  <div class="row between" style="align-items:flex-end;margin-bottom:14px">
+    <div><h2 class="plans-h">{{ _('Abonelikler') }}</h2>
+      <p class="small muted" style="margin:4px 0 0">{% if my_plan %}{{ _h('<b>{plan}</b> aboneliğin <b>{date}</b> tarihine kadar açık.', plan=_(plans[my_plan].label), date=plan_until|tarih) }}{% else %}{{ _('Aboneliğin yok: Ekonomik yapay zekâyı kredi paketiyle kullanabilirsin. Diğerleri abonelikle açılır.') }}{% endif %}</p></div>
+  </div>
+  {% include "_plans.html" %}
 </div>
 <div class="grid" style="grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start" id="kredi-grid">
   {% if demo_mode %}
@@ -12,10 +19,20 @@
   {% else %}
   <form class="card card-lg reveal" method="post" action="/kredi/bildirim">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <div class="step-title"><span class="n">1</span><h3>{{ _('Paketini seç') }}</h3></div>
+    <div class="step-title"><span class="n">1</span><h3>{{ _('Ne almak istiyorsun?') }}</h3></div>
+    <p class="tiny faint mono" style="margin:-4px 0 8px">{{ _('ABONELİK · 30 GÜN') }}</p>
+    <div class="opts opts-3" style="margin-bottom:14px">
+    {% for k, p in plans.items() %}
+      <label class="opt"><input type="radio" name="package" value="plan:{{ k }}" {% if k == want_plan %}checked{% endif %}>
+        <span class="opt-body"><span class="opt-tick"></span><span class="opt-title">{{ _(p.label) }}</span>
+          <span style="font-family:var(--display);font-size:24px;font-weight:600">{{ _('{tl} ₺', tl=p.price) }}<small class="faint" style="font-family:var(--font);font-size:12px"> / {{ _('ay') }}</small></span>
+          <span class="opt-sub">{{ _('{n} kredi', n=p.credits) }} · {{ qualities[p.quality].ai }}</span></span></label>
+    {% endfor %}
+    </div>
+    <p class="tiny faint mono" style="margin:0 0 8px">{{ _('EK KREDİ PAKETİ') }}</p>
     <div class="opts opts-3">
     {% for tl, cr in packages %}
-      <label class="opt"><input type="radio" name="package" value="{{ loop.index0 }}" {% if loop.index0 == 1 %}checked{% endif %}>
+      <label class="opt"><input type="radio" name="package" value="{{ loop.index0 }}" {% if not want_plan and loop.index0 == 1 %}checked{% endif %}>
         <span class="opt-body"><span class="opt-tick"></span><span style="font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em">{{ _('{tl} ₺', tl=tl) }}</span>
           <span class="opt-sub">{{ _h('{n} kredi', n=_h('<span class="mono">{x}</span>', x=cr)) }}</span>{% if cr > tl %}<span class="bonus" style="justify-self:start;align-self:flex-start;margin-top:4px">{{ _('+{n} hediye', n=cr - tl) }}</span>{% endif %}</span></label>
     {% endfor %}

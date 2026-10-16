@@ -57,6 +57,12 @@ NEW_COLUMNS = [
     ("jobs", "subtitle_style", "VARCHAR(10) NOT NULL DEFAULT ''"),
     ("channels", "approval", "BOOLEAN NOT NULL DEFAULT 0"),
     ("users", "loyalty_given", "INTEGER NOT NULL DEFAULT 0"),
+    ("users", "plan", "VARCHAR(20) NOT NULL DEFAULT ''"),
+    ("users", "plan_until", "DATETIME"),
+    ("users", "plan_reminded", "BOOLEAN NOT NULL DEFAULT 0"),
+    ("topups", "plan", "VARCHAR(20) NOT NULL DEFAULT ''"),
+    ("jobs", "seconds", "INTEGER NOT NULL DEFAULT 8"),
+    ("channels", "seconds", "INTEGER NOT NULL DEFAULT 8"),
 ]
 
 

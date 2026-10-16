@@ -1,0 +1,24 @@
+{# Abonelik kartları (ana sayfa ve kredi sayfası). buy_url: satın alma bağlantısı (kredi sayfasında forma kaydırır) #}
+<div class="plan-cards">
+{% for k, p in plans.items() %}{% set q = qualities[p.quality] %}
+  <div class="card plan-card reveal {{ 'featured' if k == 'pro' }} {{ 'mine' if my_plan == k }}" data-delay="{{ loop.index0 }}">
+    {% if k == 'pro' %}<span class="tag">{{ _('EN POPÜLER') }}</span>{% endif %}
+    <div class="pc-top"><span class="icon-box {{ 'accent' if k == 'pro' }}">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[p.quality], 18) }}</span>
+      <div><h3>{{ _(p.label) }}</h3><div class="tiny faint">{{ _(p.desc) }}</div></div></div>
+    <div class="pc-ai"><small>{{ _('Yapay zekâ') }}</small><b>{{ q.ai }}</b><span>{{ _(q.label) }} · {{ q.resolution }}</span></div>
+    <div class="price"><b>{{ p.price }} ₺</b><span>/ {{ _('ay') }}</span></div>
+    <ul>
+      <li>{{ icon('check', 15) }} {{ _h('Her ay <b>{n} kredi</b>', n=p.credits) }}</li>
+      <li>{{ icon('check', 15) }} {{ _('≈ {n} video (8 sn, {q})', n=p.credits // price(p.quality, 8), q=_(q.label)) }}</li>
+      <li>{{ icon('check', 15) }} {{ _('Süreyi sen seç: {a}–{b} sn', a=sec.min, b=sec.max) }}</li>
+      {% if loop.index0 %}<li>{{ icon('check', 15) }} {{ _('Alt kademelerdeki yapay zekâlar da dahil') }}</li>{% endif %}
+      <li>{{ icon('check', 15) }} {{ _('Kalan kredi devreder · otomatik çekim yok') }}</li>
+    </ul>
+    {% if user %}
+      <a class="btn {{ 'btn-primary' if k == 'pro' else 'btn-ghost' }} btn-block" href="/kredi?plan={{ k }}#kredi-grid" style="margin-top:auto">{{ _('Aboneliği uzat') if my_plan == k else _('Abone ol') }}</a>
+    {% else %}
+      <a class="btn {{ 'btn-primary' if k == 'pro' else 'btn-ghost' }} btn-block" href="{{ L('/kayit') }}" style="margin-top:auto">{{ _('Başla') }}</a>
+    {% endif %}
+  </div>
+{% endfor %}
+</div>
