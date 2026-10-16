@@ -146,6 +146,91 @@ def clean_channel(data: dict) -> dict:
             "times": times, "hashtags": [h.lstrip("#") for h in strs("hashtags", 5, 30)]}
 
 
+# ---------- viral formatlar: mesajlaşma hikâyesi ve itiraf/hikâye ----------
+def build_chat_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+    lang = config.LANGUAGES.get(language, language)
+    n = max(6, min(18, round(seconds / 2.6)))
+    parts = [
+        f"Write a short, viral fake text-message conversation for a {seconds}-second vertical video "
+        "(TikTok/Reels/Shorts). Two people text each other; it is read aloud with two voices.",
+        f"Idea from the user: {idea.strip()}" if idea.strip() else "Invent a fresh, funny everyday situation.",
+        f"All text in {lang}. About {n} messages, each max 90 characters, natural texting style. Hook in the "
+        "first message, escalate, and end with a surprising or funny twist.",
+        RULES.replace("no on-screen text, subtitles, watermarks, usernames or social media interface in the video.", ""),
+        f"Return JSON (text in {lang}): contact (how the other person is saved in the phone, max 24 chars, e.g. "
+        "a nickname), me_voice and contact_voice (female or male), messages (array of {me: true if sent by the "
+        "phone owner, text}), title (max 50 chars, 1-2 emojis), caption (one short line, 1-3 emojis), hashtags "
+        "(3-6 words without #), summary (one English sentence).",
+    ]
+    if past:
+        parts.append("Do NOT repeat these earlier ideas:\n- " + "\n- ".join(past[-20:]))
+    return "\n".join(parts)
+
+
+CHAT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "contact": {"type": "string"}, "me_voice": {"type": "string"}, "contact_voice": {"type": "string"},
+        "messages": {"type": "array", "items": {"type": "object", "properties": {
+            "me": {"type": "boolean"}, "text": {"type": "string"}}, "required": ["me", "text"]}},
+        "title": {"type": "string"}, "caption": {"type": "string"}, "summary": {"type": "string"},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["contact", "messages", "title", "caption", "hashtags", "summary"],
+}
+
+
+def build_story_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+    lang = config.LANGUAGES.get(language, language)
+    words = max(40, min(170, round(seconds * 2.5)))
+    parts = [
+        f"Write a gripping first-person story for a {seconds}-second vertical narrated video in the style of "
+        "anonymous confession / story forums. It is read aloud by one narrator with big word-by-word subtitles.",
+        f"Idea from the user: {idea.strip()}" if idea.strip() else "Invent a fresh, surprising everyday story.",
+        f"All text in {lang}. About {words} words in total. The first sentence is the post title: a strong hook. "
+        "Then short sentences that build suspense, ending with a twist.",
+        RULES.replace("no on-screen text, subtitles, watermarks, usernames or social media interface in the video.", ""),
+        f"Return JSON (text in {lang}): community (a short forum-like name such as Confessions or Weird stories, "
+        "max 22 chars, no real brand names), voice (female or male), sentences (array; sentences[0] is the post "
+        "title), title (max 50 chars, 1-2 emojis), caption (one short line, 1-3 emojis), hashtags (3-6 words "
+        "without #), summary (one English sentence).",
+    ]
+    if past:
+        parts.append("Do NOT repeat these earlier ideas:\n- " + "\n- ".join(past[-20:]))
+    return "\n".join(parts)
+
+
+STORY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "community": {"type": "string"}, "voice": {"type": "string"},
+        "sentences": {"type": "array", "items": {"type": "string"}},
+        "title": {"type": "string"}, "caption": {"type": "string"}, "summary": {"type": "string"},
+        "hashtags": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["community", "sentences", "title", "caption", "hashtags", "summary"],
+}
+
+
+def clean_format(kind: str, data: dict) -> dict:
+    """Yapay zekânın döndürdüğü yazışma/hikâyeyi güvenli sınırlara getirir."""
+    common = {"title": str(data.get("title", "")).strip()[:120], "caption": str(data.get("caption", "")).strip()[:300],
+              "summary": str(data.get("summary", "")).strip()[:300],
+              "hashtags": [str(h).strip().lstrip("#")[:30] for h in data.get("hashtags") or [] if str(h).strip()][:8]}
+    voice = lambda v, d: v if v in ("female", "male") else d  # noqa: E731
+    if kind == "sohbet":
+        msgs = [{"me": bool(m.get("me")), "text": str(m.get("text", "")).strip()[:160]}
+                for m in data.get("messages") or [] if isinstance(m, dict) and str(m.get("text", "")).strip()][:24]
+        return {**common, "contact": str(data.get("contact", "")).strip()[:30] or "?", "messages": msgs,
+                "me_voice": voice(data.get("me_voice"), "female"), "contact_voice": voice(data.get("contact_voice"), "male")}
+    sents = [str(x).strip()[:300] for x in data.get("sentences") or [] if str(x).strip()][:40]
+    return {**common, "community": str(data.get("community", "")).strip()[:30] or "?", "sentences": sents,
+            "voice": voice(data.get("voice"), "male")}
+
+
+VOICES = {"female": ("Kore", "Leda"), "male": ("Puck", "Charon")}  # Gemini hazır sesleri
+
+
 IDEA_POOL = [
     "Kedi, sahibinin online toplantısına gizlice katılıp patronu yönetmeye çalışıyor",
     "Dinozor ilk kez metrobüse biniyor ve kuyruğu kapıya sıkışıyor",
@@ -217,6 +302,38 @@ class RealAI:
                                                response_json_schema=PREVIEW_SCHEMA, temperature=1.0),
         )
         return clean_preview(json.loads(resp.text))
+
+    def write_format(self, *, kind: str, idea: str, language: str, seconds: int, past: list[str]) -> dict:
+        """Viral format metni: "sohbet" (yazışma) ya da "hikaye" (itiraf/hikâye anlatımı)."""
+        from google.genai import types
+
+        req, schema = ((build_chat_request, CHAT_SCHEMA) if kind == "sohbet" else (build_story_request, STORY_SCHEMA))
+        resp = self.client.models.generate_content(
+            model=config.TEXT_MODEL, contents=req(idea, language, seconds, past),
+            config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema,
+                                               temperature=1.1))
+        return clean_format(kind, json.loads(resp.text))
+
+    def speak(self, *, text: str, voice: str, out: Path) -> Path:
+        """Gemini seslendirme (TTS): metni seçilen hazır sesle okur, 24 kHz WAV kaydeder."""
+        import wave
+
+        from google.genai import types
+
+        resp = self.client.models.generate_content(
+            model=config.TTS_MODEL, contents=text,
+            config=types.GenerateContentConfig(
+                response_modalities=["AUDIO"],
+                speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
+                    prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)))))
+        pcm = resp.candidates[0].content.parts[0].inline_data.data
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with wave.open(str(out), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(24000)
+            w.writeframes(pcm)
+        return out
 
     def channel_plan(self, *, topic: str, language: str) -> dict:
         """Ücretsiz kanal kurucu: kanal adı, açıklama, karakter, ilk 5 video ve saatler (video üretmez)."""
@@ -428,6 +545,33 @@ class FakeAI:
         return {"title": f"{idea[:40]} 😂", "scene": f"Gün ışığı, yakın çekim. {idea}. Kamera ana karakterin "
                 "şaşkın yüzüne yaklaşıyor.", "lines": [{"who": w, "text": x} for w, x in lines[:rnd.choice([3, 4])]],
                 "caption": "Sonunu bekle 😭", "hashtags": ["komik", "shorts", "yapayzeka", "viral"]}
+
+    def write_format(self, *, kind: str, idea: str, language: str, seconds: int, past: list[str]) -> dict:
+        """Sahte mod: kalıp yazışma / hikâye (demo)."""
+        self.calls += 1
+        n = len(past) + 1
+        idea = (idea or "").strip().rstrip(".!")
+        common = {"title": f"Deneme {n}: {idea[:30] or 'yazışma'} 😂", "caption": "Sonunu bekle 😭",
+                  "hashtags": ["deneme", "shorts"], "summary": f"fake {kind} {n}"}
+        if kind == "sohbet":
+            msgs = [(False, "Kanka buzdolabındaki son dilim pizzayı kim yedi?"), (True, "Bilmiyorum, belki kedi?"),
+                    (False, "Bizim kedimiz yok."), (True, "O zaman sorunu çözdük, bu bir hayalet"),
+                    (False, "Hayalet ağzında peynirle mi geziyor?"), (True, "Moda böyle artık"),
+                    (False, "Haftaya pizza parası senden.")]
+            if idea:
+                msgs.insert(0, (False, idea[:80] + "?"))
+            return clean_format(kind, {**common, "contact": "Ahmet (ev arkadaşı)", "me_voice": "female",
+                                       "contact_voice": "male", "messages": [{"me": m, "text": t} for m, t in msgs]})
+        sents = [idea or "Ev arkadaşım üç aydır benim yoğurdumu yiyordu ve bunu nasıl öğrendiğime inanamayacaksınız",
+                 "Her sabah buzdolabını açtığımda yoğurdum biraz daha azalıyordu.",
+                 "Bir gün kabın altına küçük bir not yazdım: Seni görüyorum.",
+                 "Ertesi sabah notun altına cevap yazılmıştı: Ben de seni."]
+        return clean_format(kind, {**common, "community": "İtiraf köşesi", "voice": "male", "sentences": sents})
+
+    def speak(self, *, text: str, voice: str, out: Path) -> Path:
+        from .formatlar import fake_voice
+
+        return fake_voice(text, out, 0 if voice in VOICES["female"] else 1)
 
     def channel_plan(self, *, topic: str, language: str) -> dict:
         """Sahte mod: konudan kalıp kanal planı (demo)."""

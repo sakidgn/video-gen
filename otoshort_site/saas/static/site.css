@@ -1121,4 +1121,43 @@ a.pub-t:hover{color:var(--accent)}
   .price-more b,.tool-cta b{font-size:calc(19px * var(--fs))}
 }
 
+/* format seçimi: yapay zekâ videosu / mesajlaşma / hikâye */
+form[data-studio]{counter-reset:step}
+.step-title .n:empty{counter-increment:step}.step-title .n:empty::before{content:counter(step)}
+form[data-fmt="video"] .only-format,form:not([data-fmt]) .only-format{display:none}
+form[data-fmt="sohbet"] .only-video,form[data-fmt="hikaye"] .only-video{display:none}
+.fmt-pick .opt-body{gap:6px}
+.fmt-prev{position:relative;height:84px;border-radius:12px;overflow:hidden;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:10px}
+.fp-video{background:linear-gradient(180deg,#e9c9a0,#6b4a2c)}.fp-video .mascot{font-size:34px}
+.fp-chat{flex-direction:column;align-items:stretch;justify-content:center;gap:5px;padding:10px 14px;background:linear-gradient(150deg,#ffb38a,#8a6dff 60%,#4fd1c5)}
+.fp-chat i{display:block;height:11px;width:58%;border-radius:8px;background:#e9e9eb;animation:fpin 4s infinite both}
+.fp-chat i.me{align-self:flex-end;width:46%;background:#0a84ff}
+.fp-chat i:nth-child(2){animation-delay:.6s}.fp-chat i:nth-child(3){animation-delay:1.2s}.fp-chat i:nth-child(4){animation-delay:1.8s}
+@keyframes fpin{0%,5%{opacity:0;transform:translateY(5px)}12%,88%{opacity:1;transform:none}100%{opacity:0}}
+.fp-story{flex-direction:column;gap:8px;background:#1a1030 repeating-conic-gradient(#ffb15c 0 6%,transparent 6% 25%) 0 0/14px 14px}
+.fp-story i{display:block;width:70%;height:30px;border-radius:8px;background:#fff;box-shadow:0 6px 14px rgba(0,0,0,.4)}
+.fp-story b{font-weight:800;font-size:13px;letter-spacing:.04em;color:#ffe135;text-shadow:0 2px 0 #000,0 0 4px #000}
+.fmt-new{height:18px;font-size:9.5px;padding:0 6px;margin-left:4px;vertical-align:2px}
+.bg-pick{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+.bg-prev{display:block;height:70px;border-radius:10px;margin-bottom:6px}
+.bg-girdap{background:conic-gradient(from 30deg,#2b0f54,#ff5f6d,#ffc371,#2bd2ff,#2b0f54);animation:bgspin 8s linear infinite}
+.bg-piksel{background:#120c22 repeating-conic-gradient(#ffb15c 0 7%,transparent 7% 25%,#5a2d82 25% 30%,transparent 30% 50%) 0 0/12px 12px;image-rendering:pixelated}
+.bg-pastel{background:linear-gradient(135deg,#ffb38a,#8a6dff 55%,#4fd1c5)}
+.bg-lib{background:linear-gradient(135deg,#2a221a,#14110d)}
+@keyframes bgspin{to{filter:hue-rotate(360deg)}}
+
+/* viral format vitrini: dikey video kartları */
+.vf-sec{padding-top:clamp(50px,6vw,90px)}
+.vf-row{display:grid;grid-template-columns:repeat(3,minmax(0,300px));gap:clamp(14px,2vw,26px);justify-content:center}
+.vf-card{position:relative;display:block;aspect-ratio:9/16;border-radius:26px;overflow:hidden;border:1px solid var(--border-2);background:#0f0d0b;box-shadow:0 40px 80px -40px rgba(0,0,0,.9);transition:transform .5s var(--spring,var(--ease)),border-color .25s}
+.vf-card:hover{transform:translateY(-6px);border-color:rgba(216,185,138,.45)}
+.vf-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.vf-ai .tphone{width:100%;height:100%;aspect-ratio:auto;padding:0;border:0;border-radius:0;box-shadow:none;background:none}
+.vf-ai .tp-screen{border-radius:0}.vf-ai .tp-char .mascot{font-size:66px}.vf-ai .tp-sub p{font-size:20px}
+.vf-ai .tp-top{display:none}.vf-ai .tp-sub{bottom:24%}.vf-ai .tp-side{bottom:40%}
+.vf-chip{position:absolute;top:14px;left:14px;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:rgba(12,11,10,.62);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:calc(12.5px * var(--fs));font-weight:600}
+.vf-cap{position:absolute;left:12px;right:12px;bottom:12px;display:grid;gap:3px;padding:14px 16px;border-radius:18px;background:rgba(12,11,10,.7);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1)}
+.vf-cap b{font-size:calc(15.5px * var(--fs));color:#fff}.vf-cap small{color:var(--text-2);font-size:calc(12.5px * var(--fs))}
+@media(max-width:640px){.vf-row.swipe-m>*{flex-basis:66%}}
+
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none;filter:none}}

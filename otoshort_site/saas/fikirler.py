@@ -90,3 +90,18 @@ USE_CASES = [
 def use_cases(lang: str) -> list[dict]:
     en = lang == "en"
     return [{"icon": ic, "title": te if en else tt, "example": ee if en else et} for ic, tt, et, te, ee in USE_CASES]
+
+
+# Ana sayfadaki "Viral formatlar" bölümünde yapay zekâ videosu kartında oynayan örnek senaryo
+SAMPLE_SCRIPT = {
+    "tr": {"title": "Portakal markette olay çıkardı 😭", "lines": [
+        {"who": "Portakal", "text": "Bu son indirim benim!"}, {"who": "Muz", "text": "Ben ondan önce sıradaydım"},
+        {"who": "Portakal", "text": "Sen sıraya hiç girmedin ki"}, {"who": "Muz", "text": "Kasiyer de bir karpuz zaten"}]},
+    "en": {"title": "The orange lost it at the store 😭", "lines": [
+        {"who": "Orange", "text": "That last deal is mine!"}, {"who": "Banana", "text": "I was in line before you"},
+        {"who": "Orange", "text": "You never even got in line"}, {"who": "Banana", "text": "The cashier is a watermelon anyway"}]},
+}
+
+
+def sample_script(lang: str) -> dict:
+    return SAMPLE_SCRIPT["en" if lang == "en" else "tr"]

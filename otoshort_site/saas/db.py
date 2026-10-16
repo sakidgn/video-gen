@@ -63,6 +63,10 @@ NEW_COLUMNS = [
     ("topups", "plan", "VARCHAR(20) NOT NULL DEFAULT ''"),
     ("jobs", "seconds", "INTEGER NOT NULL DEFAULT 8"),
     ("channels", "seconds", "INTEGER NOT NULL DEFAULT 8"),
+    ("jobs", "format", "VARCHAR(10) NOT NULL DEFAULT ''"),
+    ("jobs", "background", "VARCHAR(40) NOT NULL DEFAULT ''"),
+    ("channels", "format", "VARCHAR(10) NOT NULL DEFAULT ''"),
+    ("channels", "background", "VARCHAR(40) NOT NULL DEFAULT ''"),
 ]
 
 

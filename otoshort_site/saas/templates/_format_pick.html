@@ -1,0 +1,17 @@
+{# Video formatı: yapay zekâ videosu (Veo) ya da viral formatlar (mesajlaşma, hikâye). ch: düzenlenen kayıt #}
+{% set want_fmt = ch.format if ch and ch.format is defined and ch.format in formats else (start_format or '') %}
+<div class="step-title"><span class="n"></span><h3>{{ _('Format') }}</h3></div>
+<div class="opts opts-3 fmt-pick" data-fmt-pick>
+  <label class="opt"><input type="radio" name="format" value="" data-label="{{ _('Yapay zekâ videosu') }}" {% if not want_fmt %}checked{% endif %}>
+    <span class="opt-body"><span class="opt-tick"></span><span class="fmt-prev fp-video" aria-hidden="true"><i class="mascot"></i><i class="mascot alt"></i></span>
+      <span class="opt-title">{{ _('Yapay zekâ videosu') }}</span><span class="opt-sub">{{ _('Karakterli, sesli ve konuşmalı sahne') }}</span>
+      <span class="opt-price">{{ _('{n} kredi’den', n=qualities.lite.credits) }}</span></span></label>
+  {% for k, (label, desc) in formats.items() %}
+  <label class="opt"><input type="radio" name="format" value="{{ k }}" data-label="{{ _(label) }}" {% if want_fmt == k %}checked{% endif %}>
+    <span class="opt-body"><span class="opt-tick"></span>
+      {% if k == 'sohbet' %}<span class="fmt-prev fp-chat" aria-hidden="true"><i></i><i class="me"></i><i></i><i class="me"></i></span>
+      {% else %}<span class="fmt-prev fp-story" aria-hidden="true"><i></i><b>{{ _('İTİRAF') }}</b></span>{% endif %}
+      <span class="opt-title">{{ _(label) }} <span class="badge b-ok fmt-new">{{ _('VİRAL') }}</span></span><span class="opt-sub">{{ _(desc) }}</span>
+      <span class="opt-price">{{ _('{n} kredi · abonelik gerekmez', n=format_credits) }}</span></span></label>
+  {% endfor %}
+</div>

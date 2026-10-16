@@ -7,25 +7,26 @@
 </div>
 {% set v = ch or tpl %}
 {% if tpl_name and not ch %}<div class="invite-note" style="margin:0 0 18px">{{ icon('layers', 15) }} {{ _('“{name}” şablonuyla dolduruldu. İstediğini değiştir.', name=tpl_name) }}</div>{% endif %}
-<form method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}" enctype="multipart/form-data" data-studio data-balance="{{ user.credits }}">
+<form method="post" action="{{ '/kanallar/%d' % ch.id if ch else '/kanallar/yeni' }}" enctype="multipart/form-data" data-studio data-balance="{{ user.credits }}" data-format-credits="{{ format_credits }}" data-format-min="{{ format_min }}">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <div class="studio">
     <div class="card card-lg reveal">
       {% set n0 = 2 %}
-      <div class="step-title"><span class="n">1</span><h3>{{ _('Kanal adı') }}</h3></div>
+      <div class="step-title"><span class="n"></span><h3>{{ _('Kanal adı') }}</h3></div>
       <input class="input" name="name" maxlength="100" required value="{{ v.name if v else '' }}" placeholder="{{ _('Örn: Komik Meyveler') }}">
-      <div class="step-title"><span class="n">2</span><h3>{{ _('Konu ve tema') }}</h3></div>
+      {% with ch = v %}{% include "_format_pick.html" %}{% endwith %}
+      <div class="step-title"><span class="n"></span><h3>{{ _('Konu ve tema') }}</h3></div>
       <textarea class="textarea" name="topic" maxlength="600" placeholder="{{ _('Örn: Konuşan meyveler gündelik hayatta saçma olaylar yaşar. Her video farklı bir mekânda geçsin.') }}">{{ v.topic if v else '' }}</textarea>
       <div class="ideas">
         {% for i in [_('Konuşan meyveler gündelik hayatta saçma olaylar yaşar'),_('Bir kedi her gün yeni bir meslek dener'),_('Ofiste çalışan robotun komik günlüğü'),_('Dinozorlar modern şehirde yaşamaya çalışıyor')] %}
         <button type="button" data-idea="{{ i }}">{{ icon('sparkles', 13) }} {{ i }}</button>{% endfor %}
       </div>
       {% with ch = v %}{% include "_video_fields.html" %}{% endwith %}
-      <div class="step-title"><span class="n">8</span><h3>{{ _('Video saatleri') }}</h3><span class="faint">{{ _('Türkiye saati') }}</span></div>
+      <div class="step-title"><span class="n"></span><h3>{{ _('Video saatleri') }}</h3><span class="faint">{{ _('Türkiye saati') }}</span></div>
       <input class="input mono" name="times" value="{{ v.times if v else '12:00 19:00' }}" placeholder="09:45 13:00 18:30">
       <div class="times">{% for t in ['08:00','09:45','12:00','13:00','15:45','18:30','19:00','21:15','22:30'] %}<button type="button" data-time="{{ t }}">{{ t }}</button>{% endfor %}</div>
       <p class="hint" style="margin-top:8px">{{ _('Her saat günde 1 video demek. Listeden seç ya da kendin yaz (SS:DD, aralarında boşluk).') }}</p>
-      <div class="step-title"><span class="n">9</span><h3>{{ _('Otomatik paylaşım') }}</h3><span class="faint">{{ _('isteğe bağlı') }}</span></div>
+      <div class="step-title"><span class="n"></span><h3>{{ _('Otomatik paylaşım') }}</h3><span class="faint">{{ _('isteğe bağlı') }}</span></div>
       {% set chosen = (ch.publish_to if ch else '').split() %}
       <div class="pub-pick">
         {% for p, meta in platforms.items() %}
@@ -50,7 +51,7 @@
     <aside class="aside reveal" data-delay="1">
       {% include "_preview.html" %}
       <div class="card summary">
-        <div class="line"><span>{{ _('Tarz') }}</span><b id="pv-style">–</b></div>
+        <div class="line only-video"><span>{{ _('Tarz') }}</span><b id="pv-style">–</b></div>
         <div class="line"><span>{{ _('Dil') }}</span><b id="pv-lang">–</b></div>
         <div class="line"><span>{{ _('Kalite') }}</span><b id="pv-quality">–</b></div>
         <div class="line"><span>{{ _('Video başı') }}</span><b><span id="pv-cost" class="mono">–</span> {{ _('kredi') }}</b></div>

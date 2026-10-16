@@ -102,6 +102,9 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   (`fikirler.USE_CASES`), fikir/öneri formu (/oneri, `Feedback`, /admin/oneriler).
 - Dikkat çekici araçlar: senaryo oynatıcı (`_phone_player.html`, fx.js `playScript`), paylaşılabilir senaryo
   (/s/KOD, `SharedScript`), ücretsiz Kanal Kurucu (/araclar/kanal-kurucu, `ai.channel_plan`, kayıtta `session['kanal']`).
+- Viral formatlar: `Job/Channel.format` ("", "sohbet", "hikaye") + `background`; `worker.make_format`,
+  `ai.write_format` + `ai.speak` (Gemini TTS), çizim `formatlar.chat_ass/story_ass/render`. Ana sayfada #formatlar dikey
+  kart vitrini (örnek videolar static/formatlar, `araclar/format_ornekleri.py`). Telefonda ana sayfa ~10 ekran.
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.

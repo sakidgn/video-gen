@@ -51,6 +51,10 @@ SHOWCASE = _env("VITRIN_MODU") == "1"
 FAKE_AI = _env("SAHTE_AI") == "1" or SHOWCASE  # geliştirme/test: API'ye gitmeden sahte video üretir
 PRELAUNCH = SHOWCASE or _env("ERKEN_ERISIM") == "1"
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")
+TTS_MODEL = _env("SES_MODELI", "gemini-2.5-flash-preview-tts")  # viral formatların seslendirmesi
+# Viral formatlar (mesajlaşma, itiraf/hikâye): video modeli kullanmaz, sadece metin + seslendirme → ucuz, sabit fiyat.
+FORMAT_CREDITS = int(_env("KREDI_FORMAT", "19") or 19)
+FORMAT_MIN_SECONDS = 15
 TIMEZONE = _env("SAAT_DILIMI", "Europe/Istanbul")
 WORKER_ENABLED = _env("ISCI", "1") != "0"
 
@@ -93,8 +97,11 @@ def clamp_seconds(value) -> int:
     return max(MIN_SECONDS, min(MAX_SECONDS, v))
 
 
-def price(quality: str, seconds: int) -> int:
-    """Videonun kredi fiyatı: BASE_SECONDS'a kadar sabit, üstündeki her saniye kalitenin saniye fiyatı."""
+def price(quality: str, seconds: int, fmt: str = "") -> int:
+    """Videonun kredi fiyatı: BASE_SECONDS'a kadar sabit, üstündeki her saniye kalitenin saniye fiyatı.
+    Viral formatlar (mesajlaşma, hikâye) video modeli kullanmadığı için sabit fiyatlıdır."""
+    if fmt:
+        return FORMAT_CREDITS
     q = QUALITIES[quality]
     return q["credits"] + q["per_sec"] * max(0, clamp_seconds(seconds) - BASE_SECONDS)
 

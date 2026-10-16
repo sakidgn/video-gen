@@ -14,7 +14,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
-from . import (abonelik, config, credits, db, growth, i18n, karakter, mailer, media, oauth, publisher, secretbox, social, tokens,
+from . import (abonelik, config, credits, db, formatlar, growth, i18n, karakter, mailer, media, oauth, publisher, secretbox, social, tokens,
                worker)
 from .icons import LOGO, brand, icon
 from .models import Channel, Character, CreditTx, Feedback, Job, SharedScript, PromoCode, Publication, SocialAccount, TopUp, User, now
@@ -240,7 +240,8 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
                                                          base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
         my_plan=abonelik.active_plan(user) if user else "",
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
-        plan_for=config.plan_for_quality,
+        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(),
+        format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
@@ -369,6 +370,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase,
                       tpls=sablonlar.all_for(i18n.current())[:6], tpl_cats=sablonlar.CATEGORIES,
                       use_cases=fikirler.use_cases(i18n.current()),
+                      sample=fikirler.sample_script(i18n.current()),
                       ideas=[{**i, "l": i18n.t(config.STYLE_LABELS[i["s"]])} for i in fikirler.for_lang(i18n.current())])
 
     def _public_q():
@@ -492,7 +494,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             flash(request, "Davet bağlantısı geçersiz, yine de kayıt olabilirsin.", "warn")
         return go("/kayit")
 
-    def _after_signup(idea: str, tpl: str = "", kanal: dict | None = None) -> str:
+    def _after_signup(idea: str, tpl: str = "", kanal: dict | None = None, fmt: str = "") -> str:
         from urllib.parse import quote, urlencode
 
         if kanal:
@@ -500,6 +502,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                                                   "saatler": kanal.get("saatler", "")})
         if tpl:
             return f"/kanallar/yeni?sablon={tpl}"
+        if fmt:
+            return f"/video/yeni?format={fmt}" + (f"&idea={quote(idea)}" if idea else "")
         return f"/video/yeni?idea={quote(idea)}" if idea else "/panel"
 
     # --- erken erişim listesi ---
@@ -556,8 +560,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
     @app.get("/kayit", response_class=HTMLResponse)
     def register_page(request: Request, ref: str = "", fikir: str = "", sablon: str = "", kanal_ad: str = "",
-                      kanal_konu: str = "", kanal_saat: str = ""):
+                      kanal_konu: str = "", kanal_saat: str = "", format: str = ""):
         remember_ref(request, ref)
+        if format in formatlar.FORMATS:  # format kartından geldi: kayıttan sonra stüdyo o formatla açılsın
+            request.session["format"] = format
         if kanal_konu:  # kanal kurucudan geldi: kayıttan sonra kanal formu bu ad ve konuyla açılsın
             request.session["kanal"] = {"ad": clean(kanal_ad, 100), "konu": clean(kanal_konu, 600),
                                         "saatler": clean(kanal_saat, 60)}
@@ -600,6 +606,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         idea = request.session.get("fikir", "")
         tpl = request.session.get("sablon", "")
         kanal = request.session.get("kanal")
+        fmt = request.session.get("format", "")
         start_session(request, user)
         if config.SHOWCASE:  # herkese açık demo: gerçek e-posta yok, hesap hemen açılır
             with db.session() as s:
@@ -608,10 +615,10 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 if config.SIGNUP_BONUS:
                     credits.add(s, uid, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
             flash(request, "Hesabın oluşturuldu, hoş geldin! 🎉")
-            return go(_after_signup(idea, tpl, kanal))
+            return go(_after_signup(idea, tpl, kanal, fmt))
         flash(request, "Hesabın oluşturuldu! E-postana bir doğrulama bağlantısı gönderdik. 🎉")
         send_verification(request, uid, email)
-        return go(_after_signup(idea, tpl, kanal))
+        return go(_after_signup(idea, tpl, kanal, fmt))
 
     @app.get("/giris", response_class=HTMLResponse)
     def login_page(request: Request):
@@ -879,7 +886,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)
     def new_video_page(request: Request, idea: str = "", src: int = Query(0, alias="from"), sablon: str = "",
-                       karakter_id: int = Query(0, alias="karakter"), user: User = Depends(require_user)):
+                       karakter_id: int = Query(0, alias="karakter"), format: str = "",
+                       user: User = Depends(require_user)):
         from . import sablonlar
 
         pre, tpl_name = None, ""
@@ -893,6 +901,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
 
         return render(request, "video_yeni.html", user, idea=clean(idea) or (pre.idea if pre else ""), pre=pre,
                       use_cases=fikirler.use_cases(i18n.current()),
+                      start_format=format if format in formatlar.FORMATS else "",
                       tpl_name=tpl_name, **_cast_ctx(user.id, [karakter_id]))
 
     @app.get("/takvim", response_class=HTMLResponse)
@@ -927,7 +936,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         for ch in chans:
             if not ch.active:
                 continue
-            cost = config.price(ch.quality, ch.seconds)
+            cost = config.price(ch.quality, ch.seconds, ch.format)
             for d in days:
                 if d < today:
                     continue
@@ -1021,7 +1030,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                         characters: str = Form(""), style: str = Form("cartoon"), language: str = Form("tr"),
                         quality: str = Form("fast"), ref: UploadFile | None = File(None), ref_keep: str = Form(""),
                         ref_remove: str = Form(""), subtitles: str = Form(""), cast: list[str] = Form([]),
-                        subtitle_style: str = Form("viral"), seconds: int = Form(config.DEFAULT_SECONDS)):
+                        subtitle_style: str = Form("viral"), seconds: int = Form(config.DEFAULT_SECONDS),
+                        format: str = Form(""), background: str = Form("")):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
@@ -1035,7 +1045,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                     s, user.id, idea=clean(idea), characters=characters,
                     style=_valid_choice(style, config.STYLES, "cartoon"),
                     language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image,
-                    subtitles=bool(subtitles), subtitle_style=subtitle_style, seconds=seconds)
+                    subtitles=bool(subtitles), subtitle_style=subtitle_style, seconds=seconds, format=format,
+                    background=background)
                 job_id = job.id
         except credits.NotEnoughCredits:
             flash(request, "Yeterli kredin yok. Bu video {n} kredi.", "err", n=config.price(quality, seconds))
@@ -1125,7 +1136,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 raise HTTPException(404)
             params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
                           quality=old.quality, ref_image=old.ref_image, subtitles=old.subtitles,
-                          subtitle_style=old.subtitle_style, seconds=old.seconds)
+                          subtitle_style=old.subtitle_style, seconds=old.seconds, format=old.format,
+                          background=old.background)
         try:
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
@@ -1453,6 +1465,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             times=" ".join(sorted(set(times), key=lambda t: (int(t.split(":")[0]), t)))[:200] or "12:00",
             subtitles=bool(form.get("subtitles")),
             seconds=config.clamp_seconds(form.get("seconds", config.DEFAULT_SECONDS)),
+            format=str(form.get("format", "")) if form.get("format") in formatlar.FORMATS else "",
+            background=str(form.get("background", ""))[:40] if form.get("background") in formatlar.background_choices() else "",
             subtitle_style=_valid_choice(str(form.get("subtitle_style", "")), media.SUB_STYLES, ""),
             publish_to=" ".join(p for p in social.PLATFORMS if form.get(f"pub_{p}")),
             approval=form.get("approval") == "1",
@@ -1493,7 +1507,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return blocked
         form = await request.form()
         data = _channel_from_form(form)
-        if data["quality"] not in abonelik.allowed(user):
+        if not data["format"] and data["quality"] not in abonelik.allowed(user):
             return _plan_needed(request, abonelik.PlanRequired(data["quality"]))
         ref_image = await read_reference(request, form.get("ref"), user.id)
         if ref_image is None:
@@ -1526,7 +1540,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     async def channel_edit(request: Request, cid: int, user: User = Depends(require_user)):
         form = await request.form()
         data = _channel_from_form(form)
-        if data["quality"] not in abonelik.allowed(user):
+        if not data["format"] and data["quality"] not in abonelik.allowed(user):
             return _plan_needed(request, abonelik.PlanRequired(data["quality"]))
         with db.session() as s:
             current = _own_channel(s, user, cid).ref_image

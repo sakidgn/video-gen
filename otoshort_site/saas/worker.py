@@ -69,24 +69,34 @@ def channel_params(s, ch: Channel) -> dict:
     characters, ref_image = karakter.cast(s, ch.user_id, ch.cast_ids, ch.characters, ch.ref_image)
     return dict(idea=ch.topic, characters=characters, style=ch.style, language=ch.language, quality=ch.quality,
                 channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles, subtitle_style=ch.subtitle_style,
-                seconds=ch.seconds)
+                seconds=ch.seconds, format=ch.format, background=ch.background)
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
                channel_id: int | None = None, slot: str | None = None, ref_image: str = "",
-               subtitles: bool = False, subtitle_style: str = "viral", seconds: int = 8) -> Job:
+               subtitles: bool = False, subtitle_style: str = "viral", seconds: int = 8, format: str = "",
+               background: str = "") -> Job:
     """İşi oluşturur ve krediyi düşer (yetmezse credits.NotEnoughCredits)."""
-    from . import abonelik
+    from . import abonelik, formatlar
 
-    abonelik.check(s, user_id, quality)  # bu yapay zekâ kullanıcının aboneliğinde yoksa PlanRequired
-    seconds = config.clamp_seconds(seconds)
-    cost = config.price(quality, seconds)
+    format = format if format in formatlar.FORMATS else ""
+    if format:  # viral format: video modeli yok, sabit fiyat, abonelik gerekmez
+        seconds = max(config.FORMAT_MIN_SECONDS, config.clamp_seconds(seconds))
+        background = background if background in formatlar.background_choices() else "pastel"
+        cost = config.FORMAT_CREDITS
+    else:
+        abonelik.check(s, user_id, quality)  # bu yapay zekâ kullanıcının aboneliğinde yoksa PlanRequired
+        seconds = config.clamp_seconds(seconds)
+        cost = config.price(quality, seconds)
+        background = ""
     job = Job(user_id=user_id, channel_id=channel_id, slot=slot, idea=idea, characters=characters, style=style,
               language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles),
-              subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "", seconds=seconds)
+              subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "", seconds=seconds,
+              format=format, background=background)
     s.add(job)
     s.flush()
-    credits.charge(s, user_id, cost, f"Video #{job.id} ({config.QUALITIES[quality]['label']})", job.id)
+    label = formatlar.FORMATS[format][0] if format else config.QUALITIES[quality]["label"]
+    credits.charge(s, user_id, cost, f"Video #{job.id} ({label})", job.id)
     return job
 
 
@@ -102,6 +112,7 @@ def run_job(job_id: int, generator) -> None:
         past = _past_summaries(s, job)
         params = dict(idea=job.idea, characters=job.characters, style=job.style, language=job.language)
         quality, seconds = job.quality, config.clamp_seconds(job.seconds)
+        fmt, background = job.format, job.background
         want_subs, sub_style = job.subtitles, job.subtitle_style
         from . import media
 
@@ -110,16 +121,26 @@ def run_job(job_id: int, generator) -> None:
         if refs:
             params["has_ref"] = True
     try:
-        clips = config.plan_clips(quality, seconds)
-        script = generator.write_script(**params, past=past, seconds=seconds, clips=clips)
-        shots = ai_mod.fit_shots(script.shots, script.video_prompt, len(clips))
-        with db.session() as s:
-            s.execute(update(Job).where(Job.id == job_id).values(
-                prompt="\n\n".join(shots) if len(shots) > 1 else script.video_prompt, title=script.title,
-                caption=script.caption, hashtags=" ".join(script.hashtags), summary=script.summary))
         rel = f"{job_id}.mp4"
-        make_scenes(generator, shots, clips, quality, refs, video_dir() / rel, seconds)
-        raw = add_subtitles(generator, video_dir() / rel, params["language"], sub_style) if want_subs else None
+        if fmt:  # viral format: yazışma/hikâye metni + seslendirme + çizim
+            script = make_format(generator, fmt, params["idea"], params["language"], seconds, background, past,
+                                 video_dir() / rel)
+            raw = None
+        else:
+            clips = config.plan_clips(quality, seconds)
+            script = generator.write_script(**params, past=past, seconds=seconds, clips=clips)
+            shots = ai_mod.fit_shots(script.shots, script.video_prompt, len(clips))
+            with db.session() as s:
+                s.execute(update(Job).where(Job.id == job_id).values(
+                    prompt="\n\n".join(shots) if len(shots) > 1 else script.video_prompt, title=script.title,
+                    caption=script.caption, hashtags=" ".join(script.hashtags), summary=script.summary))
+            make_scenes(generator, shots, clips, quality, refs, video_dir() / rel, seconds)
+            raw = add_subtitles(generator, video_dir() / rel, params["language"], sub_style) if want_subs else None
+        if fmt:
+            with db.session() as s:
+                s.execute(update(Job).where(Job.id == job_id).values(
+                    prompt=script.video_prompt, title=script.title, caption=script.caption,
+                    hashtags=" ".join(script.hashtags), summary=script.summary))
         make_poster(video_dir() / rel)
         with db.session() as s:
             s.execute(update(Job).where(Job.id == job_id).values(status="hazir", video_file=rel, finished_at=now(),
@@ -157,6 +178,39 @@ def run_job(job_id: int, generator) -> None:
         else:
             msg = "Video üretilemedi, kredin iade edildi. Biraz sonra tekrar dene."
         fail_job(job_id, msg, f"{type(e).__name__}: {e}")
+
+
+def make_format(generator, kind: str, idea: str, language: str, seconds: int, background: str, past: list[str],
+                out: Path) -> "ai_mod.Script":
+    """Viral format videosu: yapay zekâ metni yazar, her satır seslendirilir, balonlar/kart + altyazı çizilir."""
+    import tempfile
+
+    from . import formatlar
+
+    data = generator.write_format(kind=kind, idea=idea, language=language, seconds=seconds, past=past)
+    with tempfile.TemporaryDirectory() as d:
+        tmp = Path(d)
+        if kind == "sohbet":
+            msgs = data["messages"][:20] or [{"me": False, "text": idea or "..."}]
+            me_v = ai_mod.VOICES[data["me_voice"]][0]
+            other_v = ai_mod.VOICES[data["contact_voice"]][1 if data["contact_voice"] == data["me_voice"] else 0]
+            parts = [generator.speak(text=m["text"], voice=me_v if m["me"] else other_v, out=tmp / f"m{i}.wav")
+                     for i, m in enumerate(msgs)]
+            times = formatlar.join_audio(parts, 0.3, 0.5, 1.2, tmp / "ses.wav")
+            total = times[-1][1] + 1.2
+            ass = formatlar.chat_ass(msgs, times, data["contact"], total)
+            lines = [("> " if m["me"] else "< ") + m["text"] for m in msgs]
+        else:
+            sents = data["sentences"][:30] or [idea or "..."]
+            voice = ai_mod.VOICES[data["voice"]][0]
+            parts = [generator.speak(text=x, voice=voice, out=tmp / f"s{i}.wav") for i, x in enumerate(sents)]
+            times = formatlar.join_audio(parts, 0.2, 0.3, 1.0, tmp / "ses.wav")
+            total = times[-1][1] + 1.0
+            ass = formatlar.story_ass(sents[0], data["community"], sents, times, total, language)
+            lines = sents
+        formatlar.render(ass, tmp / "ses.wav", total, background, out)
+    return ai_mod.Script(video_prompt="\n".join(lines), title=data["title"], caption=data["caption"],
+                         hashtags=data["hashtags"], summary=data["summary"])
 
 
 def make_scenes(generator, shots: list[str], clips: list[int], quality: str, refs: list, out: Path,

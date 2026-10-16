@@ -278,6 +278,16 @@
     });
   }
 
+  // Viral format kartları: video yalnızca ekrandayken yüklenir ve oynar (veri tasarrufu açıksa sadece kapak)
+  const vfs = $$('video[data-vf]'), saveData = navigator.connection && navigator.connection.saveData;
+  if (vfs.length && 'IntersectionObserver' in window && !reduce && !saveData) {
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      const v = e.target;
+      if (e.isIntersecting) { if (!v.src) v.src = v.dataset.vf; v.play().catch(() => {}); } else if (v.src) v.pause();
+    }), { threshold: 0.35 });
+    vfs.forEach(v => io.observe(v));
+  }
+
   // Senaryo oynatıcı: telefon ekranında diyalog kelime kelime (viral altyazı gibi) akar, konuşan karakter zıplar
   function playScript(el, p) {
     clearTimeout(el._tp);
@@ -403,19 +413,24 @@
       const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
       if (st) set('#pv-style', st.dataset.label);
       if (lg) { set('#pv-lang', lg.dataset.label); set('#pv-code', lg.value.toUpperCase()); }
-      const dr = $('[data-dur-range]', studio), dw = $('[data-dur]', studio), secs = dr ? +dr.value : 8;
-      const cost = q ? +q.dataset.credits + (+q.dataset.perSec || 0) * Math.max(0, secs - (dw ? +dw.dataset.base : 10)) : 0;
+      const fm = $('input[name=format]:checked', studio), fmt = fm ? fm.value : '';
+      studio.dataset.fmt = fmt || 'video';
+      const dr = $('[data-dur-range]', studio), dw = $('[data-dur]', studio);
+      if (dr) { const lo = fmt ? +studio.dataset.formatMin || 15 : 4; dr.min = lo; if (+dr.value < lo) dr.value = lo; }
+      const secs = dr ? +dr.value : 8;
+      const cost = fmt ? +studio.dataset.formatCredits
+        : q ? +q.dataset.credits + (+q.dataset.perSec || 0) * Math.max(0, secs - (dw ? +dw.dataset.base : 10)) : 0;
       if (dw) { const base = +dw.dataset.base, extra = Math.max(0, secs - base), scenes = Math.ceil(secs / 8);
         $$('[data-dur-out]').forEach(el => { el.textContent = secs; }); set('[data-dur-price]', cost);
         dr.style.setProperty('--fill', ((secs - dr.min) * 100 / (dr.max - dr.min)) + '%');
-        let note = extra ? fill(dw.dataset.tplExtra, { base, x: extra, p: q ? q.dataset.perSec : 0 }) : fill(dw.dataset.tplFlat, { base });
-        if (scenes > 1) note += ' · ' + fill(dw.dataset.tplScenes, { n: scenes });
+        let note = fmt ? fill(dw.dataset.tplFormat || '', { n: cost }) : extra ? fill(dw.dataset.tplExtra, { base, x: extra, p: q ? q.dataset.perSec : 0 }) : fill(dw.dataset.tplFlat, { base });
+        if (scenes > 1 && !fmt) note += ' · ' + fill(dw.dataset.tplScenes, { n: scenes });
         set('[data-dur-note]', note); }
-      if (q) { const c = cost; set('#pv-quality', q.dataset.label); set('#pv-cost', c);
+      if (q || fmt) { const c = cost; set('#pv-quality', fmt ? fm.dataset.label : q.dataset.label); set('#pv-cost', c);
         const left = $('#pv-left'); if (left) { left.textContent = bal - c; left.style.color = bal - c < 0 ? 'var(--err)' : ''; }
         const go = $('#pv-go'); if (go) go.disabled = false; }
       const per = $('#pv-per'), times = $('input[name=times]', studio);
-      if (per && times && q) { const n = times.value.split(/[\s,]+/).filter(x => /^\d{1,2}:\d{2}$/.test(x)).length;
+      if (per && times && (q || fmt)) { const n = times.value.split(/[\s,]+/).filter(x => /^\d{1,2}:\d{2}$/.test(x)).length;
         per.textContent = fill(per.dataset.tpl, { n, c: cost, total: n * cost }); }
     };
     studio.addEventListener('change', upd); studio.addEventListener('input', upd); upd();

@@ -51,6 +51,14 @@ rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle a�
   erken erişim = ilk yüklemede %20, sadakat = her 400 kredilik videoda 1 Ekonomik video.
 - Hepsi `.env` ile değişir (bkz. `.env.ornek`). Maliyete göre kâr ~%40.
 
+## Viral formatlar (video modeli yok, ucuz)
+Stüdyoda ve otomatik kanallarda **Format** seçilir: yapay zekâ videosu (Veo), **Mesajlaşma hikâyesi** (iki kişinin
+yazışması, iki farklı sesle okunur, balonlar arka plan videosu üstünde belirir) ya da **İtiraf / hikâye** (gönderi
+kartı + seslendirme + kelime kelime altyazı). Metni Gemini yazar, seslendirmeyi Gemini TTS (`SES_MODELI`) yapar,
+video ffmpeg + libass ile çizilir (`saas/formatlar.py`). Sabit fiyat `KREDI_FORMAT` (19), abonelik gerekmez.
+Arka planlar: ffmpeg desenleri (girdap, piksel, pastel) ya da `saas_veri/arka_planlar/*.mp4` içine koyduğun
+kendi videoların. Ana sayfadaki örnek videolar: `python araclar/format_ornekleri.py`.
+
 ## Ziyaretçiyi yakalayan araçlar
 - **Senaryo oynatıcı:** ana sayfadaki kayıtsız denemede senaryo telefon ekranında kelime kelime altyazıyla oynar.
 - **Paylaşılabilir senaryo:** her denemenin /s/KOD bağlantısı var (WhatsApp/X butonları). Arkadaşı açınca senaryoyu

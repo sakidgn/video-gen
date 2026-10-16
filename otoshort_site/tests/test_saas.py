@@ -2105,3 +2105,52 @@ def test_free_channel_builder_carries_plan_into_signup(client, monkeypatch):
     assert f'value="{plan["names"][0]}"' in form and "Uzay gerçekleri" in form and plan["times"][0] in form
     _assert_english(TestClient(client.app).get("/en/araclar/kanal-kurucu").text, "/en/araclar/kanal-kurucu")
     assert "/araclar/kanal-kurucu" in client.get("/sitemap.xml").text
+
+
+def test_viral_formats_chat_and_story_videos(client, tmp_path):
+    import subprocess
+
+    import imageio_ffmpeg
+
+    from saas import formatlar
+
+    signup(client, "a@b.com", plan="")  # viral formatlar abonelik istemez
+    give("a@b.com", 100)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni?format=sohbet").text
+    assert re.search(r'name="format" value="sohbet"[^>]*checked', page) and 'name="background"' in page
+    client.post("/video/yeni", data={"idea": "Annem telefonumdan mesaj atıyor", "format": "sohbet",
+                                     "background": "piksel", "seconds": "5", "quality": "standard", "csrf": t})
+    client.post("/video/yeni", data={"idea": "", "format": "hikaye", "background": "yok-boyle", "csrf": t})
+    client.post("/video/yeni", data={"idea": "x", "format": "<script>", "quality": "lite", "csrf": t})
+    gen = ai.FakeAI()
+    run_queue(gen)
+    with db.session() as s:
+        jobs = s.scalars(select(Job).order_by(Job.id)).all()
+    chat, story, plain = jobs
+    assert (chat.format, chat.background, chat.cost, chat.seconds) == ("sohbet", "piksel", config.FORMAT_CREDITS,
+                                                                       config.FORMAT_MIN_SECONDS)
+    assert (story.format, story.background) == ("hikaye", "pastel") and plain.format == ""
+    assert chat.status == story.status == "hazir" and "> " in chat.prompt and "Ahmet" not in chat.title
+    assert balance("a@b.com") == 100 - 2 * config.FORMAT_CREDITS - config.price("lite", 8)
+    for j in (chat, story):
+        r = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-i", str(tmp_path / "videolar" / j.video_file)],
+                           capture_output=True, text=True)
+        assert "1280" in r.stderr and "Audio:" in r.stderr  # 720x1280, sesli
+    vp = client.get(f"/video/{chat.id}").text
+    assert "Mesajlaşma hikâyesi" in vp and f"{config.FORMAT_CREDITS}" in vp
+    # balon çizimi: emoji ayıklanır, uzun kelime bölünür, panel taşmaz
+    ass = formatlar.chat_ass([{"me": True, "text": "Selam 👋 " + "a" * 60}], [(0.5, 2.0)], "Annem", 3.0)
+    assert "👋" not in ass and "\\N" in ass
+    assert formatlar.wrap("bir iki üç dört beş altı yedi", 8) == ["bir iki", "üç dört", "beş altı", "yedi"]
+
+
+def test_format_card_links_carry_format_through_signup(client):
+    home = client.get("/").text
+    assert 'id="formatlar"' in home and "/kayit?format=sohbet" in home and "data-vf=" in home
+    c = TestClient(client.app)
+    c.get("/kayit?format=hikaye")
+    r = c.post("/kayit", data={"email": "f@b.com", "password": "sifre1234", "accept": "1", "consent": "1",
+                               "csrf": csrf(c, "/kayit")}, follow_redirects=False)
+    assert r.headers["location"] == "/video/yeni?format=hikaye"
+    _assert_english(TestClient(client.app).get("/en/").text, "/en/ (formatlar)")

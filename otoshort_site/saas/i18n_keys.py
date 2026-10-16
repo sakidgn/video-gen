@@ -68,6 +68,11 @@ def constant_keys() -> set[str]:
     from .sablonlar import CATEGORIES
 
     keys |= set(CATEGORIES.values())
+    from .formatlar import BACKGROUNDS, FORMATS
+
+    keys |= {x for pair in FORMATS.values() for x in pair} | set(BACKGROUNDS.values())
+    for p in config.PLANS.values():
+        keys |= {p["label"], p["desc"]}
     return keys
 
 

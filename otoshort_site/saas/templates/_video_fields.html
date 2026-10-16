@@ -1,5 +1,6 @@
 {# Video ve kanal formlarında ortak alanlar. n0: önceki adım sayısı, ch: düzenlenen kanal (yoksa None) #}
-<div class="step-title"><span class="n">{{ n0 + 1 }}</span><h3>{{ _('Karakterler') }}</h3><span class="faint">{{ _('İsteğe bağlı') }}</span></div>
+<div class="only-video">
+<div class="step-title"><span class="n"></span><h3>{{ _('Karakterler') }}</h3><span class="faint">{{ _('İsteğe bağlı') }}</span></div>
 {% if my_chars %}
 <div class="cast-pick" data-cast data-max="{{ cast_max }}">
   <div class="cast-chips">
@@ -27,7 +28,10 @@
   {% if ref_qualities|length < qualities|length %}<p class="hint" style="margin-top:8px">{{ icon('info', 13) }} {{ _('Referans görsel şu kalitelerde kullanılır:') }} {% for k in ref_qualities %}{{ _(qualities[k].label) }}{{ ', ' if not loop.last }}{% endfor %}.</p>{% endif %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 2 }}</span><h3>{{ _('Görsel tarz') }}</h3></div>
+</div>
+
+<div class="only-video">
+<div class="step-title"><span class="n"></span><h3>{{ _('Görsel tarz') }}</h3></div>
 <div class="opts opts-5">
 {% for k, v in styles.items() %}
   <label class="opt"><input type="radio" name="style" value="{{ k }}" data-label="{{ _(v) }}" {% if (ch and ch.style == k) or (not ch and k == 'cartoon') %}checked{% endif %}>
@@ -35,7 +39,9 @@
 {% endfor %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 3 }}</span><h3>{{ _('Konuşma dili') }}</h3></div>
+</div>
+
+<div class="step-title"><span class="n"></span><h3>{{ _('Konuşma dili') }}</h3></div>
 <div class="seg">
 {% for k, v in languages.items() %}
   <label class="opt"><input type="radio" name="language" value="{{ k }}" data-label="{{ v }}" {% if (ch and ch.language == k) or (not ch and k == lang) %}checked{% endif %}>
@@ -43,7 +49,8 @@
 {% endfor %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 4 }}</span><h3>{{ _('Yapay zekâ') }}</h3>{% if my_plan %}<span class="faint">{{ _('{plan} aboneliği', plan=_(plans[my_plan].label)) }}</span>{% endif %}</div>
+<div class="only-video">
+<div class="step-title"><span class="n"></span><h3>{{ _('Yapay zekâ') }}</h3>{% if my_plan %}<span class="faint">{{ _('{plan} aboneliği', plan=_(plans[my_plan].label)) }}</span>{% endif %}</div>
 {% set want_q = ch.quality if ch and ch.quality in my_quals else ('fast' if 'fast' in my_quals else my_quals[0]) %}
 <div class="opts opts-3">
 {% for k, q in qualities.items() %}{% set locked = k not in my_quals %}
@@ -55,12 +62,26 @@
 {% endfor %}
 </div>
 
-<div class="step-title"><span class="n">{{ n0 + 5 }}</span><h3>{{ _('Süre') }}</h3><span class="dur-val"><b data-dur-out>{{ (ch.seconds if ch and ch.seconds is defined and ch.seconds else sec.default) }}</b> {{ _('sn') }}</span></div>
-<div class="dur" data-dur data-base="{{ sec.base }}" data-tpl-flat="{{ _('{base} sn’ye kadar sabit fiyat') }}" data-tpl-extra="{{ _('{base} sn üstü +{x} sn × {p} kredi') }}" data-tpl-scenes="{{ _('{n} sahne birleştirilir') }}">
+</div>
+
+<div class="step-title"><span class="n"></span><h3>{{ _('Süre') }}</h3><span class="dur-val"><b data-dur-out>{{ (ch.seconds if ch and ch.seconds is defined and ch.seconds else sec.default) }}</b> {{ _('sn') }}</span></div>
+<div class="dur" data-dur data-base="{{ sec.base }}" data-tpl-flat="{{ _('{base} sn’ye kadar sabit fiyat') }}" data-tpl-extra="{{ _('{base} sn üstü +{x} sn × {p} kredi') }}" data-tpl-scenes="{{ _('{n} sahne birleştirilir') }}" data-tpl-format="{{ _('Süre konuşmaya göre ayarlanır (yaklaşık), sabit fiyat') }}">
   <input class="dur-range" type="range" name="seconds" min="{{ sec.min }}" max="{{ sec.max }}" step="1" value="{{ ch.seconds if ch and ch.seconds is defined and ch.seconds else sec.default }}" aria-label="{{ _('Video süresi (saniye)') }}" data-dur-range>
   <div class="dur-scale" aria-hidden="true"><span>{{ sec.min }} {{ _('sn') }}</span><span class="dur-base" style="--p:{{ ((sec.base - sec.min) * 100 / (sec.max - sec.min))|round(2) }}%">{{ sec.base }}</span><span>{{ sec.max }} {{ _('sn') }}</span></div>
   <p class="hint dur-note"><span data-dur-note>–</span> · <b><span data-dur-price>–</span> {{ _('kredi') }}</b></p>
 </div>
+{% set want_bg = ch.background if ch and ch.background is defined and ch.background in backgrounds else 'pastel' %}
+<div class="only-format">
+<div class="step-title"><span class="n"></span><h3>{{ _('Arka plan') }}</h3><span class="faint">{{ _('videonun arkasında döner') }}</span></div>
+<div class="opts bg-pick">
+{% for k, v in backgrounds.items() %}
+  <label class="opt"><input type="radio" name="background" value="{{ k }}" {% if k == want_bg %}checked{% endif %}>
+    <span class="opt-body"><span class="bg-prev bg-{{ k if not k.startswith('lib:') else 'lib' }}" aria-hidden="true"></span><span class="opt-title">{{ _(v) }}</span></span></label>
+{% endfor %}
+</div>
+</div>
+
+<div class="only-video">
 {% set sub_on = ch.subtitles if ch else true %}{% set sub_style = (ch.subtitle_style if ch and ch.subtitle_style is defined else 'viral') %}
 <div class="subs-box">
 <label class="toggle-row">
@@ -73,5 +94,6 @@
     <span class="opt-body"><span class="sub-prev viral" aria-hidden="true">{{ _('SON') }} <b>{{ _('İNDİRİM') }}</b></span><span class="opt-title">{{ _('Viral') }}</span><span class="opt-sub">{{ _('kelime kelime, renkli') }}</span></span></label>
   <label class="opt"><input type="radio" name="subtitle_style" value="klasik" {% if sub_style != 'viral' %}checked{% endif %}>
     <span class="opt-body"><span class="sub-prev" aria-hidden="true">{{ _('Son indirim') }}</span><span class="opt-title">{{ _('Klasik') }}</span><span class="opt-sub">{{ _('sade, cümle cümle') }}</span></span></label>
+</div>
 </div>
 </div>

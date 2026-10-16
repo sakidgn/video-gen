@@ -101,6 +101,8 @@ class Channel(Base):
     subtitles: Mapped[bool] = mapped_column(Boolean, default=False)  # videolara altyazı basılsın mı
     subtitle_style: Mapped[str] = mapped_column(String(10), default="viral")  # "viral" kelime kelime, "" klasik
     seconds: Mapped[int] = mapped_column(Integer, default=8)  # her videonun süresi
+    format: Mapped[str] = mapped_column(String(10), default="")  # "" yapay zekâ videosu, "sohbet", "hikaye"
+    background: Mapped[str] = mapped_column(String(40), default="")  # viral formatların arka planı
     publish_to: Mapped[str] = mapped_column(String(60), default="")  # otomatik paylaşım: "youtube tiktok instagram"
     cast_ids: Mapped[str] = mapped_column(String(60), default="")  # kayıtlı karakterler: "3 7"
     approval: Mapped[bool] = mapped_column(Boolean, default=False)  # onaylı paylaşım: kullanıcı onaylayınca yüklenir
@@ -146,6 +148,8 @@ class Job(Base):
     subtitles: Mapped[bool] = mapped_column(Boolean, default=False)
     subtitle_style: Mapped[str] = mapped_column(String(10), default="viral")
     seconds: Mapped[int] = mapped_column(Integer, default=8)
+    format: Mapped[str] = mapped_column(String(10), default="")
+    background: Mapped[str] = mapped_column(String(40), default="")
     raw_file: Mapped[str] = mapped_column(String(300), default="")  # altyazısız orijinal
     public: Mapped[bool] = mapped_column(Boolean, default=False)  # sahibi Keşfet'te paylaşmayı seçti
     featured: Mapped[bool] = mapped_column(Boolean, default=False)  # yönetici öne çıkardı
