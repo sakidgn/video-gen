@@ -1301,8 +1301,8 @@ def test_language_switch_cookie_and_seo(client):
     assert '<link rel="canonical" href="http://testserver/en/">' in home
     assert 'hreflang="tr" href="http://testserver/"' in home and 'hreflang="en" href="http://testserver/en/"' in home
     assert '"inLanguage": "en"' in home and "Do I need a credit card?" in home
-    assert "/static/shots/studio-en.jpg" in home  # İngilizce görsel varsa o, yoksa Türkçesi
-    assert "/static/shots/studio.jpg" in TestClient(client.app).get("/").text
+    assert "/static/formatlar/sohbet-en.jpg" in home  # İngilizce görsel varsa o, yoksa Türkçesi
+    assert "/static/formatlar/sohbet.jpg" in TestClient(client.app).get("/").text
     tr = TestClient(client.app).get("/", headers={"accept-language": "tr-TR,tr;q=0.9"}).text
     assert '<html lang="tr" data-theme=' in tr and "View in English" not in tr
     assert "View in English" in TestClient(client.app).get("/", headers={"accept-language": "en-US,en;q=0.9"}).text
@@ -2056,7 +2056,7 @@ def test_feedback_form_reaches_admin(client, tmp_path):
     with db.session() as s:
         assert s.get(Feedback, rows[0].id).status == "okundu"
     home = anon.get("/").text
-    assert "Bize yaz" in home and "/oneri" in home and "Neler üretebilirsin" in home
+    assert "Bize yaz" in home and "/oneri" in home
     _assert_english(TestClient(client.app).get("/en/oneri").text, "/en/oneri")
 
 

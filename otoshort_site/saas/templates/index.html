@@ -108,28 +108,6 @@
   </div>
 </div></section>
 
-<section class="showcase-sec hide-m" id="vitrin"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">{{ _('Stüdyo') }}</span><h2>{{ _h('Profesyonel stüdyo, <span class="hl">tek ekranda.</span>') }}</h2>
-    <p class="lead">{{ _('Karakterini seç, tarzını belirle, kaliteye karar ver. Her şeyi canlı önizlemeyle gör.') }}</p></div>
-  <div class="showcase" data-showcase>
-    <div class="sc-glow" aria-hidden="true"></div>
-    <div class="sc-frame">
-      <div class="sc-bar"><i></i><i></i><i></i><span class="sc-url">{{ icon('lock', 12) }} zaply.app/video/yeni</span></div>
-      <picture>
-        <source type="image/webp" sizes="(max-width: 1400px) 92vw, 1360px"
-          srcset="{{ S('/static/shots/studio-800.webp') }} 800w, {{ S('/static/shots/studio-1360.webp') }} 1360w, {{ S('/static/shots/studio.webp') }} 2720w">
-        <img src="{{ S('/static/shots/studio.jpg') }}" width="1360" height="850" alt="{{ _('{site} video stüdyosu ekranı', site=site) }}" loading="lazy" decoding="async">
-      </picture>
-    </div>
-  </div>
-</div></section>
-
-<div class="marquee hide-m" aria-hidden="true">
-  {% set mq_ideas = [_('Portakal markette son indirim için kavga ediyor'),_('Dinozor ilk kez metrobüse biniyor'),_('Kedi patronun toplantısına katılıyor'),_('Patates spor salonunda rekor kırıyor'),_('Robot ilk kez çay demliyor'),_('Kurbağa bilgi yarışmasında finalde'),_('Pizza diyete başlamaya karar veriyor'),_("Uzaylı Kapalıçarşı'da pazarlık yapıyor")] %}
-  <div class="mq-row"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas %}<span class="mq-item">{{ i }}</span><span class="mq-sep">✦</span>{% endfor %}{% endfor %}</div></div>
-  <div class="mq-row rev"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas|reverse %}<span class="mq-item">{{ i }}</span><span class="mq-sep">✦</span>{% endfor %}{% endfor %}</div></div>
-</div>
-
 <section id="nasil"><div class="wrap">
   <div class="sec-head reveal">
     <span class="eyebrow">{{ _('Nasıl çalışır') }}</span>
@@ -161,24 +139,6 @@
 </div></section>
 
 
-<section id="neler" style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">{{ _('Neler üretebilirsin?') }}</span><h2>{{ _h('Konuyu <span class="hl">sen seç.</span>') }}</h2>
-    <p class="lead">{{ _('Komik skeçten marka tanıtımına, eğitici videodan etkinlik duyurusuna: aklındakini yaz, yapay zekâ çeksin. Birkaç örnek:') }}</p></div>
-  <div class="uc-grid swipe-m">
-    {% for u in use_cases %}
-    <a class="uc reveal" data-delay="{{ loop.index0 % 4 }}" href="{{ ('/video/yeni?idea=' if user else L('/kayit') ~ '?fikir=') ~ (u.example|urlencode) }}">
-      <span class="icon-box">{{ icon(u.icon, 17) }}</span><b>{{ u.title }}</b><q>{{ u.example }}</q>
-      <span class="uc-go">{{ _('Bu fikirle dene') }} {{ icon('arrow-right', 13) }}</span></a>
-    {% endfor %}
-  </div>
-  <div class="uc-more reveal"><a class="btn btn-ghost btn-sm" href="{{ L('/sablonlar') }}">{{ icon('layers', 14) }} {{ _('Hazır kanal şablonları') }}</a></div>
-  <a class="card tool-cta reveal" href="{{ L('/araclar/kanal-kurucu') }}">
-    <span class="icon-box accent">{{ icon('wand', 18) }}</span>
-    <div><span class="tiny faint mono">{{ _('ÜCRETSİZ ARAÇ') }}</span><b>{{ _('Kanal Kurucu') }}</b>
-      <span class="small muted">{{ _('Konunu yaz; kanal adı, açıklama, karakter ve ilk 5 video fikri 10 saniyede hazır.') }}</span></div>
-    <span class="btn btn-primary btn-sm">{{ _('Dene') }} {{ icon('arrow-right', 14) }}</span></a>
-</div></section>
-
 <section id="otomatik" style="padding-top:20px"><div class="wrap">
   <div class="auto">
     <div class="auto-copy reveal">
@@ -206,47 +166,6 @@
         {% endfor %}
       </div>
       <div class="sched-foot"><span class="row" style="gap:8px">{{ icon('clock', 15) }} {{ _('Sıradaki: Perşembe 18:30') }}</span><span class="mono tiny faint">{{ _('{n} kredi / video', n=65) }}</span></div>
-    </div>
-  </div>
-</div></section>
-
-<section style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">{{ _('Özellikler') }}</span><h2>{{ _h('Kanal büyütmek için <span class="hl">gereken</span> her şey.') }}</h2></div>
-  <div class="bento swipe-m">
-    <div class="bx bx-wide reveal" data-tilt="3">
-      <div class="bx-viz wave" aria-hidden="true">{% for h in [30,62,44,80,52,90,36,70,58,96,40,74,48,86,32,66,54,92,38,72,46,84,34,60] %}<i style="--h:{{ h }}%;--d:{{ loop.index0 * 70 }}ms"></i>{% endfor %}</div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('mic', 18) }}</span><div><h3>{{ _('Sesli ve konuşmalı') }}</h3><p class="muted small">{{ _('Karakterler seçtiğin dilde konuşur; ses efektleri ve müzik dahil.') }}</p></div></div>
-    </div>
-    <div class="bx bx-tall reveal" data-delay="1" data-tilt="3">
-      <div class="bx-viz ratio" aria-hidden="true"><div class="phone"><span class="ph-notch"></span><span class="ph-scene"></span><span class="ph-cap">9:16</span></div></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('phone', 18) }}</span><div><h3>{{ _('9:16 dikey format') }}</h3><p class="muted small">{{ _("TikTok, Reels ve Shorts'a doğrudan yüklemeye hazır.") }}</p></div></div>
-    </div>
-    <div class="bx reveal" data-delay="1" data-tilt="3">
-      <div class="bx-viz stack" aria-hidden="true"><span>{{ _('Metrobüs macerası') }}</span><span>{{ _('Market kavgası') }}</span><span class="new">{{ _('Toplantı kedisi') }} <b>{{ _('YENİ') }}</b></span></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('brain', 18) }}</span><div><h3>{{ _('Tekrar etmeyen fikirler') }}</h3><p class="muted small">{{ _('Önceki videolarını hatırlar, her seferinde yeni bir şaka bulur.') }}</p></div></div>
-    </div>
-    <div class="bx reveal" data-delay="2" data-tilt="3">
-      <div class="bx-viz tags" aria-hidden="true">{% for tag in _('#komik #shorts #keşfet #viral #mizah #fyp').split() %}<span>{{ tag }}</span>{% endfor %}</div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('hash', 18) }}</span><div><h3>{{ _('Paylaşım metni hazır') }}</h3><p class="muted small">{{ _("Viral başlık, emojili açıklama ve konuya uygun hashtag'ler.") }}</p></div></div>
-    </div>
-    <div class="bx bx-wide reveal" data-tilt="3">
-      <div class="bx-viz styles" aria-hidden="true">{% for k, n in [('cartoon',_('Çizgi film')),('anime',_('Anime')),('realistic',_('Gerçekçi')),('claymation',_('Kil')),('meme3d',_('Meme 3D'))] %}<span class="st"><span class="swatch sw-{{ k }}"></span><small>{{ n }}</small></span>{% endfor %}</div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('palette', 18) }}</span><div><h3>{{ _('Beş farklı tarz') }}</h3><p class="muted small">{{ _('Çizgi film, anime, gerçekçi, kil animasyon ve meme 3D.') }}</p></div></div>
-    </div>
-    <div class="bx reveal" data-delay="1" data-tilt="3">
-      <div class="bx-viz refund" aria-hidden="true"><div class="rf"><span class="rf-ic">{{ icon('refund', 22) }}</span><b>+65</b><small>{{ _('kredi iade edildi') }}</small></div></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('refund', 18) }}</span><div><h3>{{ _('Başarısızsa iade') }}</h3><p class="muted small">{{ _('Video üretilemezse kredin otomatik olarak geri yüklenir.') }}</p></div></div>
-    </div>
-    <div class="bx bx-wide reveal" data-tilt="3">
-      <div class="bx-viz cast" aria-hidden="true">
-        <div class="cast-card"><span class="cc-av"><i class="mascot"></i></span><div><b>{{ _('Portakal Paşa') }}</b><small>{{ icon('check', 12) }} {{ _('Görünüş') }} · {{ icon('mic', 12) }} {{ _('Karadeniz şivesi') }}</small></div></div>
-        <div class="cast-reel">{% for t in [_('Market'), _('Metrobüs'), _('Toplantı')] %}<span style="--d:{{ loop.index0 * 140 }}ms"><i class="mascot"></i><small>{{ t }}</small></span>{% endfor %}</div>
-      </div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('users', 18) }}</span><div><h3>{{ _('Karakterini kaydet') }}</h3><p class="muted small">{{ _('Kendi karakterinin görünümünü ve sesini bir kez kaydet, tüm videolarında aynı karakter oynasın.') }}</p></div></div>
-    </div>
-    <div class="bx reveal" data-delay="1" data-tilt="3">
-      <div class="bx-viz karaoke" aria-hidden="true"><div class="kr-phone">{% for w in _('BU SON İNDİRİM BENİM').split() %}<span style="--i:{{ loop.index0 }}">{{ w }}</span>{% endfor %}</div></div>
-      <div class="bx-txt"><span class="icon-box">{{ icon('type', 18) }}</span><div><h3>{{ _('Otomatik viral altyazı') }}</h3><p class="muted small">{{ _('Konuşmayla senkron, kelime kelime patlayan renkli Shorts altyazısı. Sessiz izleyenleri de tutar; istersen kapat.') }}</p></div></div>
     </div>
   </div>
 </div></section>
@@ -312,4 +231,4 @@
   {% else %}<a class="btn btn-primary btn-block" href="{{ start }}">{{ _('Video üret') if user else _('Ücretsiz başla') }} {{ icon('arrow-right', 16) }}</a>{% endif %}
 </div>
 {% endblock %}
-{% block scripts %}<script src="/static/vendor/lenis.min.js?v={{ v }}" defer></script>{% endblock %}
+
