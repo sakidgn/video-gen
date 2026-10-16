@@ -249,7 +249,7 @@
     $('[data-im-roll]', im).addEventListener('click', () => {
       if (!bag.length) bag = ideas.map((_, i) => i).sort(() => Math.random() - .5);
       const it = ideas[bag.pop()];
-      box.value = it.e + ' ' + it.t; box.focus();
+      box.value = it.t; box.focus();
     });
     form.addEventListener('submit', async e => {
       e.preventDefault();

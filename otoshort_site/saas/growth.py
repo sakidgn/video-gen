@@ -44,24 +44,79 @@ def attach_referrer(s, user: User, code: str | None) -> None:
         user.referred_by = rid
 
 
-def reward_referral(s, user_id: int) -> int | None:
-    """Davetle gelen kullanıcının ilk onaylı havalesinde ödülleri bir kez verir; ödül alan davet edenin id'si."""
-    res = s.execute(update(User).where(User.id == user_id, User.referred_by.is_not(None),
-                                       User.ref_rewarded.is_(False)).values(ref_rewarded=True))
+def pct(amount: int, percent: int) -> int:
+    return amount * percent // 100
+
+
+def first_topup_rewards(s, user_id: int, topup_credits: int) -> tuple[int | None, int]:
+    """İlk onaylı yüklemede (bir kez): davetle gelene / erken erişim listesindekine yüzde fazla kredi (büyüğü),
+    davet edene de o yüklemenin yüzdesi kadar kredi. Hepsi ödenen paradan pay; bedava kredi yok.
+    (davet edenin id'si, ona verilen kredi) döner."""
+    from .models import Waitlist
+
+    res = s.execute(update(User).where(User.id == user_id, User.ref_rewarded.is_(False)).values(ref_rewarded=True))
     if res.rowcount != 1:
-        return None
+        return None, 0
     user = s.get(User, user_id)
-    if config.REFERRAL_BONUS:
-        credits.add(s, user.referred_by, config.REFERRAL_BONUS, "Davet ödülü: arkadaşın ilk yüklemesini yaptı")
-    if config.REFERRAL_FRIEND_BONUS:
-        credits.add(s, user.id, config.REFERRAL_FRIEND_BONUS, "Davetle gelen hediye")
-    return user.referred_by
+    w = s.scalar(select(Waitlist).where(Waitlist.email == user.email))
+    if not user.referred_by and w and w.ref:  # erken erişim listesinde davetle gelmiş: davet edenin hesabına bağla
+        inviter = s.scalar(select(Waitlist).where(Waitlist.code == w.ref))
+        rid = inviter and s.scalar(select(User.id).where(User.email == inviter.email, User.email_verified.is_(True)))
+        if rid and rid != user.id:
+            user.referred_by = rid
+    bonus, reason = 0, ""
+    if user.referred_by and config.REFERRAL_FRIEND_PCT:
+        bonus, reason = pct(topup_credits, config.REFERRAL_FRIEND_PCT), "Davetle gelen hediye"
+    if w and config.EARLY_TOPUP_PCT and pct(topup_credits, config.EARLY_TOPUP_PCT) > bonus:
+        bonus, reason = pct(topup_credits, config.EARLY_TOPUP_PCT), "Erken erişim hediyesi"
+    if bonus:
+        credits.add(s, user.id, bonus, reason)
+    if w:
+        w.rewarded = True
+    ref_amount = pct(topup_credits, config.REFERRAL_PCT) if user.referred_by else 0
+    if ref_amount:
+        credits.add(s, user.referred_by, ref_amount, "Davet ödülü: arkadaşın ilk yüklemesini yaptı")
+    return (user.referred_by, ref_amount) if ref_amount else (None, 0)
+
+
+def loyalty(s, user_id: int) -> int:
+    """Hazır videolara harcanan her LOYALTY_EVERY kredide 1 Ekonomik video hediye. Verilen kredi döner."""
+    from .models import Job
+
+    if not config.LOYALTY_EVERY:
+        return 0
+    spent = s.scalar(select(func.coalesce(func.sum(Job.cost), 0)).where(Job.user_id == user_id,
+                                                                     Job.status == "hazir")) or 0
+    user = s.get(User, user_id)
+    due, given = spent // config.LOYALTY_EVERY, user.loyalty_given
+    if due <= given:
+        return 0
+    # aynı anda biten iki video aynı hediyeyi iki kez vermesin
+    if s.execute(update(User).where(User.id == user_id, User.loyalty_given == given)
+                 .values(loyalty_given=due)).rowcount != 1:
+        return 0
+    amount = (due - given) * config.QUALITIES["lite"]["credits"]
+    credits.add(s, user_id, amount, "Sadakat hediyesi: 1 Ekonomik video")
+    return amount
+
+
+def loyalty_progress(s, user_id: int) -> dict:
+    from .models import Job
+
+    every = config.LOYALTY_EVERY
+    spent = s.scalar(select(func.coalesce(func.sum(Job.cost), 0)).where(Job.user_id == user_id,
+                                                                     Job.status == "hazir")) or 0
+    return {"every": every, "done": spent % every if every else 0, "gift": config.QUALITIES["lite"]["credits"]}
 
 
 def referral_stats(s, user_id: int) -> dict:
+    from .models import CreditTx
+
     invited = s.scalar(select(func.count(User.id)).where(User.referred_by == user_id)) or 0
     rewarded = s.scalar(select(func.count(User.id)).where(User.referred_by == user_id, User.ref_rewarded.is_(True))) or 0
-    return {"invited": invited, "rewarded": rewarded, "earned": rewarded * config.REFERRAL_BONUS}
+    earned = s.scalar(select(func.coalesce(func.sum(CreditTx.amount), 0)).where(
+        CreditTx.user_id == user_id, CreditTx.reason == "Davet ödülü: arkadaşın ilk yüklemesini yaptı")) or 0
+    return {"invited": invited, "rewarded": rewarded, "earned": earned}
 
 
 # ---------- promosyon kodu ----------

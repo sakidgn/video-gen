@@ -46,7 +46,9 @@ FAQS = [
     ("Video beğenmezsem ya da üretilemezse?",
      "Teknik bir hata ya da güvenlik filtresi yüzünden video üretilemezse kredin otomatik iade edilir. Üretilen videolar için iade yapılmaz; önce Ekonomik kaliteyle deneyip beğenince üst kaliteye geçebilirsin."),
     ("Arkadaşımı davet edersem ne kazanırım?",
-     "Panelindeki “Davet et” sayfasından bağlantını paylaş. Davet ettiğin kişi ilk kredisini yüklediğinde ikinize de hediye kredi tanımlanır."),
+     "Panelindeki “Davet et” sayfasından bağlantını paylaş. Davet ettiğin kişi ilk kredisini yüklediğinde o yüklemenin %15'i kadar kredi sana, %10 fazlası ona hediye."),
+    ("Sık kullananlara hediye var mı?",
+     "Evet. Hazır videolarına harcadığın her 400 kredide 1 Ekonomik video bizden. Kendiliğinden yüklenir."),
     ("Yapay zekâ saçma bir şey üretirse hesabımda doğrudan paylaşılır mı?",
      "İstemezsen hayır. Otomatik kanalda “Onaylı paylaşım” modunu seç: video hazır olunca sana bildirim gelir, izleyip tek tıkla onayladığında paylaşılır. Beğenmezsen paylaşma; hiçbir yere gitmez."),
     ("Otomatik kanalda kredim bitince ne olur?",
@@ -132,7 +134,6 @@ def mark_verified(s, user: User) -> None:
         credits.add(s, user.id, config.SIGNUP_BONUS, "Hoş geldin hediyesi")
     from . import waitlist
 
-    waitlist.reward_on_verify(s, user)  # erken erişim listesindeyse hediyeler (bir kez)
 
 
 def send_email(request: Request, to: str, subject: str, html: str) -> None:
@@ -228,7 +229,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         flashes=request.session.pop("flash", []), qualities=config.QUALITIES, styles=config.STYLE_LABELS,
         languages=config.LANGUAGES, packages=config.PACKAGES, style_emoji=config.STYLE_EMOJI,
         google_button=oauth.enabled() or (config.FAKE_AI and not config.SHOWCASE), demo_mode=config.SHOWCASE,
-        prelaunch=config.PRELAUNCH, early_bonus=config.EARLY_BONUS, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
+        prelaunch=config.PRELAUNCH, early_pct=config.EARLY_TOPUP_PCT, ref_pct=config.REFERRAL_PCT, signup_bonus=config.SIGNUP_BONUS, base_url=site_url(request),
         quality_emoji=config.QUALITY_EMOJI, flags=config.LANGUAGE_FLAGS, legal=config.LEGAL,
         ref_qualities=[k for k in config.QUALITIES if config.supports_refs(k)],
     )
@@ -357,7 +358,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         from . import fikirler, sablonlar
 
         return render(request, "index.html", current_user(request), faqs=FAQS, faqs_ld=faqs_ld, showcase=showcase,
-                      tpls=sablonlar.all_for(i18n.current())[:6],
+                      tpls=sablonlar.all_for(i18n.current())[:6], tpl_cats=sablonlar.CATEGORIES,
                       ideas=[{**i, "l": i18n.t(config.STYLE_LABELS[i["s"]])} for i in fikirler.for_lang(i18n.current())])
 
     def _public_q():
@@ -538,8 +539,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             user_part, _, domain = w.email.partition("@")
             masked = f"{user_part[:2]}•••@{domain}"
         return render(request, "liste.html", current_user(request), w=w, st=st, masked=masked,
-                      link=f"{site_url(request)}/e/{w.code}", invite_bonus=config.EARLY_INVITE_BONUS,
-                      invite_cap=config.EARLY_INVITE_CAP)
+                      link=f"{site_url(request)}/e/{w.code}")
 
     @app.get("/kayit", response_class=HTMLResponse)
     def register_page(request: Request, ref: str = "", fikir: str = "", sablon: str = ""):
@@ -1547,8 +1547,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                             .limit(50)).all()
             topups = s.scalars(select(TopUp).where(TopUp.user_id == user.id).order_by(TopUp.id.desc())
                                .limit(10)).all()
+            loyal = growth.loyalty_progress(s, user.id)
         return render(request, "kredi.html", user, txs=txs, topups=topups, iban=config.IBAN,
-                      iban_name=config.IBAN_NAME)
+                      iban_name=config.IBAN_NAME, loyal=loyal, ref_pct=config.REFERRAL_PCT)
 
     promo_limiter = RateLimiter(limit=8, window=600)
 
@@ -1575,7 +1576,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             code = growth.ref_code_for(s, user.id)
             stats = growth.referral_stats(s, user.id)
         return render(request, "davet.html", user, link=f"{site_url(request)}/d/{code}", code=code, stats=stats,
-                      ref_bonus=config.REFERRAL_BONUS, friend_bonus=config.REFERRAL_FRIEND_BONUS)
+                      friend_pct=config.REFERRAL_FRIEND_PCT)
 
     @app.post("/kredi/bildirim", dependencies=[Depends(check_csrf)])
     def credit_notify(request: Request, user: User = Depends(require_user), package: int = Form(...),
@@ -1807,19 +1808,19 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                 flash(request, "Bu bildirim zaten işlenmiş.", "err")
                 return go("/admin")
             t = s.get(TopUp, tid)
-            referrer = None
+            referrer, ref_amount = None, 0
             if action == "onayla":
                 credits.add(s, t.user_id, t.credits, f"Havale ile yükleme ({t.amount_tl} TL)")
-                referrer = growth.reward_referral(s, t.user_id)
+                referrer, ref_amount = growth.first_topup_rewards(s, t.user_id, t.credits)
             uid, amount_tl, cr = t.user_id, t.amount_tl, t.credits
         if action == "onayla":
             worker.notify(uid, "{site}: kredin yüklendi 💎", "Kredin yüklendi!",
                           "{tl} ₺ havalen onaylandı ve hesabına <b>{n} kredi</b> yüklendi. Üretmeye başlayabilirsin.",
                           ("Video üret", f"{site_url(request)}/video/yeni"), tl=amount_tl, n=cr)
-        if referrer and config.REFERRAL_BONUS:
+        if referrer and ref_amount:
             worker.notify(referrer, "{site}: davet ödülün geldi 🎁", "Davet ödülün yüklendi!",
                           "Davet ettiğin bir arkadaşın ilk kredisini yükledi; hesabına <b>{n} kredi</b> hediye edildi. "
-                          "Teşekkürler!", ("Davet sayfam", f"{site_url(request)}/davet"), n=config.REFERRAL_BONUS)
+                          "Teşekkürler!", ("Davet sayfam", f"{site_url(request)}/davet"), n=ref_amount)
         flash(request, "Yükleme onaylandı, kredi eklendi." if action == "onayla" else "Bildirim reddedildi.")
         return go("/admin")
 

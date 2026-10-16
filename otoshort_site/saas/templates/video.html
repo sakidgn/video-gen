@@ -48,7 +48,7 @@
       <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="kaynak" value="demo-video">
       <input type="hidden" name="next" value="/video/{{ job.id }}"><input type="hidden" name="email" value="{{ user.email }}"><input type="hidden" name="consent" value="1">
       <span class="icon-box accent">{{ icon('sparkles', 18) }}</span>
-      <div><b>{{ _('Bu bir demo animasyonu') }}</b><span class="small muted">{{ _('Gerçek sürümde fikrin sesli, konuşmalı bir yapay zekâ videosuna dönüşür. Açılışta haber verelim mi?') }}{% if early_bonus %} {{ _('Kaydolunca {n} hediye kredi.', n=early_bonus) }}{% endif %}</span></div>
+      <div><b>{{ _('Bu bir demo animasyonu') }}</b><span class="small muted">{{ _('Gerçek sürümde fikrin sesli, konuşmalı bir yapay zekâ videosuna dönüşür. Açılışta haber verelim mi?') }}{% if early_pct %} {{ _('Listedekilere ilk yüklemede %{n} fazla kredi.', n=early_pct) }}{% endif %}</span></div>
       <button class="btn btn-primary btn-sm" type="submit">{{ _('Haber ver') }}</button>
     </form>
     {% endif %}

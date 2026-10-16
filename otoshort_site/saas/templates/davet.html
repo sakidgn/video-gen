@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-head">
   <div class="t"><span class="eyebrow">{{ _('Davet') }}</span><h1>{{ _h('Arkadaşını getir, <span class="hl">kredi kazan.</span>') }}</h1>
-    <p class="muted">{{ _h('Davet ettiğin biri ilk kredisini yüklediğinde sana <b>{a}</b>, ona <b>{b}</b> kredi hediye.', a=ref_bonus, b=friend_bonus) }}</p></div>
+    <p class="muted">{{ _h('Davet ettiğin biri ilk kredisini yüklediğinde o yüklemenin <b>%{a}</b>’i kadar kredi sana, <b>%{b}</b> fazlası ona hediye.', a=ref_pct, b=friend_pct) }}</p></div>
 </div>
 <div class="grid" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start" id="davet-grid">
   <div class="card card-lg reveal">
@@ -15,7 +15,7 @@
       <a class="btn btn-ghost" href="https://wa.me/?text={{ msg|urlencode }}" target="_blank" rel="noopener">{{ _("WhatsApp'ta gönder") }}</a>
     </div>
     <div class="steps3">
-      {% for n, t, d in [('1',_('Bağlantını paylaş'),_('Arkadaşına, grubuna ya da profiline koy.')),('2',_('Arkadaşın kaydolur'),_('Bağlantıyla gelip hesabını açar.')),('3',_('İkiniz de kazanırsınız'),_('İlk kredisi onaylanınca sana {a}, ona {b} kredi.', a=ref_bonus, b=friend_bonus))] %}
+      {% for n, t, d in [('1',_('Bağlantını paylaş'),_('Arkadaşına, grubuna ya da profiline koy.')),('2',_('Arkadaşın kaydolur'),_('Bağlantıyla gelip hesabını açar.')),('3',_('İkiniz de kazanırsınız'),_('Örn. 500 ₺ yüklerse sana {a}, ona {b} kredi.', a=(525 * ref_pct) // 100, b=(525 * friend_pct) // 100))] %}
       <div class="s3"><span class="n">{{ n }}</span><div><b>{{ t }}</b><p class="small muted">{{ d }}</p></div></div>
       {% endfor %}
     </div>

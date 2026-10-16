@@ -4,25 +4,24 @@
 <section style="padding-top:clamp(48px,6vw,96px)"><div class="wrap narrow">
   <div class="sec-head reveal"><span class="eyebrow">{{ _('Erken erişim') }}</span>
     <h2>{{ _h('Listedesin. <span class="hl">#{n}</span>', n=st.position) }}</h2>
-    <p class="lead">{{ _('{email} adresine açılışta haber vereceğiz.', email=masked) }}{% if early_bonus %} {{ _('Bu e-postayla kaydolunca {n} hediye kredi seni bekliyor.', n=early_bonus) }}{% endif %}</p></div>
-  {% if invite_bonus %}
+    <p class="lead">{{ _('{email} adresine açılışta haber vereceğiz.', email=masked) }}{% if early_pct %} {{ _('Bu e-postayla kaydolunca ilk yüklemende %{n} fazla kredi alırsın.', n=early_pct) }}{% endif %}</p></div>
+  {% if ref_pct %}
   <div class="card card-lg reveal">
     <div class="card-head"><h3>{{ icon('gift', 18) }} {{ _('Arkadaşını getir, açılışta kredi kazan') }}</h3></div>
-    <p class="muted">{{ _('Bu bağlantıyla listeye katılan her arkadaşın açılışta kaydolup e-postasını doğrulayınca sana +{n} kredi (en fazla {cap}).', n=invite_bonus, cap=invite_cap) }}</p>
+    <p class="muted">{{ _('Bu bağlantıyla listeye katılan arkadaşın açılışta ilk kredisini yükleyince o yüklemenin %{n}’i kadar kredi sana. Sınır yok.', n=ref_pct) }}</p>
     <div class="copy-box" style="margin-top:16px"><span id="w-link">{{ link }}</span><button type="button" class="btn btn-ghost btn-sm" data-copy="w-link" data-label="{{ _('Kopyalandı') }}">{{ icon('copy', 14) }} {{ _('Kopyala') }}</button></div>
     {% set msg = _('Yapay zekâ ile otomatik Reels/TikTok/Shorts videoları üreten bir site açılıyor, erken erişim listesine katıl: {link}', link=link) %}
     <div class="row" style="margin-top:16px">
       <button type="button" class="btn btn-primary" data-share-url="{{ link }}" data-share-text="{{ msg }}" data-copied="{{ _('Bağlantı kopyalandı') }}">{{ icon('share', 16) }} {{ _('Paylaş') }}</button>
       <a class="btn btn-ghost" href="https://wa.me/?text={{ msg|urlencode }}" target="_blank" rel="noopener">{{ _("WhatsApp'ta gönder") }}</a>
     </div>
-    <div class="kpis" style="margin-top:22px">
+    <div class="kpis" style="margin-top:22px;grid-template-columns:repeat(2,minmax(0,1fr))">
       <div><span class="v">{{ st.invited }}</span><span class="k">{{ _('Listeye katılan') }}</span></div>
       <div><span class="v">{{ st.joined }}</span><span class="k">{{ _('Kaydolan') }}</span></div>
-      <div><span class="v">{{ st.earned }}</span><span class="k">{{ _('Kazandığın kredi') }}</span></div>
     </div>
   </div>
   {% endif %}
   <p class="hint center" style="margin-top:18px">{{ icon('info', 14) }} {{ _('Bu sayfanın bağlantısını sakla; davetlerini buradan takip edersin.') }}</p>
-  <div class="center" style="margin-top:22px"><a class="btn btn-ghost" href="{{ L('/') }}#fikir">🎲 {{ _('Bu arada fikir makinesini dene') }}</a></div>
+  <div class="center" style="margin-top:22px"><a class="btn btn-ghost" href="{{ L('/') }}#fikir">{{ icon('wand', 16) }} {{ _('Bu arada fikir makinesini dene') }}</a></div>
 </div></section>
 {% endblock %}

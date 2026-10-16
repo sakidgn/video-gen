@@ -14,7 +14,7 @@
   <div class="tpl-grid">
     {% for t in items if not kategori or t.category == kategori %}
     <article class="card tpl reveal" data-delay="{{ loop.index0 % 3 }}" id="{{ t.key }}">
-      <div class="tpl-top"><span class="tpl-emoji">{{ t.emoji }}</span>
+      <div class="tpl-top"><span class="tpl-art swatch sw-{{ t.style }}" aria-hidden="true"></span>
         <div class="tpl-tags"><span class="pill">{{ _(cats[t.category]) }}</span><span class="pill"><span class="swatch sw-{{ t.style }}"></span>{{ _(styles[t.style]) }}</span></div></div>
       <h3>{{ t.name }}</h3>
       <p class="small muted">{{ t.desc }}</p>

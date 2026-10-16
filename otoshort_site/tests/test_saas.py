@@ -436,8 +436,8 @@ def notify_topup(c):
 
 
 def test_referral_rewards_both_once_after_first_topup(client, tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "REFERRAL_BONUS", 50)
-    monkeypatch.setattr(config, "REFERRAL_FRIEND_BONUS", 25)
+    monkeypatch.setattr(config, "REFERRAL_PCT", 15)
+    monkeypatch.setattr(config, "REFERRAL_FRIEND_PCT", 10)
     signup(client, "a@b.com")
     page = client.get("/davet").text
     code = re.search(r"/d/([A-Z0-9]+)", page).group(1)
@@ -448,18 +448,20 @@ def test_referral_rewards_both_once_after_first_topup(client, tmp_path, monkeypa
     with db.session() as s:
         a_id = s.scalar(select(User.id).where(User.email == "a@b.com"))
         assert s.scalar(select(User.referred_by).where(User.email == "f@b.com")) == a_id
+    assert balance("a@b.com") == 0 and balance("f@b.com") == 0  # kayıtta bedava kredi yok
     admin = TestClient(client.app)
     signup(admin, "admin@x.com")
     notify_topup(friend)
     approve_topups(admin)
     tl, cr = config.PACKAGES[0]
-    assert balance("a@b.com") == 50 and balance("f@b.com") == cr + 25
+    ref, bonus = cr * 15 // 100, cr * 10 // 100  # ödül yüklemenin yüzdesi
+    assert balance("a@b.com") == ref and balance("f@b.com") == cr + bonus
     notify_topup(friend)
     approve_topups(admin)  # ikinci yüklemede ödül tekrar verilmez
-    assert balance("a@b.com") == 50 and balance("f@b.com") == 2 * cr + 25
+    assert balance("a@b.com") == ref and balance("f@b.com") == 2 * cr + bonus
     assert "Davet ödülü" in client.get("/kredi").text
     page = client.get("/davet").text
-    assert re.search(r'data-count="1"', page) and re.search(r'data-count="50"', page)
+    assert re.search(r'data-count="1"', page) and re.search(rf'data-count="{ref}"', page)
 
 
 def test_invalid_or_own_invite_code(client):
@@ -1537,7 +1539,7 @@ def test_waitlist_join_reward_and_export(client, tmp_path, monkeypatch):
     from saas.models import Waitlist
 
     monkeypatch.setattr(config, "PRELAUNCH", True)
-    monkeypatch.setattr(config, "EARLY_BONUS", 100)
+    monkeypatch.setattr(config, "EARLY_TOPUP_PCT", 20)
     anon = TestClient(client.app)
     home = anon.get("/").text
     assert 'id="erken"' in home and "data-mcta" in home
@@ -1554,10 +1556,14 @@ def test_waitlist_join_reward_and_export(client, tmp_path, monkeypatch):
         assert [w.email for w in s.scalars(select(Waitlist))] == ["a@b.com"]  # tekrar eklenmez
     signup(client, "a@b.com", verify=False)
     client.get(mail_link(tmp_path, "/dogrula"))
-    client.get(mail_link(tmp_path, "/dogrula"))
-    assert balance("a@b.com") == 100  # erken erişim hediyesi bir kez
+    assert balance("a@b.com") == 0  # doğrulamada bedava kredi yok
     admin = TestClient(client.app)
     signup(admin, "admin@x.com")
+    for _ in range(2):
+        notify_topup(client)
+        approve_topups(admin)
+    cr = config.PACKAGES[0][1]
+    assert balance("a@b.com") == 2 * cr + cr * 20 // 100  # ilk yüklemede %20 fazla, bir kez
     assert "Erken erişim listesi: 1 kişi" in admin.get("/admin").text
     csv_text = admin.get("/admin/erken-erisim.csv").text
     assert "a@b.com" in csv_text and "evet" in csv_text
@@ -1626,12 +1632,12 @@ def test_showcase_demo_video_offers_waitlist(client, monkeypatch):
         assert s.scalar(select(Waitlist.source)) == "demo-video"
 
 
-def test_waitlist_invites_reward_inviter_once_verified(client, tmp_path, monkeypatch):
+def test_waitlist_invites_reward_inviter_on_first_topup(client, tmp_path, monkeypatch):
     from saas.models import Waitlist
 
-    monkeypatch.setattr(config, "EARLY_BONUS", 100)
-    monkeypatch.setattr(config, "EARLY_INVITE_BONUS", 20)
-    monkeypatch.setattr(config, "EARLY_INVITE_CAP", 30)
+    monkeypatch.setattr(config, "EARLY_TOPUP_PCT", 20)
+    monkeypatch.setattr(config, "REFERRAL_PCT", 15)
+    monkeypatch.setattr(config, "REFERRAL_FRIEND_PCT", 10)
 
     def join(c, email):
         return c.post("/erken-erisim", data={"email": email, "consent": "1", "csrf": csrf(c, "/kayit")},
@@ -1639,30 +1645,51 @@ def test_waitlist_invites_reward_inviter_once_verified(client, tmp_path, monkeyp
 
     host = TestClient(client.app)
     code = join(host, "ev@b.com").rsplit("/", 1)[1]
-    for i, email in enumerate(["k1@b.com", "k2@b.com", "ev@b.com"]):
+    for email in ["k1@b.com", "k2@b.com", "ev@b.com"]:
         friend = TestClient(client.app)
         assert friend.get(f"/e/{code}", follow_redirects=False).headers["location"] == "/#erken"
         join(friend, email)
     with db.session() as s:
         refs = {w.email: w.ref for w in s.scalars(select(Waitlist))}
     assert refs["k1@b.com"] == refs["k2@b.com"] == code and refs["ev@b.com"] == ""  # kendini davet sayılmaz
-    # davetliler kaydolup doğrulayınca: davet edenin hesabı yokken kredi bekler (sınır 30: 20 + 10)
+    signup(host, "ev@b.com")
+    admin = TestClient(client.app)
+    signup(admin, "admin@x.com")
+    cr = config.PACKAGES[0][1]
+    friends = []
     for email in ["k1@b.com", "k2@b.com"]:
         c = TestClient(client.app)
-        signup(c, email, verify=False)
-        c.get(mail_link(tmp_path, "/dogrula"))
-        assert balance(email) == 100
-    with db.session() as s:
-        ev = s.scalar(select(Waitlist).where(Waitlist.email == "ev@b.com"))
-        assert (ev.pending, ev.earned) == (30, 30)
+        signup(c, email)
+        friends.append(c)
+    assert balance("ev@b.com") == 0 and balance("k1@b.com") == 0  # doğrulamada kimseye bedava kredi yok
     assert "Kaydolan" in host.get(f"/liste/{code}").text
-    signup(host, "ev@b.com", verify=False)
-    host.get(mail_link(tmp_path, "/dogrula"))
-    assert balance("ev@b.com") == 130  # 100 erken erişim + 30 davet
+    notify_topup(friends[0])
+    approve_topups(admin)
+    # davetli: erken erişim %20 (davet %10'dan büyük olan, toplanmaz); davet eden: yüklemenin %15'i
+    assert balance("k1@b.com") == cr + cr * 20 // 100 and balance("ev@b.com") == cr * 15 // 100
     assert TestClient(client.app).get("/liste/YOKBOYLE").status_code == 404
 
 
-# --- şablonlar, takvim, metin düzenleme ---
+def test_loyalty_gives_one_video_per_threshold(client, tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "LOYALTY_EVERY", 100)
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    lite = config.QUALITIES["lite"]["credits"]
+    for i in range(3):  # 3 × 39 = 117 kredi → 1 hediye
+        client.post("/video/yeni", data={"idea": f"x{i}", "quality": "lite", "csrf": t})
+    run_queue(ai.FakeAI())
+    assert balance("a@b.com") == 500 - 3 * lite + lite
+    assert "1 video bizden" in last_mail(tmp_path) or "Sadakat" in client.get("/kredi").text
+    page = client.get("/kredi").text
+    assert "17 / 100" in page and "Sadakat hediyesi" in page
+    from saas import growth
+
+    with db.session() as s:
+        uid = s.scalar(select(User.id).where(User.email == "a@b.com"))
+        assert growth.loyalty(s, uid) == 0  # aynı eşik ikinci kez verilmez
+
+
 def test_templates_page_and_prefill_forms(client):
     import html
 

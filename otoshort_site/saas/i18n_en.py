@@ -102,14 +102,14 @@ EN = {
     "Karakterini seç, tarzını belirle, kaliteye karar ver. Her şeyi canlı önizlemeyle gör.":
         "Pick your characters, choose a style, decide on quality. See it all in a live preview.",
     "{site} video stüdyosu ekranı": "{site} video studio screen",
-    "🍊 Portakal markette son indirim için kavga ediyor": "🍊 An orange fights over the last discount at the market",
-    "🦖 Dinozor ilk kez metrobüse biniyor": "🦖 A dinosaur rides the bus for the first time",
-    "🐱 Kedi patronun toplantısına katılıyor": "🐱 A cat joins the boss's meeting",
-    "🥔 Patates spor salonunda rekor kırıyor": "🥔 A potato sets a gym record",
-    "🤖 Robot ilk kez çay demliyor": "🤖 A robot brews tea for the first time",
-    "🐸 Kurbağa bilgi yarışmasında finalde": "🐸 A frog makes the quiz show final",
-    "🍕 Pizza diyete başlamaya karar veriyor": "🍕 A pizza decides to go on a diet",
-    "👽 Uzaylı Kapalıçarşı'da pazarlık yapıyor": "👽 An alien haggles at the Grand Bazaar",
+    "Portakal markette son indirim için kavga ediyor": "An orange fights over the last discount at the market",
+    "Dinozor ilk kez metrobüse biniyor": "A dinosaur rides the bus for the first time",
+    "Kedi patronun toplantısına katılıyor": "A cat joins the boss's meeting",
+    "Patates spor salonunda rekor kırıyor": "A potato sets a gym record",
+    "Robot ilk kez çay demliyor": "A robot brews tea for the first time",
+    "Kurbağa bilgi yarışmasında finalde": "A frog makes the quiz show final",
+    "Pizza diyete başlamaya karar veriyor": "A pizza decides to go on a diet",
+    "Uzaylı Kapalıçarşı'da pazarlık yapıyor": "An alien haggles at the Grand Bazaar",
     'Üç adım. <span class="hl">Sıfır</span> montaj.': 'Three steps. <span class="hl">Zero</span> editing.',
     "Kamera, mikrofon ya da kurgu programı yok. Fikrini yaz, gerisini yapay zekâ halletsin.":
         "No camera, mic or editing software. Write your idea and let AI handle the rest.",
@@ -158,9 +158,9 @@ EN = {
     "Karakterler seçtiğin dilde konuşur; ses efektleri ve müzik dahil.": "Characters speak in the language you choose; sound effects and music included.",
     "9:16 dikey format": "9:16 vertical format",
     "TikTok, Reels ve Shorts'a doğrudan yüklemeye hazır.": "Ready to upload straight to TikTok, Reels and Shorts.",
-    "🦖 Metrobüs macerası": "🦖 Bus adventure",
-    "🍊 Market kavgası": "🍊 Market brawl",
-    "🐱 Toplantı kedisi": "🐱 Meeting cat",
+    "Metrobüs macerası": "Bus adventure",
+    "Market kavgası": "Market brawl",
+    "Toplantı kedisi": "Meeting cat",
     "YENİ": "NEW",
     "Tekrar etmeyen fikirler": "Ideas that never repeat",
     "Önceki videolarını hatırlar, her seferinde yeni bir şaka bulur.": "Remembers your past videos and finds a new joke every time.",
@@ -232,8 +232,6 @@ EN = {
     "Teknik bir hata ya da güvenlik filtresi yüzünden video üretilemezse kredin otomatik iade edilir. Üretilen videolar için iade yapılmaz; önce Ekonomik kaliteyle deneyip beğenince üst kaliteye geçebilirsin.":
         "If a video can't be made because of a technical error or a safety filter, your credits are refunded automatically. Finished videos aren't refunded, so try Economy first and move up once you like the results.",
     "Arkadaşımı davet edersem ne kazanırım?": "What do I get for inviting a friend?",
-    "Panelindeki “Davet et” sayfasından bağlantını paylaş. Davet ettiğin kişi ilk kredisini yüklediğinde ikinize de hediye kredi tanımlanır.":
-        "Share your link from the “Invite” page in your dashboard. When your friend makes their first top-up, you both get bonus credits.",
     "Otomatik kanalda kredim bitince ne olur?": "What happens when my auto channel runs out of credits?",
     "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur.":
         "Video production pauses and you'll see a notice in your dashboard. No debt, no automatic charges.",
@@ -491,7 +489,6 @@ EN = {
     "KODU YAZ": "ENTER CODE",
     "Kullan": "Apply",
     "Arkadaşını davet et, kredi kazan": "Invite a friend, earn credits",
-    "Her davet için hediye kredi": "Bonus credits for every invite",
     "Bildirimlerin": "Your transfers",
     "Onaylandı": "Approved",
     "Reddedildi": "Rejected",
@@ -523,7 +520,6 @@ EN = {
     # --- davet ---
     "Davet": "Invite",
     'Arkadaşını getir, <span class="hl">kredi kazan.</span>': 'Bring a friend, <span class="hl">earn credits.</span>',
-    "Davet ettiğin biri ilk kredisini yüklediğinde sana <b>{a}</b>, ona <b>{b}</b> kredi hediye.": "When someone you invite makes their first top-up, you get <b>{a}</b> and they get <b>{b}</b> bonus credits.",
     "Davet bağlantın": "Your invite link",
     "Yapay zekâ ile TikTok/Reels/Shorts videoları üretiyorum, sen de dene: {link}": "I make TikTok/Reels/Shorts videos with AI. Give it a try: {link}",
     "WhatsApp'ta gönder": "Send on WhatsApp",
@@ -532,7 +528,6 @@ EN = {
     "Arkadaşın kaydolur": "Your friend signs up",
     "Bağlantıyla gelip hesabını açar.": "They create an account through your link.",
     "İkiniz de kazanırsınız": "You both earn",
-    "İlk kredisi onaylanınca sana {a}, ona {b} kredi.": "Once their first top-up is approved: {a} credits for you, {b} for them.",
     "Davetlerin": "Your invites",
     "Kayıt olan": "Signed up",
     "Kredi yükleyen": "Topped up",
@@ -675,8 +670,6 @@ EN = {
     "Bu fikirle başla": "Start with this idea",
     "Erken erişim": "Early access",
     'Açılışa <span class="hl">ilk sen</span> gel.': 'Be <span class="hl">first</span> at launch.',
-    "Gerçek yapay zekâ videoları çok yakında. E-postanı bırak; açılışta ilk sen haberdar ol, kaydolunca {n} hediye kredi kazan.":
-        "Real AI videos are coming soon. Leave your email to hear first at launch, and get {n} bonus credits when you sign up.",
     "Gerçek yapay zekâ videoları çok yakında. E-postanı bırak, açılışta ilk sen haberdar ol.":
         "Real AI videos are coming soon. Leave your email to hear first at launch.",
     "Listeye katıl": "Join the list",
@@ -690,16 +683,12 @@ EN = {
     "Bu bir demo animasyonu": "This is a demo animation",
     "Gerçek sürümde fikrin sesli, konuşmalı bir yapay zekâ videosuna dönüşür. Açılışta haber verelim mi?":
         "In the full version, your idea becomes an AI video with voices and dialogue. Want us to tell you at launch?",
-    "Kaydolunca {n} hediye kredi.": "{n} bonus credits when you sign up.",
     "Haber ver": "Notify me",
     "Erken erişim hediyesi": "Early access gift",
     "Erken erişim davet ödülü": "Early access invite reward",
     'Listedesin. <span class="hl">#{n}</span>': 'You\'re on the list. <span class="hl">#{n}</span>',
     "{email} adresine açılışta haber vereceğiz.": "We'll email {email} at launch.",
-    "Bu e-postayla kaydolunca {n} hediye kredi seni bekliyor.": "Sign up with this email and {n} bonus credits are waiting for you.",
     "Arkadaşını getir, açılışta kredi kazan": "Bring friends, earn credits at launch",
-    "Bu bağlantıyla listeye katılan her arkadaşın açılışta kaydolup e-postasını doğrulayınca sana +{n} kredi (en fazla {cap}).":
-        "For every friend who joins with this link and verifies their email at launch, you get +{n} credits (up to {cap}).",
     "Yapay zekâ ile otomatik Reels/TikTok/Shorts videoları üreten bir site açılıyor, erken erişim listesine katıl: {link}":
         "A site that makes automatic Reels/TikTok/Shorts videos with AI is launching soon. Join the early access list: {link}",
     "Listeye katılan": "Joined the list",
@@ -846,6 +835,24 @@ EN = {
     "İstemezsen hayır. Otomatik kanalda “Onaylı paylaşım” modunu seç: video hazır olunca sana bildirim gelir, izleyip tek tıkla onayladığında paylaşılır. Beğenmezsen paylaşma; hiçbir yere gitmez.": "Not unless you want it to. Pick “Approved posting” for your auto channel: you get a notification when the video is ready, and it's posted only after you watch it and approve with one click. Don't like it? Skip it and it won't be posted anywhere.",
     "İzle ve onayla": "Watch and approve",
     "İzle; beğenirsen tek tıkla onayla, paylaşılsın.": "Watch; if you like it, approve with one click and it's posted.",
+
+    # --- ödemeye bağlı hediyeler ---
+    "1 video bizden": "1 video on us",
+    "Arkadaşın ilk yüklemesini yapınca yüklemesinin %{n}’i senin": "When your friend makes their first top-up, {n}% of it is yours",
+    "Bu bağlantıyla listeye katılan arkadaşın açılışta ilk kredisini yükleyince o yüklemenin %{n}’i kadar kredi sana. Sınır yok.": "When a friend who joins the list with this link makes their first top-up at launch, you get credits worth {n}% of it. No limit.",
+    "Bu e-postayla kaydolunca ilk yüklemende %{n} fazla kredi alırsın.": "Sign up with this email and get {n}% extra credits on your first top-up.",
+    "Davet ettiğin biri ilk kredisini yüklediğinde o yüklemenin <b>%{a}</b>’i kadar kredi sana, <b>%{b}</b> fazlası ona hediye.": "When someone you invite makes their first top-up, you get credits worth <b>{a}%</b> of it and they get <b>{b}%</b> extra.",
+    "Evet. Hazır videolarına harcadığın her 400 kredide 1 Ekonomik video bizden. Kendiliğinden yüklenir.": "Yes. For every 400 credits you spend on finished videos, 1 Economy video is on us. It's added automatically.",
+    "Gerçek yapay zekâ videoları çok yakında. E-postanı bırak; açılışta ilk sen haberdar ol, ilk yüklemende %{n} fazla kredi kazan.": "Real AI videos are coming soon. Leave your email; be the first to know at launch and get {n}% extra credits on your first top-up.",
+    "Listedekilere ilk yüklemede %{n} fazla kredi.": "People on the list get {n}% extra credits on their first top-up.",
+    "Panelindeki “Davet et” sayfasından bağlantını paylaş. Davet ettiğin kişi ilk kredisini yüklediğinde o yüklemenin %15'i kadar kredi sana, %10 fazlası ona hediye.": "Share your link from the “Invite” page in your dashboard. When the person you invite makes their first top-up, you get credits worth 15% of it and they get 10% extra.",
+    "Sadakat hediyen yüklendi!": "Your loyalty gift has been added!",
+    "Sık kullananlara hediye var mı?": "Is there a reward for regular users?",
+    "Videolarına harcadığın her {every} kredide 1 Ekonomik video ({n} kredi) hediye; kendiliğinden yüklenir.": "For every {every} credits you spend on videos, you get 1 Economy video ({n} credits) free; it's added automatically.",
+    "Videolarına {every} kredi harcadın; teşekkür olarak hesabına <b>{n} kredi</b> (1 Ekonomik video) yükledik.": "You've spent {every} credits on videos; as a thank-you we added <b>{n} credits</b> (1 Economy video) to your account.",
+    "{site}: 1 video bizden 🎁": "{site}: 1 video on us 🎁",
+    "Örn. 500 ₺ yüklerse sana {a}, ona {b} kredi.": "E.g. if they top up ₺500: {a} credits for you, {b} for them.",
+    "Sadakat hediyesi: 1 Ekonomik video": "Loyalty gift: 1 Economy video",
 
     # --- vitrin (demo yayını) ---
     "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",

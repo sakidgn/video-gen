@@ -39,6 +39,16 @@ rastgele fikir verir; "Bu fikirle başla" kayıttan sonra stüdyoyu o fikirle a�
 - **Onaylı paylaşım:** otomatik kanalda "Onaylı paylaşım" seçilirse video hazır olunca e-posta gelir, video sayfasında
   "Onayla ve paylaş" denince yüklenir; "Paylaşma" denirse hiçbir yere gitmez.
 
+## Fiyatlar ve hediyeler (bedava kredi yok)
+Video: Ekonomik 39, Standart 75, Premium 290 kredi (1 kredi = 1 ₺; `KREDI_LITE/FAST/STANDARD` ile değişir).
+Paketler: 250 ₺ → 250, 500 ₺ → 525, 1000 ₺ → 1100 kredi. Hediyeler hep ödemeye bağlı, bizden para çıkmaz:
+- **Davet:** arkadaşın ilk yüklemesi onaylanınca yüklemenin %15'i davet edene (`DAVET_ODULU_YUZDE`), %10 fazlası arkadaşa
+  (`DAVET_HEDIYE_YUZDE`).
+- **Erken erişim:** listedeki e-postayla açılan hesap ilk yüklemede %20 fazla kredi alır (`ERKEN_ERISIM_YUZDE`; davet
+  hediyesiyle toplanmaz, büyüğü). Listeye davet eden, arkadaşı ilk yüklemesini yapınca davet ödülünü alır.
+- **Sadakat:** hazır videolara harcanan her 400 kredide 1 Ekonomik video hediye (`SADAKAT_ESIK`).
+Kendini davet etse bile kâr eksiye düşmez (en kötü durumda video başı ~%25 kâr kalır).
+
 ## Gerçek API denemesi (satıştan önce)
 1. `.env.ornek` dosyasını `.env` adıyla kopyala, `GEMINI_API_KEY=` satırına Google AI Studio anahtarını yaz
    (fal.ai modeli seçtiysen `FAL_KEY` de). Anahtarı kimseyle paylaşma.

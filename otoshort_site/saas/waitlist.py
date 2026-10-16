@@ -1,7 +1,8 @@
-"""Erken erişim listesi: katılım, kişiye özel davet kodu ve kayıtta verilen hediyeler."""
+"""Erken erişim listesi: katılım ve kişiye özel davet kodu. Hediyeler bedava değil, ilk yüklemeye bağlı
+(growth.first_topup_rewards): listedekine yüzde fazla kredi, listeye davet edene arkadaşının yüklemesinden pay."""
 from sqlalchemy import func, select, update
 
-from . import config, credits, growth
+from . import growth
 from .models import User, Waitlist
 
 
@@ -29,33 +30,7 @@ def _new_code(s) -> str:
 
 def stats(s, w: Waitlist) -> dict:
     invited = s.scalars(select(Waitlist).where(Waitlist.ref == w.code)).all() if w.code else []
-    return {"invited": len(invited), "joined": sum(1 for i in invited if i.rewarded), "earned": w.earned,
-            "pending": w.pending, "position": s.scalar(select(func.count(Waitlist.id)).where(Waitlist.id <= w.id))}
-
-
-def reward_on_verify(s, user: User) -> None:
-    """Hesap doğrulanınca: listedeyse erken erişim hediyesi + biriken davet kredisi; davet edene ödül."""
-    w = s.scalar(select(Waitlist).where(Waitlist.email == user.email))
-    if not w:
-        return
-    pending, ref = w.pending, w.ref  # güncellemeden önce oku (oturumdaki nesne de sıfırlanır)
-    # aynı anda iki doğrulamada da tek sefer
-    if s.execute(update(Waitlist).where(Waitlist.id == w.id, Waitlist.rewarded.is_(False))
-                 .values(rewarded=True, pending=0)).rowcount != 1:
-        return
-    if config.EARLY_BONUS:
-        credits.add(s, user.id, config.EARLY_BONUS, "Erken erişim hediyesi")
-    if pending:
-        credits.add(s, user.id, pending, "Erken erişim davet ödülü")
-    inviter = s.scalar(select(Waitlist).where(Waitlist.code == ref)) if ref else None
-    if not inviter or not config.EARLY_INVITE_BONUS:
-        return
-    amount = min(config.EARLY_INVITE_BONUS, max(0, config.EARLY_INVITE_CAP - inviter.earned))
-    if amount <= 0:
-        return
-    inviter.earned += amount
-    owner = s.scalar(select(User).where(User.email == inviter.email, User.email_verified.is_(True)))
-    if owner and inviter.rewarded:  # davet edenin hesabı açık: hemen yükle
-        credits.add(s, owner.id, amount, "Erken erişim davet ödülü")
-    else:  # hesabını açınca yüklenecek
-        inviter.pending += amount
+    joined = s.scalar(select(func.count(User.id)).where(User.email.in_([i.email for i in invited]),
+                                                       User.email_verified.is_(True))) if invited else 0
+    return {"invited": len(invited), "joined": joined or 0,
+            "position": s.scalar(select(func.count(Waitlist.id)).where(Waitlist.id <= w.id))}

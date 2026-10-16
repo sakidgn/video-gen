@@ -34,16 +34,17 @@ LEGAL = {
 }
 SIGNUP_BONUS = int(_env("KAYIT_HEDIYE_KREDI", "0") or 0)
 # Açılış öncesi dönem: ana sayfada erken erişim listesi gösterilir (vitrin modunda her zaman açık).
-# Listede olan e-postayla kaydolup doğrulayan ERKEN_ERISIM_HEDIYE kadar kredi alır.
-EARLY_BONUS = int(_env("ERKEN_ERISIM_HEDIYE", "100") or 0)
-# Erken erişim davetleri: davetle gelen kişi kaydolup doğrulayınca davet edene (en fazla toplam sınır kadar)
-EARLY_INVITE_BONUS = int(_env("ERKEN_DAVET_ODULU", "20") or 0)
-EARLY_INVITE_CAP = int(_env("ERKEN_DAVET_SINIRI", "200") or 0)
+# Hediyeler hep ödemeye bağlı: bedava kredi yok, bizden para çıkmaz (yalnızca kârdan pay).
+# Listedeki e-postayla açılan hesap ilk yüklemesinde % ERKEN_ERISIM_YUZDE fazla kredi alır.
+EARLY_TOPUP_PCT = int(_env("ERKEN_ERISIM_YUZDE", "20") or 0)
 # Ana sayfadaki kayıtsız senaryo denemesi: günlük toplam sınır (yalnızca metin modeli; maliyet tavanı)
 TRIAL_DAILY_LIMIT = int(_env("DENEME_GUNLUK_SINIR", "300") or 0)
-# Davet programı: davet edilen kişinin ilk havalesi onaylanınca ikisine de kredi (sahte hesapla kredi toplanamasın diye)
-REFERRAL_BONUS = int(_env("DAVET_ODULU", "50") or 0)  # davet edene
-REFERRAL_FRIEND_BONUS = int(_env("DAVET_HEDIYE", "25") or 0)  # davetle gelene
+# Davet programı: davet edilen kişinin ilk havalesi onaylanınca, o yüklemenin kredisinin yüzdesi kadar
+# (sahte hesapla kredi toplanamaz; kendini davet etse bile kâr eksiye düşmez)
+REFERRAL_PCT = int(_env("DAVET_ODULU_YUZDE", "15") or 0)  # davet edene
+REFERRAL_FRIEND_PCT = int(_env("DAVET_HEDIYE_YUZDE", "10") or 0)  # davetle gelene (erken erişimle toplanmaz, büyüğü)
+# Sadakat: hazır videolara harcanan her SADAKAT_ESIK kredide 1 Ekonomik video (kalite fiyatı kadar kredi) hediye
+LOYALTY_EVERY = int(_env("SADAKAT_ESIK", "400") or 0)
 # Vitrin modu: herkese açık deneme yayını (Canliya_Al.bat). Her zaman sahte video üretir, ödeme ve yönetim kapalıdır,
 # e-posta doğrulaması atlanır; arama motorlarına kapalıdır.
 SHOWCASE = _env("VITRIN_MODU") == "1"
@@ -65,9 +66,9 @@ def _quality(key: str, label: str, model: str, resolution: str, credits: int, de
 
 
 QUALITIES = {
-    "lite": _quality("lite", "Ekonomik", "veo-3.1-lite-generate-preview", "720p", 35, "Hızlı ve ucuz, denemeler için"),
-    "fast": _quality("fast", "Standart", "veo-3.1-fast-generate-preview", "720p", 65, "Çoğu kanal için en iyi denge"),
-    "standard": _quality("standard", "Premium", "veo-3.1-generate-preview", "1080p", 250, "En yüksek kalite"),
+    "lite": _quality("lite", "Ekonomik", "veo-3.1-lite-generate-preview", "720p", 39, "Hızlı ve ucuz, denemeler için"),
+    "fast": _quality("fast", "Standart", "veo-3.1-fast-generate-preview", "720p", 75, "Çoğu kanal için en iyi denge"),
+    "standard": _quality("standard", "Premium", "veo-3.1-generate-preview", "1080p", 290, "En yüksek kalite"),
 }
 FAL_KEY = _env("FAL_KEY")
 # Otomatik paylaşım uygulama anahtarları (YouTube, Google ile girişteki istemciyi kullanır)
@@ -104,7 +105,7 @@ VIDEO_COST_USD = {k: float(_env(f"MALIYET_{k.upper()}", v) or v) for k, v in
 USD_TRY = float(_env("DOLAR_KURU", "42") or 42)
 
 # Kredi paketleri: (TL, verilen kredi)
-PACKAGES = [(250, 250), (500, 550), (1000, 1200)]
+PACKAGES = [(250, 250), (500, 525), (1000, 1100)]
 
 LANGUAGES = {"tr": "Türkçe", "en": "English", "de": "Deutsch", "es": "Español", "ar": "العربية"}
 

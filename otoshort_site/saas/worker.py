@@ -120,6 +120,14 @@ def run_job(job_id: int, generator) -> None:
             job = s.get(Job, job_id)
             ch_name = job.channel.name if job.channel else None
             uid = job.user_id
+        from . import growth
+
+        with db.session() as s:  # sadakat: her SADAKAT_ESIK kredilik videoda 1 Ekonomik video hediye
+            gift = growth.loyalty(s, uid)
+        if gift:
+            notify(uid, "{site}: 1 video bizden 🎁", "Sadakat hediyen yüklendi!",
+                   "Videolarına {every} kredi harcadın; teşekkür olarak hesabına <b>{n} kredi</b> (1 Ekonomik video) yükledik.",
+                   ("Video üret", f"{_site()}/video/yeni"), every=config.LOYALTY_EVERY, n=gift)
         log.info("İş %s hazır", job_id)
         from . import publisher, social
 

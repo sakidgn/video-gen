@@ -49,7 +49,7 @@
         <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="language" value="{{ lang }}">
         <textarea class="textarea" name="idea" maxlength="200" rows="2" required data-trial-idea placeholder="{{ _('Örn: Kedi markette kasiyerle indirim için tartışıyor') }}"></textarea>
         <div class="row im-actions">
-          <button type="button" class="btn btn-ghost" data-im-roll>🎲 {{ _('Bana fikir ver') }}</button>
+          <button type="button" class="btn btn-ghost" data-im-roll>{{ icon('wand', 16) }} {{ _('Bana fikir ver') }}</button>
           <button type="submit" class="btn btn-primary" data-trial-go>{{ icon('sparkles', 16) }} {{ _('Deneme senaryosu oluştur') }}</button>
         </div>
       </form>
@@ -84,9 +84,9 @@
 </div></section>
 
 <div class="marquee" aria-hidden="true">
-  {% set mq_ideas = [_('🍊 Portakal markette son indirim için kavga ediyor'),_('🦖 Dinozor ilk kez metrobüse biniyor'),_('🐱 Kedi patronun toplantısına katılıyor'),_('🥔 Patates spor salonunda rekor kırıyor'),_('🤖 Robot ilk kez çay demliyor'),_('🐸 Kurbağa bilgi yarışmasında finalde'),_('🍕 Pizza diyete başlamaya karar veriyor'),_("👽 Uzaylı Kapalıçarşı'da pazarlık yapıyor")] %}
-  <div class="mq-row"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
-  <div class="mq-row rev"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas|reverse %}<span class="mq-item">{{ i }}</span>{% endfor %}{% endfor %}</div></div>
+  {% set mq_ideas = [_('Portakal markette son indirim için kavga ediyor'),_('Dinozor ilk kez metrobüse biniyor'),_('Kedi patronun toplantısına katılıyor'),_('Patates spor salonunda rekor kırıyor'),_('Robot ilk kez çay demliyor'),_('Kurbağa bilgi yarışmasında finalde'),_('Pizza diyete başlamaya karar veriyor'),_("Uzaylı Kapalıçarşı'da pazarlık yapıyor")] %}
+  <div class="mq-row"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas %}<span class="mq-item">{{ i }}</span><span class="mq-sep">✦</span>{% endfor %}{% endfor %}</div></div>
+  <div class="mq-row rev"><div class="mq-track">{% for rep in range(2) %}{% for i in mq_ideas|reverse %}<span class="mq-item">{{ i }}</span><span class="mq-sep">✦</span>{% endfor %}{% endfor %}</div></div>
 </div>
 
 <section id="nasil"><div class="wrap">
@@ -123,7 +123,9 @@
   <div class="row between reveal" style="margin-bottom:16px;align-items:flex-end">
     <div><span class="eyebrow">{{ _('Hazır şablonlar') }}</span><h3 class="tpl-h">{{ _('Bir şablon seç, kanalın hazır.') }}</h3></div>
     <a class="btn btn-ghost btn-sm" href="{{ L('/sablonlar') }}">{{ _('Tüm şablonlar') }} {{ icon('arrow-right', 14) }}</a></div>
-  <div class="tpl-strip">{% for t in tpls %}<a class="tpl-mini reveal" data-delay="{{ loop.index0 % 3 }}" href="{{ L('/sablonlar') }}#{{ t.key }}"><span>{{ t.emoji }}</span><b>{{ t.name }}</b></a>{% endfor %}</div>
+  <div class="tpl-strip">{% for t in tpls %}<a class="tpl-mini reveal" data-delay="{{ loop.index0 % 3 }}" href="{{ L('/sablonlar') }}#{{ t.key }}">
+    <span class="tm-art swatch sw-{{ t.style }}" aria-hidden="true"></span>
+    <span class="tm-cat">{{ _(tpl_cats[t.category]) }}</span><b>{{ t.name }}</b><span class="tm-go">{{ icon('arrow-right', 14) }}</span></a>{% endfor %}</div>
 </div></section>
 
 <section id="otomatik" style="padding-top:20px"><div class="wrap">
@@ -169,7 +171,7 @@
       <div class="bx-txt"><span class="icon-box">{{ icon('phone', 18) }}</span><div><h3>{{ _('9:16 dikey format') }}</h3><p class="muted small">{{ _("TikTok, Reels ve Shorts'a doğrudan yüklemeye hazır.") }}</p></div></div>
     </div>
     <div class="bx reveal" data-delay="1" data-tilt="3">
-      <div class="bx-viz stack" aria-hidden="true"><span>{{ _('🦖 Metrobüs macerası') }}</span><span>{{ _('🍊 Market kavgası') }}</span><span class="new">{{ _('🐱 Toplantı kedisi') }} <b>{{ _('YENİ') }}</b></span></div>
+      <div class="bx-viz stack" aria-hidden="true"><span>{{ _('Metrobüs macerası') }}</span><span>{{ _('Market kavgası') }}</span><span class="new">{{ _('Toplantı kedisi') }} <b>{{ _('YENİ') }}</b></span></div>
       <div class="bx-txt"><span class="icon-box">{{ icon('brain', 18) }}</span><div><h3>{{ _('Tekrar etmeyen fikirler') }}</h3><p class="muted small">{{ _('Önceki videolarını hatırlar, her seferinde yeni bir şaka bulur.') }}</p></div></div>
     </div>
     <div class="bx reveal" data-delay="2" data-tilt="3">
@@ -186,8 +188,8 @@
     </div>
     <div class="bx bx-wide reveal" data-tilt="3">
       <div class="bx-viz cast" aria-hidden="true">
-        <div class="cast-card"><span class="cc-av">🍊</span><div><b>{{ _('Portakal Paşa') }}</b><small>{{ icon('check', 12) }} {{ _('Görünüş') }} · {{ icon('mic', 12) }} {{ _('Karadeniz şivesi') }}</small></div></div>
-        <div class="cast-reel">{% for t in [_('Market'), _('Metrobüs'), _('Toplantı')] %}<span style="--d:{{ loop.index0 * 140 }}ms"><i>🍊</i><small>{{ t }}</small></span>{% endfor %}</div>
+        <div class="cast-card"><span class="cc-av"><i class="mascot"></i></span><div><b>{{ _('Portakal Paşa') }}</b><small>{{ icon('check', 12) }} {{ _('Görünüş') }} · {{ icon('mic', 12) }} {{ _('Karadeniz şivesi') }}</small></div></div>
+        <div class="cast-reel">{% for t in [_('Market'), _('Metrobüs'), _('Toplantı')] %}<span style="--d:{{ loop.index0 * 140 }}ms"><i class="mascot"></i><small>{{ t }}</small></span>{% endfor %}</div>
       </div>
       <div class="bx-txt"><span class="icon-box">{{ icon('users', 18) }}</span><div><h3>{{ _('Karakterini kaydet') }}</h3><p class="muted small">{{ _('Kendi karakterinin görünümünü ve sesini bir kez kaydet, tüm videolarında aynı karakter oynasın.') }}</p></div></div>
     </div>
@@ -245,7 +247,7 @@
   <div class="early reveal">
     <div class="early-copy"><span class="eyebrow">{{ _('Erken erişim') }}</span>
       <h2>{{ _h('Açılışa <span class="hl">ilk sen</span> gel.') }}</h2>
-      <p class="lead">{% if early_bonus %}{{ _('Gerçek yapay zekâ videoları çok yakında. E-postanı bırak; açılışta ilk sen haberdar ol, kaydolunca {n} hediye kredi kazan.', n=early_bonus) }}{% else %}{{ _('Gerçek yapay zekâ videoları çok yakında. E-postanı bırak, açılışta ilk sen haberdar ol.') }}{% endif %}</p></div>
+      <p class="lead">{% if early_pct %}{{ _('Gerçek yapay zekâ videoları çok yakında. E-postanı bırak; açılışta ilk sen haberdar ol, ilk yüklemende %{n} fazla kredi kazan.', n=early_pct) }}{% else %}{{ _('Gerçek yapay zekâ videoları çok yakında. E-postanı bırak, açılışta ilk sen haberdar ol.') }}{% endif %}</p></div>
     <form class="early-form" method="post" action="/erken-erisim">
       <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="kaynak" value="ana-sayfa"><input type="hidden" name="next" value="{{ L('/') }}#erken">
       <div class="early-row"><input class="input" type="email" name="email" required maxlength="255" placeholder="{{ _('sen@ornek.com') }}" value="{{ user.email if user else '' }}" aria-label="{{ _('E-posta') }}">

@@ -92,6 +92,10 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   `cast_ids` ile tutar, düzenleme sonraki videolara yansır), viral karaoke altyazı (`media.build_ass(style="viral")`,
   kelime kelime renkli; Job/Channel.subtitle_style), onaylı paylaşım (Channel.approval → Publication "onay" durumu,
   e-posta + /video/ID'de "Onayla ve paylaş"). Altyazı fontu aile adı "Plus Jakarta Sans ExtraBold" olmalı (libass).
+- Fiyat/hediye (Ekim 2026, kullanıcı "bizden para gitmesin" dedi): Veo 3.1 Lite/Fast/standart → 39/75/290 kredi,
+  paketler 250/525/1100. Bedava kredi yok: davet = ilk yüklemenin %15'i (davet edene) / %10'u (gelene), erken erişim =
+  ilk yüklemede %20, sadakat = her 400 kredilik videoda 1 Ekonomik (`growth.first_topup_rewards`, `growth.loyalty`).
+  Emojiler arayüzden kalktı (şablon kartında tarz illüstrasyonu, kayan şeritte serif yazı, CSS `.mascot` portakal).
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
 - Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.
