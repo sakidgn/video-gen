@@ -22,7 +22,7 @@
     {% else %}<p class="tiny faint" style="margin:6px 0 0">{{ _('Bakiyende {b} kredi var.', b=user.credits) }}</p>{% endif %}
   </div>
 </div>
-{% if awaiting %}<a class="card invite-cta approve-cta reveal" href="/video/{{ awaiting[0] }}" style="margin-bottom:14px"><span class="icon-box accent">{{ icon('eye', 18) }}</span><div><b>{{ _('{n} video onayını bekliyor', n=awaiting|length) }}</b><span class="small muted">{{ _('İzle; beğenirsen tek tıkla onayla, paylaşılsın.') }}</span></div>{{ icon('arrow-right', 16) }}</a>{% endif %}
+{% if awaiting %}<a class="card invite-cta approve-cta glow-ring reveal" href="/video/{{ awaiting[0] }}" style="margin-bottom:14px"><span class="icon-box accent">{{ icon('eye', 18) }}</span><div><b>{{ _('{n} video onayını bekliyor', n=awaiting|length) }}</b><span class="small muted">{{ _('İzle; beğenirsen tek tıkla onayla, paylaşılsın.') }}</span></div>{{ icon('arrow-right', 16) }}</a>{% endif %}
 {% for ch in notices %}<div class="flash warn" style="margin-bottom:12px">{{ icon('alert', 16) }}<div><b>{{ ch.name }}:</b> {{ _db(ch.notice) }} <a href="/kredi">{{ _('Kredi yükle') }}</a></div></div>{% endfor %}
 
 {% if n_videos == 0 %}

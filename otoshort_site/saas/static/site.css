@@ -174,7 +174,7 @@ hr.sep{border:0;border-top:1px solid var(--border);margin:24px 0}
 .check a{color:var(--text);text-decoration:underline;text-decoration-color:var(--border-3);text-underline-offset:3px}
 .step-title{display:flex;align-items:center;gap:12px;margin:34px 0 14px}
 .step-title:first-of-type{margin-top:0}
-.step-title .n{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font:700 calc(12px * var(--fs)) var(--font);background:linear-gradient(135deg,rgba(216,185,138,0.18),rgba(255,122,0,.2));border:1px solid rgba(216,185,138,0.27);color:#fff}
+.step-title .n{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font:700 calc(12px * var(--fs)) var(--font);background:linear-gradient(135deg,rgba(216,185,138,0.18),rgba(255,122,0,.2));border:1px solid rgba(216,185,138,0.27);color:var(--accent-ink)}
 .step-title h3{font-size:calc(15px * var(--fs))}
 .step-title .faint{margin-left:auto;font-size:calc(13px * var(--fs))}
 
@@ -1369,3 +1369,12 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 .theme-pick a.tp-auto i,.theme-pick.lg a.tp-auto i{width:20px;height:20px;border-radius:50%;background:linear-gradient(90deg,#1b1b1f 50%,#f5f4f1 50%);border:1px solid rgba(128,128,128,.4)}
 .theme-pick a.tp-auto.on{border-color:var(--accent);color:var(--text);box-shadow:none}
 .theme-pick.lg{display:grid;gap:12px}
+
+/* ============ Dikkat çekici vurgu: tüm temalarda aynı pembe-turuncu-sarı ============ */
+.btn-glow{border:1.5px solid transparent;background:var(--grad) padding-box,linear-gradient(90deg,#ff3d8b,#ff8a00,#ffd23f) border-box;
+  box-shadow:0 10px 30px -10px rgba(255,61,139,.55),0 4px 16px -6px rgba(255,138,0,.45)}
+.btn-glow:hover{background:var(--grad-hover) padding-box,linear-gradient(90deg,#ff3d8b,#ff8a00,#ffd23f) border-box;
+  box-shadow:0 14px 36px -10px rgba(255,61,139,.65),0 6px 20px -6px rgba(255,138,0,.55)}
+.fmt-new{background:linear-gradient(90deg,#ff3d8b,#ff8a00)!important;color:#fff!important;border:0!important}
+.fmt-new:before{background:#fff!important}
+.wallet{border-color:rgba(255,138,0,.35)!important}

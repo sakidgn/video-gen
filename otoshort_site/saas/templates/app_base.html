@@ -8,7 +8,7 @@
 <div class="app">
   <aside class="side">
     <a class="brand" href="/">{{ LOGO }}{{ site }}</a>
-    <a class="btn btn-accent btn-block side-new {{ 'on' if active == '/video/yeni' }}" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a>
+    <a class="btn btn-accent btn-block btn-glow side-new {{ 'on' if active == '/video/yeni' }}" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a>
     <div class="side-label">{{ _('Menü') }}</div>
     {% for href, ic, label in side_nav %}
       <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
