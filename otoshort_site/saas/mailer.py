@@ -41,7 +41,7 @@ def render(title: str, intro: str, button: tuple[str, str] | None = None, outro:
     return f'''<!doctype html><html lang="{lang}"><body style="margin:0;background:#0c0b0a;padding:32px 12px;font-family:'Plus Jakarta Sans',Segoe UI,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#151311;border:1px solid #2e2a25;border-radius:22px">
-<tr><td style="height:6px;border-radius:22px 22px 0 0;background:#d8b98a;background-image:linear-gradient(90deg,#f4efe6,#d8b98a)"></td></tr>
+<tr><td style="height:6px;border-radius:22px 22px 0 0;background:#f5b84a;background-image:linear-gradient(90deg,#ffd23f,#ff8a00)"></td></tr>
 <tr><td style="padding:30px 32px 8px">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
 <tr><td style="padding-bottom:24px"><span style="display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;border-radius:10px;background:#f5b84a;background-image:linear-gradient(150deg,#ffe9a8,#f5b84a 60%,#e8913a);color:#1a1206;font-size:15px">&#9889;&#xFE0E;</span>
