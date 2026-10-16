@@ -541,6 +541,8 @@ body.menu-open{overflow:hidden}
 ::view-transition-group(side-pill),::view-transition-group(tab-pill){animation-duration:.5s;animation-timing-function:var(--spring)}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.28s}
 @media(max-width:960px){.nav-burger{display:grid}.nav-right>.btn{display:none}}
+/* masaüstünde de sağ üstte menü: açılır panel sağa yaslı */
+@media(min-width:961px){.nav-burger{display:grid;order:9}.mobile-menu{left:auto;right:clamp(20px,4.6vw,96px);width:320px}.mobile-menu .btn{display:none}}
 .onboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:30px}
 .ob{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:18px;border:1px solid var(--border);background:var(--surface);transition:border-color .2s,transform .2s}
 a.ob:hover{border-color:rgba(216,185,138,0.3);transform:translateY(-2px)}
