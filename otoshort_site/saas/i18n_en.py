@@ -1092,6 +1092,7 @@ EN = {
     'YouTube, TikTok, Instagram': 'YouTube, TikTok, Instagram',
     '{n} video': '{n} videos',
     # Temalar
+    'Cihazın açık moddaysa açık, koyu moddaysa koyu görünür.': 'Light when your device is in light mode, dark when it is in dark mode.',
     'Açık': 'Light',
     'Bordo': 'Burgundy',
     'Buz': 'Ice',

@@ -2356,7 +2356,11 @@ def test_light_dark_and_system_themes(client):
     for name in ("krem", "sistem", "bordo"):
         client.get(f"/tema/{name}?next=/")
         page = client.get("/").text
-        assert f'data-theme="{name}"' in page and f'data-theme-set="{name}"' in page
+        mode = config.THEMES[name][2]
+        assert f'data-theme="{name}" data-mode="{mode}"' in page and f'data-theme-set="{name}"' in page
+        assert f'data-mode-set="{mode}" data-theme-set=' in page  # Koyu | Açık | Sistem çubuğu
     css = client.get("/static/site.css").text
-    assert '[data-theme="kar"],[data-theme="krem"]' in css and "prefers-color-scheme:light" in css
-    assert "rgba(255,246,230" not in css  # koyu temaya özgü mürekkep rengi değişkene bağlı
+    assert '[data-mode="light"]{' in css and "prefers-color-scheme:light" in css
+    assert '[data-mode="light"] .hero-film{' in css  # tanıtım filmi alanı açık temada da koyu kalır
+    stray = [l for l in css.splitlines() if "rgba(255,246,230" in l and ".hero-film{" not in l and ".nav:not(.scrolled)" not in l]
+    assert not stray  # koyu mürekkep rengi yalnızca açık temada da koyu kalan hero/menü satırında sabit

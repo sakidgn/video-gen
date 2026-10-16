@@ -8,14 +8,26 @@
   const nav = $('#nav');
   if (nav) { const f = () => nav.classList.toggle('scrolled', scrollY > 8); f(); addEventListener('scroll', f, { passive: true }); }
 
-  // Arka plan teması: sayfa yenilenmeden değişir, seçim çereze yazılır (JS yoksa bağlantı /tema/ adresine gider)
+  // Görünüm: Koyu | Açık | Sistem çubuğu ve renkler. Sayfa yenilenmeden değişir, seçim çereze yazılır
+  // (JS yoksa bağlantı /tema/ adresine gider). Her mod için son seçilen renk tarayıcıda hatırlanır.
+  const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; };
   document.addEventListener('click', e => {
     const a = e.target.closest('[data-theme-set]'); if (!a) return;
-    e.preventDefault(); const name = a.dataset.themeSet;
-    document.documentElement.dataset.theme = name;
+    e.preventDefault();
+    let name = a.dataset.themeSet, mode = a.dataset.mode;
+    if (a.dataset.modeSet && mode !== 'auto') {  // mod çubuğu: o modda en son seçilen renge dön
+      const last = store('zaply-tema-' + mode), sw = last && $('[data-swatches="' + mode + '"] [data-theme-set="' + last + '"]');
+      if (sw) name = last;
+    }
+    const root = document.documentElement;
+    root.dataset.theme = name; root.dataset.mode = mode;
+    if (mode !== 'auto') store('zaply-tema-' + mode, name);
     document.cookie = 'tema=' + name + '; path=/; max-age=31536000; samesite=lax' + (location.protocol === 'https:' ? '; secure' : '');
-    $$('[data-theme-set]').forEach(x => x.classList.toggle('on', x.dataset.themeSet === name));
-    const meta = $('meta[name=theme-color]'); if (meta) meta.content = a.dataset.color;
+    $$('[data-swatches] [data-theme-set]').forEach(x => x.classList.toggle('on', x.dataset.themeSet === name));
+    $$('[data-mode-set]').forEach(x => x.classList.toggle('on', x.dataset.modeSet === mode));
+    $$('[data-swatches]').forEach(x => { x.hidden = x.dataset.swatches !== mode; });
+    const sel = $('[data-swatches] [data-theme-set="' + name + '"]') || a;
+    const meta = $('meta[name=theme-color]'); if (meta) meta.content = sel.dataset.color;
   });
 
   // Mobil menü (yaylı açılış, arka plan bulanıklığı, Esc ve dışarı tıklayınca kapanır)
