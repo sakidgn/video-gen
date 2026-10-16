@@ -1,8 +1,8 @@
 @echo off
 cd /d "%~dp0"
-title Cutless - API denemesi
+title Zaply - API denemesi
 echo ============================================
-echo  CUTLESS - GERCEK API DENEMESI
+echo  ZAPLY - GERCEK API DENEMESI
 echo ============================================
 echo Bu arac .env dosyasindaki anahtarlarla GERCEK video uretir (ucretli).
 echo Once sadece anahtari ve senaryoyu dener, video icin onay sorar.

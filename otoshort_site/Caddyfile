@@ -1,4 +1,4 @@
-# Alan adı .env'deki ALAN_ADI'ndan gelir (ör. cutless.app). www. adresi ana adrese yönlenir.
+# Alan adı .env'deki ALAN_ADI'ndan gelir (ör. zaply.app). www. adresi ana adrese yönlenir.
 {$ALAN_ADI} {
 	encode zstd gzip
 	request_body {

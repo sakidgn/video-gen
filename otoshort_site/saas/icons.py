@@ -20,6 +20,11 @@ PATHS = {
     "globe": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/>',
     "palette": '<path d="M12 21a9 9 0 1 1 9-9c0 2.2-1.8 3.5-4 3.5h-1.6a1.9 1.9 0 0 0-1.4 3.2c.5.6.2 2.3-2 2.3z"/>'
                '<circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="14.5" cy="7" r="1"/>',
+    "settings": '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/>'
+                '<circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+    "book": '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>'
+            '<path d="M9 7h7M9 11h5"/>',
+    "message": '<path d="M21 14.5a2 2 0 0 1-2 2H8l-5 4.5V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 8.5h8M8 12h5"/>',
     "zap": '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
     "rocket": '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.1 2.1 0 0 0-2.9-.1z"/>'
               '<path d="m12 15-3-3a22 22 0 0 1 2-4A13 13 0 0 1 22 2c0 2.7-.8 7.5-6 11a22 22 0 0 1-4 2z"/>'
@@ -82,8 +87,10 @@ def icon(name: str, size: int = 18, cls: str = "") -> Markup:
     )
 
 
+# Zaply işareti: amber zemin üzerinde şimşek (zemin rengi CSS'te .logo-mark)
+BOLT = ("M14.2 1.8 4.6 13.4c-.35.42-.05 1.06.5 1.06h5.5l-1.85 7.3c-.13.52.53.84.87.42l9.7-11.7c.35-.42.05-1.06-.5-1.06"
+        "h-5.5l1.75-7.2c.13-.52-.53-.84-.87-.42z")
 LOGO = Markup(
-    '<span class="logo-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18">'
-    '<rect x="3.2" y="1.2" width="11.6" height="15.6" rx="3" fill="none" stroke="#0c0b0a" stroke-opacity=".55" stroke-width="1.4"/>'
-    '<path d="m7.4 6.1 4.4 2.9-4.4 2.9z" fill="#0c0b0a"/></svg></span>'
+    f'<span class="logo-mark" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24">'
+    f'<path d="{BOLT}" fill="#1a1206"/></svg></span>'
 )

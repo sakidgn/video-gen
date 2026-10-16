@@ -1,7 +1,6 @@
-{% extends "base.html" %}
+{% extends "_auth_layout.html" %}
 {% block title %}{{ _('Giriş yap') }} · {{ site }}{% endblock %}
-{% block content %}
-<div class="auth"><div class="auth-card reveal">
+{% block auth %}
   <h1>{{ _('Tekrar hoş geldin') }}</h1>
   <p class="sub">{{ _('Hesabına giriş yap ve üretmeye devam et.') }}</p>
   <form class="card card-lg stack" method="post" action="/giris" style="gap:0">
@@ -12,5 +11,4 @@
     <button class="btn btn-primary btn-lg btn-block" type="submit" style="margin-top:26px">{{ _('Giriş yap') }} {{ icon('arrow-right', 17) }}</button>
   </form>
   <p class="center muted small">{{ _('Hesabın yok mu?') }} <a href="{{ L('/kayit') }}" style="color:var(--text)">{{ _('Ücretsiz kayıt ol') }}</a></p>
-</div></div>
 {% endblock %}

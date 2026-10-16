@@ -54,7 +54,7 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
 - Python string içinde JS yazarken `\n`/`\s` için raw string kullan (iki kere satır sonu hatası çıktı).
 - `.bat` dosyaları CRLF olmalı; `if (...)` blokları içinde parantezli metin kullanma.
 
-## SaaS sitesi — marka adı **Cutless** (cutless.app); kod klasörü hâlâ `otoshort_site/` (güncelleyici bu yola bağlı, değiştirme)
+## SaaS sitesi — marka adı **Zaply** (eski adı Cutless; zaply.app); kod klasörü hâlâ `otoshort_site/` (güncelleyici bu yola bağlı, değiştirme)
 - FastAPI + SQLite + Jinja; kredili video üretimi (Veo API), otomatik kanallar, havale ile kredi, yönetim paneli.
 - Tasarım: neon tema bırakıldı → zarif koyu tema (sıcak siyah #0c0b0a, fildişi #f4efe6, şampanya #d8b98a). Başlık fontu
   **Cormorant Garamond** (Instrument Serif "basık" bulundu), metin **Plus Jakarta Sans**, düz rakamlar (lining-nums).
@@ -106,7 +106,7 @@ Spoderman & Orange shitpost kanalı (YouTube Shorts, TikTok, Instagram). `python
   `ai.write_format` + `ai.speak` (Gemini TTS), çizim `formatlar.chat_ass/story_ass/render`. Ana sayfada #formatlar dikey
   kart vitrini (örnek videolar static/formatlar, `araclar/format_ornekleri.py`). Telefonda ana sayfa ~10 ekran.
 - Kullanıcı tasarımda "yapmacık" olmamasını, en iyisini istedi; ekran görüntüsüyle "tamam" diyene kadar iterasyon.
-- Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Cutless Site") (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
+- Kullanıcının PC'sinde ayrı klasör: Masaüstü\\Otoshort Site (yeni kurulumda "Zaply Site", eski kurulum "Cutless Site" klasörü varsa oraya güncellenir) (shitpost klasöründeki `site_kur.bat` → `python -m shitpost site-kur`
   indirir, eski `saas/` ve `site_dene.bat` kalıntılarını siler). Shitpost `guncelle` `otoshort_site/`'ı atlar.
 - Site klasöründe: `Siteyi_Ac.bat` (kendi .venv'ini kurar; SAHTE_AI=1, admin@deneme.com, 1000 deneme kredisi),
   `Guncelle.bat` (`python -m saas.guncelle`, .env ve saas_veri* korunur).

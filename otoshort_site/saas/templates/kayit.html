@@ -1,7 +1,6 @@
-{% extends "base.html" %}
+{% extends "_auth_layout.html" %}
 {% block title %}{{ _('Kayıt ol') }} · {{ site }}{% endblock %}
-{% block content %}
-<div class="auth"><div class="auth-card reveal">
+{% block auth %}
   <h1>{{ _('Hesabını oluştur') }}</h1>
   <p class="sub">{{ _('Bir dakikada kaydol, ilk videonu üret.') }}</p>
   {% if invited %}<div class="invite-note">{{ icon('gift', 16) }} {{ _('Davetle geldin: ilk kredini yüklediğinde hesabına hediye kredi eklenecek.') }}</div>{% endif %}
@@ -15,5 +14,4 @@
     <button class="btn btn-primary btn-lg btn-block" type="submit">{{ _('Kayıt ol') }} {{ icon('arrow-right', 17) }}</button>
   </form>
   <p class="center muted small">{{ _('Zaten hesabın var mı?') }} <a href="{{ L('/giris') }}" style="color:var(--text)">{{ _('Giriş yap') }}</a></p>
-</div></div>
 {% endblock %}

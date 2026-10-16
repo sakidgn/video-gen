@@ -1,0 +1,25 @@
+{% extends "app_base.html" if user else "base.html" %}
+{% block title %}{{ _(guide.title) }} · {{ site }}{% endblock %}
+{% block og %}<meta property="og:title" content="{{ _(guide.title) }} · {{ site }}">
+<meta property="og:description" content="{{ _(guide.desc) }}">{% endblock %}
+{% block content %}
+{% if not user %}<section class="guides-pub"><div class="wrap narrow">{% endif %}
+<div class="guide">
+  <a class="small muted guide-back" href="{{ L('/rehberler') }}">{{ icon('arrow-left', 14) }} {{ _('Tüm rehberler') }}</a>
+  <div class="page-head"><div class="t"><span class="eyebrow">{{ _('Rehber') }} · {{ _('{n} dk okuma', n=guide.min) }}</span><h1>{{ _(guide.title) }}</h1>
+    <p class="muted" style="margin:0">{{ _(guide.desc) }}</p></div></div>
+  <ol class="guide-steps">
+    {% for t, b in guide.steps %}<li class="card reveal" data-delay="{{ loop.index0 % 3 }}"><h3>{{ _(t) }}</h3><p>{{ _(b) }}</p></li>{% endfor %}
+  </ol>
+  <div class="card guide-cta reveal">
+    <span class="icon-box accent">{{ icon(guide.icon, 18) }}</span>
+    <div class="set-txt"><b>{{ _('Hazır mısın?') }}</b><small>{{ _('Okuduğunu hemen dene; ilk videon birkaç dakikada hazır.') }}</small></div>
+    <a class="btn btn-primary" href="{{ guide.cta[0] if user else L('/kayit') }}">{{ _(guide.cta[1]) if user else _('Ücretsiz başla') }} {{ icon('arrow-right', 15) }}</a>
+  </div>
+  <h3 class="guide-more-h">{{ _('Diğer rehberler') }}</h3>
+  <div class="guide-more">
+    {% for g in others %}<a href="{{ L('/rehberler/' ~ g.slug) }}">{{ icon(g.icon, 16) }}<span>{{ _(g.title) }}</span>{{ icon('arrow-right', 14, 'faint') }}</a>{% endfor %}
+  </div>
+</div>
+{% if not user %}</div></section>{% endif %}
+{% endblock %}

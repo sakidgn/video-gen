@@ -1,7 +1,6 @@
-{% extends "base.html" %}
+{% extends "_auth_layout.html" %}
 {% block title %}{{ _('Yeni şifre') }} · {{ site }}{% endblock %}
-{% block content %}
-<div class="auth"><div class="auth-card reveal">
+{% block auth %}
   <h1>{{ _('Yeni şifreni belirle') }}</h1>
   <p class="sub">{{ _('En az 8 karakterli, tahmin edilmesi zor bir şifre seç.') }}</p>
   <form class="card card-lg stack" method="post" action="/sifre-yenile/{{ token }}" style="gap:0">
@@ -10,5 +9,4 @@
     <div class="field"><label class="label" for="pw2">{{ _('Yeni şifre (tekrar)') }}</label><input class="input" id="pw2" name="password2" type="password" minlength="8" required autocomplete="new-password"></div>
     <button class="btn btn-primary btn-lg btn-block" type="submit" style="margin-top:26px">{{ icon('lock', 17) }} {{ _('Şifremi güncelle') }}</button>
   </form>
-</div></div>
 {% endblock %}

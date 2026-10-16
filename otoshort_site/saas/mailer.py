@@ -36,7 +36,7 @@ def render(title: str, intro: str, button: tuple[str, str] | None = None, outro:
                'border-radius:999px;background:#f4efe6;color:#0c0b0a;'
                f'font-weight:700;font-size:15px;text-decoration:none">{escape(label)}</a></td></tr>'
                f'<tr><td style="font-size:12px;color:#857e73;padding-bottom:20px;word-break:break-all">'
-               f'{escape(i18n.t("Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:", lang))}<br><a href="{escape(url)}" style="color:#c9ff6b">{escape(url)}</a></td></tr>')
+               f'{escape(i18n.t("Buton çalışmazsa bu bağlantıyı tarayıcına yapıştır:", lang))}<br><a href="{escape(url)}" style="color:#f5b84a">{escape(url)}</a></td></tr>')
     outro_html = f'<tr><td style="font-size:15px;line-height:1.6;color:#bdb5a8;padding-bottom:8px">{outro}</td></tr>' if outro else ""
     return f'''<!doctype html><html lang="{lang}"><body style="margin:0;background:#0c0b0a;padding:32px 12px;font-family:'Plus Jakarta Sans',Segoe UI,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
@@ -44,8 +44,8 @@ def render(title: str, intro: str, button: tuple[str, str] | None = None, outro:
 <tr><td style="height:6px;border-radius:22px 22px 0 0;background:#d8b98a;background-image:linear-gradient(90deg,#f4efe6,#d8b98a)"></td></tr>
 <tr><td style="padding:30px 32px 8px">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-<tr><td style="padding-bottom:24px"><span style="display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;border-radius:10px;background:#f4efe6;color:#0c0b0a;font-size:13px">▶</span>
-<span style="color:#f4efe6;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:22px;vertical-align:middle;margin-left:8px">{escape(config.SITE_NAME)}</span></td></tr>
+<tr><td style="padding-bottom:24px"><span style="display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;border-radius:10px;background:#f5b84a;background-image:linear-gradient(150deg,#ffe9a8,#f5b84a 60%,#e8913a);color:#1a1206;font-size:15px">&#9889;&#xFE0E;</span>
+<span style="color:#f4efe6;font-weight:800;letter-spacing:-.5px;font-size:22px;vertical-align:middle;margin-left:8px">{escape(config.SITE_NAME)}</span></td></tr>
 <tr><td style="color:#f4efe6;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;line-height:1.2;padding-bottom:14px">{escape(title)}</td></tr>
 <tr><td style="font-size:15px;line-height:1.6;color:#bdb5a8;padding-bottom:22px">{intro}</td></tr>
 {btn}{outro_html}

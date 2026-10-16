@@ -287,7 +287,9 @@ def cmd_site_kur(args) -> int:
 
     from .config import ROOT
 
-    dest = Path(args.hedef) if args.hedef else _desktop() / "Cutless Site"
+    # önceki adla kurulmuş klasör varsa (içinde .env ve veriler) oraya güncellenir
+    old = _desktop() / "Cutless Site"
+    dest = Path(args.hedef) if args.hedef else (old if old.exists() else _desktop() / "Zaply Site")
     print(f"Site şu klasöre kuruluyor: {dest}")
     r = requests.get(os.environ.get("GUNCELLEME_URL", UPDATE_URL), timeout=120)
     r.raise_for_status()

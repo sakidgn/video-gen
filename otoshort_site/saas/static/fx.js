@@ -8,6 +8,16 @@
   const nav = $('#nav');
   if (nav) { const f = () => nav.classList.toggle('scrolled', scrollY > 8); f(); addEventListener('scroll', f, { passive: true }); }
 
+  // Arka plan teması: sayfa yenilenmeden değişir, seçim çereze yazılır (JS yoksa bağlantı /tema/ adresine gider)
+  document.addEventListener('click', e => {
+    const a = e.target.closest('[data-theme-set]'); if (!a) return;
+    e.preventDefault(); const name = a.dataset.themeSet;
+    document.documentElement.dataset.theme = name;
+    document.cookie = 'tema=' + name + '; path=/; max-age=31536000; samesite=lax' + (location.protocol === 'https:' ? '; secure' : '');
+    $$('[data-theme-set]').forEach(x => x.classList.toggle('on', x.dataset.themeSet === name));
+    const meta = $('meta[name=theme-color]'); if (meta) meta.content = a.dataset.color;
+  });
+
   // Mobil menü (yaylı açılış, arka plan bulanıklığı, Esc ve dışarı tıklayınca kapanır)
   const burger = $('[data-burger]'), mm = $('[data-mobile-menu]'), scrim = $('[data-menu-scrim]');
   if (burger && mm) {

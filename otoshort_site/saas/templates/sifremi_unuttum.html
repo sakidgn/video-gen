@@ -1,7 +1,6 @@
-{% extends "base.html" %}
+{% extends "_auth_layout.html" %}
 {% block title %}{{ _('Şifremi unuttum') }} · {{ site }}{% endblock %}
-{% block content %}
-<div class="auth"><div class="auth-card reveal">
+{% block auth %}
   <h1>{{ _('Şifreni mi unuttun?') }}</h1>
   <p class="sub">{{ _('E-postanı yaz, sana yeni şifre belirleme bağlantısı gönderelim.') }}</p>
   <form class="card card-lg stack" method="post" action="/sifremi-unuttum" style="gap:0">
@@ -10,5 +9,4 @@
     <button class="btn btn-primary btn-lg btn-block" type="submit" style="margin-top:26px">{{ icon('mail', 17) }} {{ _('Bağlantı gönder') }}</button>
   </form>
   <p class="center muted small"><a href="{{ L('/giris') }}" style="color:var(--text)">{{ icon('arrow-left', 14) }} {{ _('Girişe dön') }}</a></p>
-</div></div>
 {% endblock %}

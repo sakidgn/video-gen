@@ -14,8 +14,8 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from . import ai as ai_mod
-from . import (abonelik, config, credits, db, formatlar, growth, i18n, karakter, mailer, media, oauth, publisher, secretbox, social, tokens,
-               worker)
+from . import (abonelik, config, credits, db, formatlar, growth, i18n, karakter, mailer, media, oauth, publisher, rehberler, secretbox,
+               social, tokens, worker)
 from .icons import LOGO, brand, icon
 from .models import Channel, Character, CreditTx, Feedback, Job, SharedScript, PromoCode, Publication, SocialAccount, TopUp, User, now
 from .security import RateLimiter, check_password, csrf_ok, csrf_token, hash_password
@@ -58,7 +58,9 @@ FAQS = [
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
-PUBLIC_PAGES = ["/", "/fiyatlar", "/kesfet", "/sablonlar", "/araclar/kanal-kurucu", "/oneri", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
+PUBLIC_PAGES = ["/", "/fiyatlar", "/kesfet", "/sablonlar", "/araclar/kanal-kurucu", "/rehberler",
+                *(f"/rehberler/{g['slug']}" for g in rehberler.GUIDES), "/oneri", "/kayit", "/giris", "/yasal/kullanim",
+                "/yasal/kvkk", "/yasal/mesafeli"]
 
 
 class CachedStatic(StaticFiles):
@@ -209,7 +211,7 @@ def require_verified(request: Request, user: User):
 
 def _active(path: str) -> str:
     for prefix in ("/video/yeni", "/kanallar", "/kredi", "/admin", "/hesap", "/davet", "/videolar", "/baglantilar",
-                   "/takvim", "/karakterler"):
+                   "/takvim", "/karakterler", "/ayarlar", "/abonelik", "/rehberler", "/oneri"):
         if path.startswith(prefix):
             return prefix
     if path.startswith("/video/"):
@@ -242,8 +244,14 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
         plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(),
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
+        theme=current_theme(request), themes=config.THEMES,
     )
     return templates.TemplateResponse(request, name, ctx, status_code=status_code)
+
+
+def current_theme(request: Request) -> str:
+    name = request.cookies.get(config.THEME_COOKIE, "")
+    return name if name in config.THEMES else config.DEFAULT_THEME
 
 
 def _pw_mark(user: User) -> str:
@@ -431,7 +439,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return "User-agent: *\nDisallow: /\n"
         private = ["/panel", "/video", "/videolar", "/kanallar", "/kredi", "/hesap", "/admin", "/dev", "/auth",
                    "/dogrula", "/sifre-yenile", "/api", "/baglantilar", "/baglan", "/yayin", "/davet", "/d/",
-                   "/liste", "/e/", "/takvim"]
+                   "/liste", "/e/", "/takvim", "/ayarlar", "/abonelik"]
         lines = ["User-agent: *", *(f"Disallow: {pre}{p}" for pre in ("", "/en") for p in private),
                  f"Sitemap: {site_url(request)}/sitemap.xml"]
         return "\n".join(lines) + "\n"
@@ -458,7 +466,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     def manifest():
         return JSONResponse({
             "name": config.SITE_NAME, "short_name": config.SITE_NAME, "lang": i18n.current(), "start_url": "/panel",
-            "display": "standalone", "background_color": "#0c0b0a", "theme_color": "#0c0b0a",
+            "display": "standalone", "background_color": config.THEMES[config.DEFAULT_THEME][1],
+            "theme_color": config.THEMES[config.DEFAULT_THEME][1],
             "description": i18n.t("Yapay zekâ ile sesli, dikey kısa videolar üret."),
             "icons": [{"src": f"/static/icons/icon-{n}.png", "sizes": f"{n}x{n}", "type": "image/png", "purpose": "any"}
                       for n in (192, 512)] +
@@ -479,6 +488,15 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             with db.session() as s:
                 if u := s.get(User, uid):
                     u.lang = code
+        return resp
+
+    @app.get("/tema/{name}")
+    def set_theme(name: str, next: str = "/"):
+        """Arka plan teması seçici (JS yoksa): çerezi yazar, aynı sayfaya döner."""
+        resp = go(next if SAFE_NEXT.match(next) and not next.startswith("//") else "/")
+        if name in config.THEMES:
+            resp.set_cookie(config.THEME_COOKIE, name, max_age=365 * 86400, samesite="lax",
+                            secure=config.SITE_URL.startswith("https://"))
         return resp
 
     @app.get("/yasal/{page}", response_class=HTMLResponse)
@@ -1741,6 +1759,32 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return go("/kredi")
         flash(request, "Kod kabul edildi, hesabına {n} kredi yüklendi. 🎉", n=amount)
         return go("/kredi")
+
+    @app.get("/abonelik", response_class=HTMLResponse)
+    def plans_page(request: Request, user: User = Depends(require_user)):
+        """Abonelik karşılaştırması: aboneliksiz + planlar yan yana, açılan yapay zekâlar ve kredi başı fiyat."""
+        cols = [{"key": "", "label": "Aboneliksiz", "desc": "Kredi paketiyle kullan", "price": 0, "credits": 0,
+                 "quals": config.FREE_QUALITIES, "per_credit": config.PACKAGES[0][0] / config.PACKAGES[0][1]}]
+        cols += [{"key": k, "label": p["label"], "desc": p["desc"], "price": p["price"], "credits": p["credits"],
+                  "quals": config.plan_qualities(k), "per_credit": p["price"] / p["credits"], "quality": p["quality"]}
+                 for k, p in config.PLANS.items()]
+        return render(request, "abonelik.html", user, cols=cols, plan_until=user.plan_until)
+
+    @app.get("/ayarlar", response_class=HTMLResponse)
+    def settings_page(request: Request, user: User = Depends(require_user)):
+        return render(request, "ayarlar.html", user)
+
+    @app.get("/rehberler", response_class=HTMLResponse)
+    def guides_page(request: Request):
+        return render(request, "rehberler.html", current_user(request), guides=rehberler.GUIDES)
+
+    @app.get("/rehberler/{slug}", response_class=HTMLResponse)
+    def guide_page(request: Request, slug: str):
+        guide = rehberler.BY_SLUG.get(slug)
+        if not guide:
+            raise HTTPException(404)
+        return render(request, "rehber.html", current_user(request), guide=guide,
+                      others=[g for g in rehberler.GUIDES if g is not guide])
 
     # --- davet ---
     @app.get("/davet", response_class=HTMLResponse)

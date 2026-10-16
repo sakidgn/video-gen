@@ -1,0 +1,26 @@
+{% extends "app_base.html" %}
+{% block title %}{{ _('Ayarlar') }} · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="t"><span class="eyebrow">{{ _('Hesap') }}</span><h1>{{ _('Ayarlar') }}</h1></div></div>
+{% set items = [
+  ('/hesap', 'user', _('Hesabım'), _('Ad, e-posta bildirimleri ve şifre')),
+  ('/baglantilar', 'share', _('Bağlantılar'), _('YouTube, TikTok ve Instagram hesapların')),
+  ('/kredi', 'gem', _('Kredi ve ödemeler'), _('Bakiye, kredi yükleme ve hareketler')),
+  ('/davet', 'gift', _('Davet et'), _('Arkadaşını getir, ikinize de hediye kredi')),
+  ('/rehberler', 'book', _('Rehberler'), _('Adım adım kısa kullanım rehberleri')),
+  ('/oneri', 'message', _('Fikrini paylaş'), _('Öneri, hata ya da istek yaz')),
+] %}
+<div class="set-grid">
+  {% for href, ic, title, desc in items %}
+  <a class="card set-item reveal" data-delay="{{ loop.index0 % 3 }}" href="{{ href }}"><span class="icon-box">{{ icon(ic, 18) }}</span>
+    <span class="set-txt"><b>{{ title }}</b><small>{{ desc }}</small></span>{{ icon('arrow-right', 16, 'faint') }}</a>
+  {% endfor %}
+</div>
+<div class="card card-lg reveal set-look">
+  <div class="card-head"><h3>{{ icon('palette', 18) }} {{ _('Görünüm') }}</h3></div>
+  <div class="set-row"><div class="set-txt"><b>{{ _('Arka plan rengi') }}</b><small>{{ _('Seçimin bu tarayıcıda hatırlanır.') }}</small></div>
+    {% with theme_labels = True %}{% include '_theme_pick.html' %}{% endwith %}</div>
+  <div class="set-row"><div class="set-txt"><b>{{ _('Dil') }}</b><small>{{ _('Sitenin ve bildirim e-postalarının dili.') }}</small></div>
+    <div class="lang-pick">{% for code, name in langs.items() %}<a href="/dil/{{ code }}?next=/ayarlar" lang="{{ code }}" class="{{ 'on' if code == lang }}">{{ name }}</a>{% endfor %}</div></div>
+</div>
+{% endblock %}

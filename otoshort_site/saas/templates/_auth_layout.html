@@ -1,0 +1,37 @@
+{# Giriş / kayıt / şifre ekranları: solda marka paneli, sağda form (telefonda yalnızca form). Sayfa {% block auth %} doldurur. #}
+{% extends "base.html" %}
+{% block body_class %}auth-page{% endblock %}
+{% block body %}
+{% set other_lang = 'tr' if lang == 'en' else 'en' %}
+<div class="auth-split">
+  <aside class="auth-side">
+    <a class="brand auth-brand" href="{{ L('/') }}">{{ LOGO }}{{ site }}</a>
+    <div class="auth-side-body">
+      <h2 class="auth-h">{{ _('Fikrini yaz,') }} <em>{{ _('viral videon hazır.') }}</em></h2>
+      <p class="auth-lead">{{ _('Reels, TikTok ve Shorts için sesli, dikey videolar; istersen her gün otomatik.') }}</p>
+      <ul class="auth-points">
+        <li>{{ icon('check', 15) }} <span>{{ _('Sesli, dikey video birkaç dakikada hazır') }}</span></li>
+        <li>{{ icon('check', 15) }} <span>{{ _('Otomatik kanal: her gün yeni video, sen uğraşma') }}</span></li>
+        <li>{{ icon('check', 15) }} <span>{{ _('YouTube, TikTok ve Instagram’a otomatik paylaşım') }}</span></li>
+        <li>{{ icon('check', 15) }} <span>{{ _('Mesajlaşma ve itiraf gibi viral formatlar') }}</span></li>
+        {% if signup_bonus %}<li>{{ icon('gift', 15) }} <span>{{ _h('E-postanı doğrulayınca <b>{n} hediye kredi</b>', n=signup_bonus) }}</span></li>{% endif %}
+      </ul>
+    </div>
+    <div class="auth-shots" aria-hidden="true">
+      <img src="{{ S('/static/formatlar/sohbet.jpg') }}" alt="" width="360" height="640" loading="lazy">
+      <img src="{{ S('/static/formatlar/hikaye.jpg') }}" alt="" width="360" height="640" loading="lazy">
+    </div>
+    <p class="auth-trust">{{ icon('shield', 15) }} {{ _('Kart bilgisi gerekmez · Otomatik çekim yok · İstediğin an bırak') }}</p>
+  </aside>
+  <main class="auth-main">
+    <div class="auth-top">
+      <a class="brand auth-brand-m" href="{{ L('/') }}">{{ LOGO }}{{ site }}</a>
+      <a class="lang-sw" href="/dil/{{ other_lang }}?next={{ path|urlencode }}" hreflang="{{ other_lang }}" lang="{{ other_lang }}" title="{{ langs[other_lang] }}">{{ icon('globe', 14) }}{{ other_lang|upper }}</a>
+    </div>
+    <div class="auth-card reveal">
+      {% include '_flashes.html' %}
+      {% block auth %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}

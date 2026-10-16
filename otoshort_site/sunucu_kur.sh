@@ -1,5 +1,5 @@
 #!/bin/bash
-# Cutless sunucu kurulumu (Ubuntu/Debian VPS). Bu klasörün içinden çalıştır:  bash sunucu_kur.sh
+# Zaply sunucu kurulumu (Ubuntu/Debian VPS). Bu klasörün içinden çalıştır:  bash sunucu_kur.sh
 # İlk çalıştırmada .env'yi soru sorarak oluşturur, sonra siteyi Docker ile https'li olarak başlatır.
 # Tekrar çalıştırmak güvenlidir: mevcut .env ve veriler (saas_veri/) korunur, sadece site güncellenip yeniden başlar.
 set -e
@@ -13,7 +13,7 @@ fi
 
 if [ ! -f .env ]; then
   echo "== İlk kurulum: birkaç soru =="
-  read -r -p "Alan adı (ör. cutless.app, başında https olmadan): " DOMAIN
+  read -r -p "Alan adı (ör. zaply.app, başında https olmadan): " DOMAIN
   read -r -p "Yönetici e-postan (havaleleri onaylayacak hesap): " ADMIN
   read -r -p "Google AI Studio API anahtarı (şimdi yoksa boş bırak): " GKEY
   SECRET=$(python3 -c "import secrets;print(secrets.token_urlsafe(48))" 2>/dev/null || head -c 48 /dev/urandom | base64 | tr -d '/+=\n')

@@ -1,0 +1,4 @@
+{# Arka plan rengi seçici: JS varsa sayfa yenilenmeden değişir (fx.js), yoksa /tema/ çerezi yazar. theme_labels: adlarıyla büyük sürüm #}
+<div class="theme-pick {{ 'lg' if theme_labels }}" role="group" aria-label="{{ _('Arka plan rengi') }}">
+  {% for key, (label, color) in themes.items() %}<a href="/tema/{{ key }}?next={{ path|urlencode }}" data-theme-set="{{ key }}" data-color="{{ color }}" class="{{ 'on' if key == theme }}" style="--sw:{{ color }}" title="{{ _(label) }}" aria-label="{{ _(label) }}">{% if theme_labels %}<i></i><span>{{ _(label) }}</span>{% endif %}</a>{% endfor %}
+</div>

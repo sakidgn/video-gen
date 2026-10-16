@@ -8,7 +8,8 @@ def _env(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
 
 
-SITE_NAME = _env("SITE_ADI", "Cutless")
+# Eski .env dosyalarında kalan önceki marka adı (Cutless) yeni adla değişir
+SITE_NAME = "Zaply" if _env("SITE_ADI") in ("", "Cutless") else _env("SITE_ADI")
 SECRET_KEY = _env("GIZLI_ANAHTAR", "gelistirme-anahtari-degistir")
 DATA_DIR = Path(_env("VERI_KLASORU", str(ROOT.parent / "saas_veri")))
 DATABASE_URL = _env("VERITABANI", f"sqlite:///{DATA_DIR / 'site.db'}")
@@ -17,12 +18,12 @@ IBAN = _env("IBAN", "TR00 0000 0000 0000 0000 0000 00")
 IBAN_NAME = _env("IBAN_ALICI", "Ad Soyad")
 GOOGLE_CLIENT_ID = _env("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = _env("GOOGLE_CLIENT_SECRET")
-SITE_URL = _env("SITE_ADRESI").rstrip("/")  # ör. https://cutless.app (boşsa istekten bulunur)
+SITE_URL = _env("SITE_ADRESI").rstrip("/")  # ör. https://zaply.app (boşsa istekten bulunur)
 SMTP_HOST = _env("SMTP_SUNUCU")
 SMTP_PORT = int(_env("SMTP_PORT", "587") or 587)
 SMTP_USER = _env("SMTP_KULLANICI")
 SMTP_PASSWORD = _env("SMTP_SIFRE")
-SMTP_FROM = _env("SMTP_GONDEREN")  # ör. bildirim@cutless.app
+SMTP_FROM = _env("SMTP_GONDEREN")  # ör. bildirim@zaply.app
 # Yasal sayfalarda (kullanım şartları, KVKK, mesafeli satış) görünen satıcı bilgileri
 LEGAL = {
     "name": _env("SIRKET_UNVANI"),  # şirket unvanı ya da şahıs şirketi için ad soyad
@@ -188,6 +189,12 @@ USD_TRY = float(_env("DOLAR_KURU", "42") or 42)
 
 # Kredi paketleri: (TL, verilen kredi)
 PACKAGES = [(250, 250), (500, 525), (1000, 1100)]
+
+# Arka plan temaları: anahtar -> (ad, zemin rengi). Seçim "tema" çerezinde; varsayılan grafit gri
+THEMES = {"grafit": ("Grafit", "#1b1b1f"), "gece": ("Gece", "#0c0b0a"), "lacivert": ("Lacivert", "#0f1526"),
+          "mor": ("Mor", "#1a1424"), "orman": ("Orman", "#101a16")}
+DEFAULT_THEME = "grafit"
+THEME_COOKIE = "tema"
 
 LANGUAGES = {"tr": "Türkçe", "en": "English", "de": "Deutsch", "es": "Español", "ar": "العربية"}
 

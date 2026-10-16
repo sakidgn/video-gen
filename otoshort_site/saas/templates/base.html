@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="{{ lang }}">
+<html lang="{{ lang }}" data-theme="{{ theme }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{% block title %}{{ site }} — {{ _('Yapay zekâ ile otomatik Reels, TikTok ve Shorts videoları') }}{% endblock %}</title>
 <meta name="description" content="{{ _('Yapay zekâ ile sesli, dikey Reels, TikTok ve Shorts videoları üret. Otomatik kanal kur, seçtiğin saatlerde her gün yeni video gelsin.') }}">
-<meta name="theme-color" content="#0c0b0a">
+<meta name="theme-color" content="{{ themes[theme][1] }}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{{ site }}">
 <meta property="og:locale" content="{{ 'en_US' if lang == 'en' else 'tr_TR' }}">
@@ -70,7 +70,8 @@
 </main>
 <footer class="footer"><div class="wrap">
   <div><a class="brand" href="{{ L('/') }}" style="margin-bottom:12px">{{ LOGO }}{{ site }}</a><p style="max-width:320px">{{ _('Yapay zekâ ile kısa video üret, otomatik kanallarla her gün yeni içerik paylaş.') }}</p>
-    <div class="lang-pick">{% for code, name in langs.items() %}<a href="/dil/{{ code }}?next={{ path|urlencode }}" hreflang="{{ code }}" lang="{{ code }}" class="{{ 'on' if code == lang }}">{{ name }}</a>{% endfor %}</div></div>
+    <div class="lang-pick">{% for code, name in langs.items() %}<a href="/dil/{{ code }}?next={{ path|urlencode }}" hreflang="{{ code }}" lang="{{ code }}" class="{{ 'on' if code == lang }}">{{ name }}</a>{% endfor %}</div>
+    {% include '_theme_pick.html' %}</div>
   <div><h4>{{ _('Ürün') }}</h4><a href="{{ L('/') }}#nasil">{{ _('Nasıl çalışır') }}</a><a href="{{ L('/sablonlar') }}">{{ _('Hazır şablonlar') }}</a><a href="{{ L('/araclar/kanal-kurucu') }}">{{ _('Kanal Kurucu') }}</a><a href="{{ L('/') }}#otomatik">{{ _('Otomatik kanal') }}</a><a href="{{ L('/kesfet') }}">{{ _('Keşfet') }}</a><a href="{{ L('/fiyatlar') }}">{{ _('Fiyatlar') }}</a><a href="{{ L('/') }}#sss">{{ _('SSS') }}</a><a href="{{ L('/oneri') }}">{{ _('Fikrini paylaş') }}</a></div>
   <div><h4>{{ _('Yasal') }}</h4><a href="{{ L('/yasal/kullanim') }}">{{ _('Kullanım şartları') }}</a><a href="{{ L('/yasal/kvkk') }}">{{ _('KVKK aydınlatma') }}</a><a href="{{ L('/yasal/mesafeli') }}">{{ _('Mesafeli satış') }}</a></div>
   <div class="legal"><span>© {{ site }}{% if legal.email %} · <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>{% endif %}</span><span>{{ _('Yapay zekâ ile üretilen videolar platformlarda “AI” etiketiyle paylaşılmalıdır.') }}</span></div>

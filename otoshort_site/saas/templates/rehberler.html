@@ -1,0 +1,18 @@
+{% extends "app_base.html" if user else "base.html" %}
+{% block title %}{{ _('Rehberler') }} · {{ site }}{% endblock %}
+{% block content %}
+{% if not user %}<section class="guides-pub"><div class="wrap">{% endif %}
+<div class="page-head"><div class="t"><span class="eyebrow">{{ _('Rehberler') }}</span><h1>{{ _('Adım adım öğren') }}</h1>
+  <p class="muted" style="margin:0">{{ _('Birkaç dakikada okunan kısa rehberler: ilk videodan otomatik kanala.') }}</p></div></div>
+<div class="guide-grid">
+  {% for g in guides %}
+  <a class="card guide-card reveal" data-delay="{{ loop.index0 % 3 }}" href="{{ L('/rehberler/' ~ g.slug) }}">
+    <span class="icon-box accent">{{ icon(g.icon, 18) }}</span>
+    <h3>{{ _(g.title) }}</h3>
+    <p class="small muted">{{ _(g.desc) }}</p>
+    <span class="tiny faint guide-meta">{{ icon('clock', 13) }} {{ _('{n} dk okuma', n=g.min) }} · {{ _('{n} adım', n=g.steps|length) }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% if not user %}</div></section>{% endif %}
+{% endblock %}

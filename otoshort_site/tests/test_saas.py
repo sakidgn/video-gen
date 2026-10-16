@@ -1223,7 +1223,7 @@ def _assert_english(html_text, url, extra=()):
         text = text.replace(w, "")
     bad = TR_CHARS.search(text)
     assert not bad, f"{url}: Türkçe metin kaldı → …{text[max(0, bad.start() - 80):bad.end() + 40]}…"
-    assert '<html lang="en">' in html_text, url
+    assert '<html lang="en" data-theme=' in html_text, url
 
 
 def test_every_translatable_string_has_english():
@@ -1304,7 +1304,7 @@ def test_language_switch_cookie_and_seo(client):
     assert "/static/shots/studio-en.jpg" in home  # İngilizce görsel varsa o, yoksa Türkçesi
     assert "/static/shots/studio.jpg" in TestClient(client.app).get("/").text
     tr = TestClient(client.app).get("/", headers={"accept-language": "tr-TR,tr;q=0.9"}).text
-    assert '<html lang="tr">' in tr and "View in English" not in tr
+    assert '<html lang="tr" data-theme=' in tr and "View in English" not in tr
     assert "View in English" in TestClient(client.app).get("/", headers={"accept-language": "en-US,en;q=0.9"}).text
     assert "<loc>http://testserver/en/kesfet</loc>" in client.get("/sitemap.xml").text
     assert "Disallow: /en/panel" in client.get("/robots.txt").text
@@ -2154,3 +2154,62 @@ def test_format_card_links_carry_format_through_signup(client):
                                "csrf": csrf(c, "/kayit")}, follow_redirects=False)
     assert r.headers["location"] == "/video/yeni?format=hikaye"
     _assert_english(TestClient(client.app).get("/en/").text, "/en/ (formatlar)")
+
+
+def test_brand_theme_picker_and_settings(client):
+    home = client.get("/").text
+    assert config.SITE_NAME == "Zaply" and "Zaply" in home and "Cutless" not in home
+    assert 'data-theme="grafit"' in home and 'data-theme-set="lacivert"' in home  # varsayılan gri, seçici altta
+    r = client.get("/tema/lacivert?next=/fiyatlar", follow_redirects=False)
+    assert r.headers["location"] == "/fiyatlar" and "tema=lacivert" in r.headers["set-cookie"]
+    assert 'data-theme="lacivert"' in client.get("/fiyatlar").text
+    assert client.get("/tema/yok?next=//kotu.site", follow_redirects=False).headers["location"] == "/"
+    client.cookies.set("tema", "bilinmeyen")
+    assert 'data-theme="grafit"' in client.get("/").text  # geçersiz çerez varsayılana düşer
+    client.cookies.delete("tema")
+    for url in ("/giris", "/kayit", "/sifremi-unuttum"):  # iki sütun: solda marka paneli, sağda form
+        assert 'class="auth-split"' in (page := client.get(url).text) and "auth-points" in page
+    assert client.get("/ayarlar", follow_redirects=False).headers["location"] == "/giris"
+    signup(client, "set@b.com")
+    panel = client.get("/panel").text
+    for href in ("/abonelik", "/rehberler", "/ayarlar"):
+        assert f'href="{href}"' in panel
+    assert 'class="side-link " href="/baglantilar"' not in panel  # bağlantılar, davet, hesap Ayarlar'da toplandı
+    page = client.get("/ayarlar").text
+    for href in ("/hesap", "/baglantilar", "/davet", "/kredi", "/oneri"):
+        assert f'href="{href}"' in page
+    assert "theme-pick lg" in page and "Lacivert" in page
+
+
+def test_plans_comparison_page(client):
+    signup(client, "cmp@b.com", plan="")
+    page = client.get("/abonelik").text
+    assert page.count("cmp-col") == 1 + len(config.PLANS)
+    assert "/kredi?plan=pro#kredi-grid" in page and "Aboneliksiz" in page and "Kredi başı ≈ 0,88 ₺" in page
+    assert 'class="no"' in page  # aboneliksiz sütunda kapalı yapay zekâlar üstü çizili
+    from saas import abonelik
+
+    with db.session() as s:
+        abonelik.activate(s, s.scalar(select(User).where(User.email == "cmp@b.com")).id, "pro")
+    page = client.get("/abonelik").text
+    assert "MEVCUT PLANIN" in page and "Aboneliği uzat" in page
+    client.get("/dil/en?next=/abonelik")
+    _assert_english(client.get("/abonelik").text, "/abonelik")
+    _assert_english(client.get("/ayarlar").text, "/ayarlar")
+
+
+def test_guides_public_and_in_app(client):
+    from saas import rehberler
+
+    page = client.get("/rehberler").text
+    assert all(f'href="/rehberler/{g["slug"]}"' in page for g in rehberler.GUIDES)
+    one = client.get("/rehberler/ilk-video").text
+    assert "Fikrini tek cümleyle yaz" in one and 'href="/kayit"' in one and "guide-steps" in one
+    assert client.get("/rehberler/yok").status_code == 404
+    sitemap = client.get("/sitemap.xml").text
+    assert "/rehberler/otomatik-kanal" in sitemap and "/en/rehberler" in sitemap
+    for url in ("/en/rehberler", *(f"/en/rehberler/{g['slug']}" for g in rehberler.GUIDES)):
+        _assert_english(TestClient(client.app).get(url).text, url)
+    signup(client, "guide@b.com")
+    one = client.get("/rehberler/otomatik-kanal").text
+    assert 'class="side' in one and 'href="/kanallar/yeni"' in one  # girişliyken panel düzeninde, buton doğrudan

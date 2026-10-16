@@ -2,21 +2,22 @@
 {% block body %}
 {% set nav = [('/panel','grid',_('Panel')),('/video/yeni','sparkles',_('Video üret')),('/kanallar','repeat',_('Otomatik kanallar')),('/kredi','gem',_('Kredi'))] %}
 {% set tabs = [_('Panel'), _('Video'), _('Kanallar'), _('Kredi')] %}
-{% set side_nav = nav[:2] + [('/videolar','film',_('Videolarım'))] + nav[2:3] + [('/takvim','calendar',_('Takvim')),('/karakterler','users',_('Karakterler'))] + nav[3:] %}
+{# Yan menü: sık kullanılanlar üstte; hesap, bağlantılar, davet, dil ve tema Ayarlar sayfasında toplanır #}
+{% set side_nav = [('/panel','grid',_('Panel')),('/videolar','film',_('Videolarım')),('/kanallar','repeat',_('Otomatik kanallar')),('/takvim','calendar',_('Takvim')),('/karakterler','users',_('Karakterler'))] %}
+{% set side_more = [('/abonelik','crown',_('Abonelikler'),('/abonelik','/kredi')),('/rehberler','book',_('Rehberler'),('/rehberler',)),('/ayarlar','settings',_('Ayarlar'),('/ayarlar','/hesap','/baglantilar','/davet','/oneri'))] %}
 <div class="app">
   <aside class="side">
     <a class="brand" href="/">{{ LOGO }}{{ site }}</a>
-    <a class="btn btn-accent btn-block side-new" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a>
+    <a class="btn btn-accent btn-block side-new {{ 'on' if active == '/video/yeni' }}" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a>
     <div class="side-label">{{ _('Menü') }}</div>
     {% for href, ic, label in side_nav %}
       <a class="side-link {{ 'on' if active == href }}" href="{{ href }}">{% if active == href %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
     {% endfor %}
-    <a class="side-link {{ 'on' if active == '/baglantilar' }}" href="/baglantilar">{% if active == '/baglantilar' %}<span class="side-pill"></span>{% endif %}{{ icon('share', 18) }} {{ _('Bağlantılar') }}</a>
-    <a class="side-link {{ 'on' if active == '/oneri' }}" href="/oneri">{% if active == '/oneri' %}<span class="side-pill"></span>{% endif %}{{ icon('edit', 18) }} {{ _('Fikrini paylaş') }}</a>
-    <a class="side-link {{ 'on' if active == '/davet' }}" href="/davet">{% if active == '/davet' %}<span class="side-pill"></span>{% endif %}{{ icon('gift', 18) }} {{ _('Davet et') }}</a>
-    <a class="side-link {{ 'on' if active == '/hesap' }}" href="/hesap">{% if active == '/hesap' %}<span class="side-pill"></span>{% endif %}{{ icon('user', 18) }} {{ _('Hesabım') }}</a>
-    {% set other = 'tr' if lang == 'en' else 'en' %}<a class="side-link" href="/dil/{{ other }}?next={{ path|urlencode }}" lang="{{ other }}">{{ icon('globe', 18) }} {{ langs[other] }}</a>
-    {% if user.is_admin %}<div class="side-label">{{ _('Yönetim') }}</div><a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{% if active == '/admin' %}<span class="side-pill"></span>{% endif %}{{ icon('shield', 18) }} {{ _('Yönetim paneli') }}</a>{% endif %}
+    <div class="side-label">{{ _('Hesap') }}</div>
+    {% for href, ic, label, group in side_more %}{% set on = active in group %}
+      <a class="side-link {{ 'on' if on }}" href="{{ href }}">{% if on %}<span class="side-pill"></span>{% endif %}{{ icon(ic, 18) }} {{ label }}</a>
+    {% endfor %}
+    {% if user.is_admin %}<a class="side-link {{ 'on' if active == '/admin' }}" href="/admin">{% if active == '/admin' %}<span class="side-pill"></span>{% endif %}{{ icon('shield', 18) }} {{ _('Yönetim paneli') }}</a>{% endif %}
     <div class="side-foot">
       <div class="wallet">
         <div class="row between"><span class="tiny faint mono" style="letter-spacing:.08em">{{ _('BAKİYE') }}</span>{{ icon('gem', 16, 'faint') }}</div>
@@ -36,7 +37,7 @@
       <div class="row">
         <a class="pill" href="/kredi">{{ icon('gem', 14) }} {{ user.credits }}</a>
         {% if user.is_admin %}<a class="icon-btn" href="/admin" aria-label="{{ _('Yönetim') }}">{{ icon('shield', 16) }}</a>{% endif %}
-        <a class="icon-btn {{ 'done' if active == '/hesap' }}" href="/hesap" aria-label="{{ _('Hesabım') }}">{{ icon('user', 16) }}</a>
+        <a class="icon-btn {{ 'done' if active in ('/ayarlar', '/hesap', '/baglantilar', '/davet') }}" href="/ayarlar" aria-label="{{ _('Ayarlar') }}">{{ icon('settings', 16) }}</a>
         <form method="post" action="/cikis"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="icon-btn" aria-label="{{ _('Çıkış yap') }}">{{ icon('logout', 16) }}</button></form>
       </div>
     </div>

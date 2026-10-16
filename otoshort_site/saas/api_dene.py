@@ -73,7 +73,7 @@ def _video_info(path: Path) -> str:
 
 
 def main(argv: list[str] | None = None, generator=None) -> int:
-    ap = argparse.ArgumentParser(description="Cutless gerçek API denemesi")
+    ap = argparse.ArgumentParser(description="Zaply gerçek API denemesi")
     ap.add_argument("--kalite", default="lite", help="lite | fast | standard | hepsi")
     ap.add_argument("--fikir", default=IDEA)
     ap.add_argument("--dil", default="tr")

@@ -1,8 +1,8 @@
 @echo off
 cd /d "%~dp0"
-title Cutless - Canli (vitrin)
+title Zaply - Canli (vitrin)
 echo ============================================
-echo  CUTLESS - HERKESE ACIK DEMO YAYINI
+echo  ZAPLY - HERKESE ACIK DEMO YAYINI
 echo ============================================
 echo Site bu bilgisayardan https://....trycloudflare.com adresiyle yayinlanir.
 echo Videolar sahtedir (para harcanmaz), odeme ve yonetim paneli kapalidir.

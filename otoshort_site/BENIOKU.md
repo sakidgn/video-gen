@@ -1,4 +1,4 @@
-# Cutless (site) — kurulum
+# Zaply (site) — kurulum
 
 Yapay zekâ ile kısa video üreten, kredili site. Kullanıcı havale ile kredi yükler, tek video ya da
 "otomatik kanal" (her gün belirli saatlerde kendiliğinden video) üretir. Videolar Google'ın Veo modeliyle,
@@ -91,8 +91,8 @@ Hazır paket: `docker-compose.yml` (site + Caddy), `Caddyfile` (otomatik https s
 3. **Alan adı:** DNS ayarlarında `A` kaydı → sunucunun IP adresi (www için de aynı). Yayılması birkaç dakika–saat.
 4. Sunucuya bağlan (`ssh root@IP`) ve kodu indir:
    ```
-   git clone https://github.com/KULLANICI/DEPO.git cutless   # gizli depoysa GitHub token ile
-   cd cutless/otoshort_site
+   git clone https://github.com/KULLANICI/DEPO.git zaply   # gizli depoysa GitHub token ile
+   cd zaply/otoshort_site
    bash sunucu_kur.sh
    ```
    Betik Docker'ı kurar, alan adını/yönetici e-postasını sorar, `GIZLI_ANAHTAR`'ı kendisi üretir ve siteyi başlatır.
@@ -100,16 +100,16 @@ Hazır paket: `docker-compose.yml` (site + Caddy), `Caddyfile` (otomatik https s
 6. Siteye yönetici e-postanla kaydol → **Yönetim → Yayına hazırlık**: kırmızı kalan bir şey olmamalı.
 7. **Güncelleme:** `git pull && docker compose up -d --build` (veriler `saas_veri/` klasöründe kalır).
 8. **Yedek:** site her gün `saas_veri/yedekler/`e veritabanı yedeği alır; ara sıra bilgisayarına indir:
-   `scp -r root@IP:cutless/otoshort_site/saas_veri/yedekler .`
+   `scp -r root@IP:zaply/otoshort_site/saas_veri/yedekler .`
 9. Satışa başlamadan önce yasal metinleri bir muhasebeciye/avukata göster.
 
 Faydalı komutlar: `docker compose ps` (durum), `docker compose logs -f site` (günlük),
 `docker compose exec site python -m saas.hazirlik` (eksik ayarlar), `docker compose restart site`.
 
 ## Google ile giriş (ücretsiz, kart gerekmez)
-1. https://console.cloud.google.com → üstten **yeni proje** oluştur (ör. "Cutless").
+1. https://console.cloud.google.com → üstten **yeni proje** oluştur (ör. "Zaply").
 2. Menüden **Google Auth Platform** (APIs & Services → OAuth consent screen) → **Get started**:
-   uygulama adı "Cutless", destek e-postası, **Audience: External**, iletişim e-postası → Create.
+   uygulama adı "Zaply", destek e-postası, **Audience: External**, iletişim e-postası → Create.
 3. **Clients → Create client** → Application type: **Web application** → *Authorized redirect URIs*:
    - deneme için `http://localhost:8000/auth/google/donus`
    - canlı site için `https://ALANADIN/auth/google/donus`

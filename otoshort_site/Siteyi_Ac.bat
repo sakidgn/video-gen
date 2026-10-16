@@ -1,8 +1,8 @@
 @echo off
 cd /d "%~dp0"
-title Cutless Site
+title Zaply Site
 echo ============================================
-echo  CUTLESS SITE - deneme modu (sahte videolar)
+echo  ZAPLY SITE - deneme modu (sahte videolar)
 echo ============================================
 if not exist ".venv\Scripts\python.exe" (
   where python >nul 2>nul

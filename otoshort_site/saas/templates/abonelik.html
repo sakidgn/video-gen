@@ -1,0 +1,35 @@
+{% extends "app_base.html" %}
+{% block title %}{{ _('Abonelikler') }} · {{ site }}{% endblock %}
+{% block content %}
+<div class="page-head"><div class="t"><span class="eyebrow">{{ _('Abonelik ve kredi') }}</span><h1>{{ _('Abonelikler') }}</h1>
+  <p class="muted" style="margin:0">{% if my_plan %}{{ _h('<b>{plan}</b> aboneliğin <b>{date}</b> tarihine kadar açık.', plan=_(plans[my_plan].label), date=plan_until|tarih) }}{% else %}{{ _('Aboneliğin yok: Ekonomik yapay zekâyı kredi paketiyle kullanabilirsin. Diğerleri abonelikle açılır.') }}{% endif %}</p></div>
+  <a class="btn btn-ghost" href="/kredi">{{ icon('gem', 16) }} {{ _('Kredi paketleri') }}</a></div>
+<div class="cmp swipe-m">
+{% for c in cols %}{% set mine = (my_plan == c.key) %}
+  <div class="card cmp-col reveal {{ 'featured' if c.key == 'pro' }} {{ 'mine' if mine }}" data-delay="{{ loop.index0 }}">
+    {% if mine %}<span class="tag mine-tag">{{ _('MEVCUT PLANIN') }}</span>{% elif c.key == 'pro' %}<span class="tag">{{ _('EN POPÜLER') }}</span>{% endif %}
+    <h3>{{ _(c.label) }}</h3>
+    <p class="tiny faint cmp-desc">{{ _(c.desc) }}</p>
+    <div class="price"><b>{{ c.price }} ₺</b><span>/ {{ _('ay') }}</span></div>
+    {% if not c.key %}
+      <a class="btn btn-ghost btn-block" href="/kredi#kredi-grid">{{ _('Kredi yükle') }}</a>
+    {% else %}
+      <a class="btn {{ 'btn-primary' if c.key == 'pro' else 'btn-ghost' }} btn-block" href="/kredi?plan={{ c.key }}#kredi-grid">{{ _('Aboneliği uzat') if mine else _('Abone ol') }}</a>
+    {% endif %}
+    {% set pc = '%.2f'|format(c.per_credit) %}
+    <ul class="cmp-list">
+      <li class="{{ '' if c.credits else 'no' }}">{{ icon('check' if c.credits else 'x', 15) }}<span>{% if c.credits %}{{ _h('Her ay <b>{n} kredi</b>', n=c.credits) }}{% else %}{{ _('Aylık kredi yüklemesi') }}{% endif %}</span></li>
+      <li>{{ icon('check', 15) }}<span>{{ _('Kredi başı ≈ {x} ₺', x=pc.replace('.', ',') if lang == 'tr' else pc) }}</span></li>
+      {% for qk, q in qualities.items() %}{% set ok = qk in c.quals %}
+      <li class="{{ '' if ok else 'no' }}">{{ icon('check' if ok else 'x', 15) }}<span>{{ q.ai }} <small>{{ _(q.label) }} · {{ q.resolution }}</small></span></li>
+      {% endfor %}
+      <li>{{ icon('check', 15) }}<span>{{ _('Viral formatlar ve viral altyazı') }}</span></li>
+      <li>{{ icon('check', 15) }}<span>{{ _('Otomatik kanal ve otomatik paylaşım') }}</span></li>
+      <li>{{ icon('check', 15) }}<span>{{ _('Karakter kütüphanesi') }}</span></li>
+      <li>{{ icon('check', 15) }}<span>{{ _('Kalan kredi devreder') }}</span></li>
+    </ul>
+  </div>
+{% endfor %}
+</div>
+<p class="small faint cmp-note">{{ icon('info', 14) }} {{ _('Otomatik çekim yok: abonelik 30 gün açık kalır, istersen uzatırsın. Ödeme havale/EFT ile, onaylanınca kredilerin hemen yüklenir.') }}</p>
+{% endblock %}
