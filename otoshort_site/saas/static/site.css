@@ -1101,4 +1101,24 @@ a.pub-t:hover{color:var(--accent)}
 .ko-times{display:flex;gap:6px}.ko-times span{font-family:var(--mono);padding:4px 10px;border-radius:8px;background:var(--surface-2)}
 @media(max-width:560px){.ko-row{grid-template-columns:1fr}}
 
+/* telefon: daha kısa ana sayfa — kart grupları yana kayar, ağır görseller gizlenir */
+.faq-more>summary{color:var(--text-2)}.faq-more>details{margin-top:10px}
+.faq-ask{text-align:center;margin:22px 0 0;color:var(--text-2)}.faq-ask a{display:inline-flex;align-items:center;gap:4px;color:var(--accent)}
+.price-more{margin-top:18px}.uc-more{display:flex;justify-content:center;margin-top:16px}.narrow-faq{max-width:820px;margin:40px auto 0}
+@media(max-width:640px){
+  section{padding:44px 0}
+  .hide-m{display:none!important}
+  .swipe-m{display:flex!important;grid-template-columns:none!important;grid-auto-rows:auto!important;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;gap:12px;margin:0 -18px;padding:4px 18px 14px;scroll-padding:0 18px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .swipe-m::-webkit-scrollbar{display:none}
+  .swipe-m>*{flex:0 0 84%;min-width:0;scroll-snap-align:start;grid-column:auto!important;grid-row:auto!important}
+  .swipe-m>.reveal{opacity:1!important;transform:none!important;filter:none!important}
+  .tpl-strip.swipe-m>*{flex-basis:46%}
+  .bento.swipe-m>*{min-height:330px}
+  .how.swipe-m .demo{height:190px}
+  .sec-head{margin-bottom:22px}
+  .sec-head .lead{font-size:calc(15.5px * var(--fs))}
+  .cta{padding:40px 22px}
+  .price-more b,.tool-cta b{font-size:calc(19px * var(--fs))}
+}
+
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none;filter:none}}

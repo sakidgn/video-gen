@@ -58,7 +58,7 @@ FAQS = [
     ("Otomatik kanalda kredim bitince ne olur?",
      "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
 ]
-PUBLIC_PAGES = ["/", "/kesfet", "/sablonlar", "/araclar/kanal-kurucu", "/oneri", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
+PUBLIC_PAGES = ["/", "/fiyatlar", "/kesfet", "/sablonlar", "/araclar/kanal-kurucu", "/oneri", "/kayit", "/giris", "/yasal/kullanim", "/yasal/kvkk", "/yasal/mesafeli"]
 
 
 class CachedStatic(StaticFiles):
@@ -1206,6 +1206,11 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             i18n.localized_path("/kayit", public=tuple(PUBLIC_PAGES)) + f"?fikir={quote(idea)}"
         return render(request, "senaryo.html", user, p=prev, idea=idea, start=start,
                       share=f"{site_url(request)}/s/{code}")
+
+    @app.get("/fiyatlar", response_class=HTMLResponse)
+    def pricing_page(request: Request):
+        faqs = [f for f in FAQS if any(w in f[0] for w in ("Abonelik", "saniye", "Kredi", "kredim", "beğenmezsem"))]
+        return render(request, "fiyatlar.html", current_user(request), faqs=faqs)
 
     # --- ücretsiz kanal kurucu ---
     @app.get("/araclar/kanal-kurucu", response_class=HTMLResponse)

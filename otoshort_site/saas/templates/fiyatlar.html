@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Fiyatlar') }} · {{ site }}{% endblock %}
+{% block content %}
+<section class="tool-sec" id="fiyat"><div class="wrap">
+  <div class="sec-head reveal"><span class="eyebrow">{{ _('Fiyatlar') }}</span><h2>{{ _h('Üç abonelik, <span class="hl">üç yapay zekâ.</span>') }}</h2>
+    <p class="lead">{{ _('Her plan farklı bir yapay zekâyla gelir. Süreyi sen seçersin: {b} saniyeye kadar sabit fiyat, üstü saniye başı. Otomatik çekim yok, istediğin zaman bırak.', b=sec.base) }}</p></div>
+  {% include "_plans.html" %}
+{% include "_pricing_detail.html" %}
+  <div class="faq narrow-faq">
+    {% for q, a in faqs %}<details class="reveal"><summary>{{ _(q) }} {{ icon('chevron-down', 18) }}</summary><p>{{ _(a) }}</p></details>{% endfor %}
+  </div>
+</div></section>
+{% endblock %}

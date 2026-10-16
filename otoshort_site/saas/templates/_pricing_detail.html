@@ -1,0 +1,31 @@
+{# Süreye göre fiyat tablosu, kredi paketleri ve hesaplayıcı (Fiyatlar sayfası) #}
+  <div class="card dur-table reveal">
+    <div class="dt-head"><h3>{{ _('Video başı fiyat') }}</h3><span class="tiny faint">{{ _('1 kredi = 1 ₺ · üretilemezse iade') }}</span></div>
+    <div class="dt-scroll"><table class="table">
+      <tr><th>{{ _('Yapay zekâ') }}</th><th>{{ _('{s} sn’ye kadar', s=sec.base) }}</th><th>{{ _('Her ek saniye') }}</th><th>20 {{ _('sn') }}</th><th>30 {{ _('sn') }}</th><th>60 {{ _('sn') }}</th></tr>
+      {% for k, q in qualities.items() %}<tr><td><b>{{ _(q.label) }}</b><div class="tiny faint">{{ q.ai }} · {{ q.resolution }}</div></td>
+        <td class="mono">{{ q.credits }}</td><td class="mono">+{{ q.per_sec }}</td><td class="mono">{{ price(k, 20) }}</td><td class="mono">{{ price(k, 30) }}</td><td class="mono">{{ price(k, 60) }}</td></tr>{% endfor %}
+    </table></div>
+  </div>
+  <div class="packs-head reveal"><b>{{ _('Abonelik istemiyor musun?') }}</b> <span class="muted small">{{ _('Ekonomik yapay zekâyı kredi paketiyle kullan.') }}</span></div>
+  <div class="packs">
+    {% for tl, cr in packages %}
+    <div class="card pack reveal" data-delay="{{ loop.index0 }}"><div><b>{{ _('{tl} ₺', tl=tl) }}</b><div class="tiny faint">{{ _('{n} kredi', n=cr) }}</div></div>{% if cr > tl %}<span class="bonus">{{ _('+%{p} hediye', p=((cr - tl) * 100 / tl)|round|int) }}</span>{% else %}<span class="tiny faint">{{ _('Başlangıç') }}</span>{% endif %}</div>
+    {% endfor %}
+  </div>
+  <div class="card calc reveal" data-calc data-packages='{{ packages|tojson }}'>
+    <div class="calc-copy"><span class="eyebrow">{{ _('Hesapla') }}</span><h3 class="calc-title">{{ _h('Otomatik kanal ayda <span class="hl">ne tutar?</span>') }}</h3>
+      <p class="muted small">{{ _('Günde kaç video istediğini ve kaliteyi seç; maliyeti hemen gör.') }}</p></div>
+    <div class="calc-ctrl">
+      <label class="label" for="calc-n">{{ _h('Günde {n} video', n=_h('<b class="calc-n" data-calc-n>3</b>')) }}</label>
+      <input id="calc-n" class="range" type="range" min="1" max="10" value="3" data-calc-range>
+      <label class="label" for="calc-s">{{ _h('Video başı {n} saniye', n=_h('<b class="calc-n" data-calc-s-out>8</b>')) }}</label>
+      <input id="calc-s" class="range" type="range" min="{{ sec.min }}" max="{{ sec.max }}" value="8" data-calc-secs data-base="{{ sec.base }}">
+      <div class="seg calc-q">{% for k, q in qualities.items() %}<label class="opt"><input type="radio" name="calc-q" value="{{ q.credits }}" data-per-sec="{{ q.per_sec }}" {% if k == 'fast' %}checked{% endif %}><span class="opt-body"><span class="opt-title">{{ _(q.label) }}</span><span class="code" data-calc-price>{{ q.credits }}</span></span></label>{% endfor %}</div>
+    </div>
+    <div class="calc-out">
+      <div><span class="k">{{ _('Günlük') }}</span><b><span data-calc-day>195</span> <small>{{ _('kredi') }}</small></b></div>
+      <div><span class="k">{{ _('Aylık (30 gün)') }}</span><b><span data-calc-month>5.850</span> <small>₺</small></b></div>
+      <p class="tiny faint" data-calc-hint data-tpl="{{ _('{tl} ₺ paketi ({cr} kredi) bu hızla yaklaşık {days} gün yeter.') }}"></p>
+    </div>
+  </div>

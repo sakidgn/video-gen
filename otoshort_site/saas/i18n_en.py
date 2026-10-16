@@ -975,6 +975,14 @@ EN = {
     'İlk 5 video': 'First 5 videos',
     'Şu an plan yazılamadı, biraz sonra tekrar dene.': "Couldn't write a plan right now, try again in a bit.",
 
+    # --- kısa ana sayfa ---
+    'Aradığın cevap yok mu ya da bir fikrin mi var?': "Can't find your answer, or have an idea?",
+    'Bize yaz': 'Write to us',
+    'Diğer sorular ({n})': 'More questions ({n})',
+    'Ekonomik {a} kredi’den başlar (10 sn’ye kadar). Abonelik istemeyene kredi paketi de var.': "Economy starts at {a} credits (up to 10 s). Credit packs are available if you don't want a subscription.",
+    'Hazır kanal şablonları': 'Ready-made channel templates',
+    'Süreye göre fiyatlar, kredi paketleri ve hesaplayıcı': 'Prices by length, credit packs and calculator',
+
     # --- vitrin (demo yayını) ---
     "Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.": "Demo version: videos are sample animations and no payments are taken.",
     "Demo sürümde ödeme alınmıyor": "No payments in the demo",

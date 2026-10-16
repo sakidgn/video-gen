@@ -1,5 +1,5 @@
 {# Abonelik kartları (ana sayfa ve kredi sayfası). buy_url: satın alma bağlantısı (kredi sayfasında forma kaydırır) #}
-<div class="plan-cards">
+<div class="plan-cards {{ 'swipe-m' if plans_swipe }}">
 {% for k, p in plans.items() %}{% set q = qualities[p.quality] %}
   <div class="card plan-card reveal {{ 'featured' if k == 'pro' }} {{ 'mine' if my_plan == k }}" data-delay="{{ loop.index0 }}">
     {% if k == 'pro' %}<span class="tag">{{ _('EN POPÜLER') }}</span>{% endif %}

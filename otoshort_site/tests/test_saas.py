@@ -639,8 +639,12 @@ def test_admin_daily_stats_and_profit(client):
 
 def test_index_calculator_and_faq(client):
     html = client.get("/").text
-    assert "data-calc" in html and 'data-packages=\'[[250, 250]' in html
-    assert "Arkadaşımı davet edersem" in html
+    assert "/fiyatlar" in html and "Arkadaşımı davet edersem" in html and "Diğer sorular" in html
+    assert "swipe-m" in html and "plan-cards swipe-m" in html  # telefonda yana kayan kartlar
+    page = client.get("/fiyatlar").text  # fiyat ayrıntıları ve hesaplayıcı ayrı sayfada
+    assert "data-calc" in page and 'data-packages=\'[[250, 250]' in page and "Her ek saniye" in page
+    assert "Abonelikler nasıl çalışıyor" in page
+    _assert_english(TestClient(client.app).get("/en/fiyatlar").text, "/en/fiyatlar")
 
 
 def _make_png() -> bytes:
@@ -2051,7 +2055,8 @@ def test_feedback_form_reaches_admin(client, tmp_path):
     admin.post(f"/admin/oneri/{rows[0].id}/okundu", data={"csrf": csrf(admin, "/admin")})
     with db.session() as s:
         assert s.get(Feedback, rows[0].id).status == "okundu"
-    assert "Fikirlerinizi ve düşüncelerinizi" in anon.get("/").text and "Neler üretebilirsin" in anon.get("/").text
+    home = anon.get("/").text
+    assert "Bize yaz" in home and "/oneri" in home and "Neler üretebilirsin" in home
     _assert_english(TestClient(client.app).get("/en/oneri").text, "/en/oneri")
 
 
