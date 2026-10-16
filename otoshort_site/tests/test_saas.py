@@ -2255,3 +2255,43 @@ def test_would_you_rather_and_quiz_formats(client, tmp_path):
     assert [q["q"] for q in clean["questions"]] == ["z"] and clean["questions"][0]["answer"] == 1
     home = client.get("/").text
     assert "/static/formatlar/secim.mp4" in home and "/static/formatlar/quiz.jpg" in home
+
+
+def test_horror_facts_top5_true_false_and_flag_formats(client, tmp_path):
+    from saas import formatlar
+
+    signup(client, "n@b.com", plan="")
+    give("n@b.com", 200)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni").text
+    for k in ("korku", "bilgi", "liste", "dogru", "bayrak"):
+        assert f'name="format" value="{k}"' in page
+        client.post("/video/yeni", data={"idea": "", "format": k, "background": "pastel", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jobs = {j.format: j for j in s.scalars(select(Job)).all()}
+    assert all(j.status == "hazir" and j.cost == config.FORMAT_CREDITS for j in jobs.values())
+    assert "#1 Baklava" in jobs["liste"].prompt and "→ YANLIŞ" in jobs["dogru"].prompt
+    assert "→ KIRMIZI BAYRAK" in jobs["bayrak"].prompt and "üç kalbi" in jobs["bilgi"].prompt
+    # top 5: birinci en üst satıra, en son açılır
+    items = [{"name": f"Ad{i}", "why": ""} for i in range(5, 0, -1)]
+    times = [(0.4, 1)] + [(1.5 + i, 2.3 + i) for i in range(5)] + [(7.0, 8.0)]
+    ass = formatlar.top_ass("Konu", items, times, 9.2, "tr")
+    row1 = next(l for l in ass.splitlines() if l.endswith("}Ad1"))
+    assert "\\pos(158,288)" in row1 and row1.startswith("Dialogue: 2,0:00:05.50")
+    # doğru/yanlış: damga karar anında, eğik ve doğru renkte
+    ass = formatlar.verdict_ass("dogru", [{"text": "İddia", "ok": False, "why": "Çünkü"}],
+                                [(0.4, 1), (1.4, 2.4), (5.6, 6.4), (7.3, 8.0)], 9.2, "tr")
+    stamp = next(l for l in ass.splitlines() if "}YANLIŞ" in l)
+    assert stamp.startswith("Dialogue: 5,0:00:05.60") and "\\frz6" in stamp
+    assert formatlar._bgr(formatlar.RED) in ass and formatlar._bgr(formatlar.GREEN) not in ass
+    assert "DOĞRU MU YANLIŞ MI? 1/1" in ass and "Katılıyor\\Nmusun?" in ass
+    # korku: koyu kart
+    dark = formatlar.story_ass("Başlık", "Korku", ["Başlık", "Cümle."], [(0, 1), (1.2, 2)], 3, "tr", dark=True)
+    assert formatlar._bgr("#141418") in dark and "&HFFFFFF&}" not in dark.split("[Events]")[1].split("\n")[1]
+    # bozuk yapay zekâ çıktısı: ok alanı boolean değilse madde atlanır
+    clean = ai.clean_format("dogru", {"items": [{"text": "a", "ok": "evet", "why": ""}, {"text": "b", "ok": True}]})
+    assert [x["text"] for x in clean["items"]] == ["b"]
+    home = client.get("/").text
+    assert "data-vf-marquee" in home and home.count('href="/video/yeni?format=liste"') == 2
+    assert home.count('aria-hidden="true" tabindex="-1"') >= 10  # ikinci kopya ekran okuyuculardan gizli

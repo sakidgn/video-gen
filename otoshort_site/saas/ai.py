@@ -180,13 +180,18 @@ CHAT_SCHEMA = {
 }
 
 
-def build_story_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+def build_story_request(idea: str, language: str, seconds: int, past: list[str], horror: bool = False) -> str:
     lang = config.LANGUAGES.get(language, language)
     words = max(40, min(170, round(seconds * 2.5)))
+    style = ("creepy first-person horror story in the style of scary-story forums (unsettling, slow-burn, "
+             "no gore or graphic violence)" if horror else
+             "gripping first-person story in the style of anonymous confession / story forums")
     parts = [
-        f"Write a gripping first-person story for a {seconds}-second vertical narrated video in the style of "
-        "anonymous confession / story forums. It is read aloud by one narrator with big word-by-word subtitles.",
-        f"Idea from the user: {idea.strip()}" if idea.strip() else "Invent a fresh, surprising everyday story.",
+        f"Write a {style} for a {seconds}-second vertical narrated video. It is read aloud by one narrator with "
+        "big word-by-word subtitles.",
+        f"Idea from the user: {idea.strip()}" if idea.strip() else
+        ("Invent a fresh, eerie everyday situation that slowly turns wrong." if horror
+         else "Invent a fresh, surprising everyday story."),
         f"All text in {lang}. About {words} words in total. The first sentence is the post title: a strong hook. "
         "Then short sentences that build suspense, ending with a twist.",
         RULES.replace("no on-screen text, subtitles, watermarks, usernames or social media interface in the video.", ""),
@@ -278,8 +283,77 @@ QUIZ_SCHEMA = {
     },
     "required": ["topic", "questions", "title", "caption", "hashtags", "summary"],
 }
-FORMAT_REQUESTS = {"sohbet": (build_chat_request, CHAT_SCHEMA), "hikaye": (build_story_request, STORY_SCHEMA),
-                   "secim": (build_wyr_request, WYR_SCHEMA), "quiz": (build_quiz_request, QUIZ_SCHEMA)}
+def _list_request(task: str, idea: str, fallback: str, language: str, rules: str, returns: str,
+                  past: list[str]) -> str:
+    lang = config.LANGUAGES.get(language, language)
+    parts = [task, f"Topic from the user: {idea.strip()}" if idea.strip() else fallback,
+             f"All text in {lang}. {rules} Family-friendly; no real private people, no brand bashing.",
+             f"Return JSON (text in {lang}): {returns}, caption (one short line inviting comments, 1-3 emojis), "
+             + FORMAT_RETURN_TAIL]
+    if past:
+        parts.append("Do NOT repeat these earlier ideas:\n- " + "\n- ".join(past[-20:]))
+    return "\n".join(parts)
+
+
+def build_facts_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+    n = max(3, min(8, round(seconds / 7)))
+    return _list_request(
+        f"Write 'Did you know?' facts for a {seconds}-second vertical video: each fact sounds fake but is TRUE. "
+        "Each is read aloud with big word-by-word subtitles.", idea, "Pick a fascinating topic.", language,
+        f"Exactly {n} facts, each max 140 characters, one sentence, most surprising last. Only well-established "
+        "facts you are completely sure about; never invent numbers.",
+        "voice (female or male), facts (array of strings)", past)
+
+
+def build_top_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+    return _list_request(
+        f"Write a 'Top 5' countdown for a {seconds}-second vertical video, revealed from #5 to #1.", idea,
+        "Pick a fun, debatable everyday topic.", language,
+        "Exactly 5 items ordered from #5 to #1 (the last item is #1, the best). Each name max 24 characters, each "
+        "why max 80 characters (one punchy reason). Facts must be accurate; opinions should be fun, not offensive.",
+        "topic (max 24 chars), voice (female or male), items (array of {name, why}, from #5 to #1)", past)
+
+
+def build_verdict_request(kind: str, idea: str, language: str, seconds: int, past: list[str]) -> str:
+    n = max(3, min(6, round(seconds / 9)))
+    if kind == "dogru":
+        task = (f"Write a 'True or false?' game for a {seconds}-second vertical video: a claim appears, viewers get "
+                "3 seconds, then TRUE or FALSE is stamped with a one-line explanation.")
+        rules = (f"Exactly {n} surprising claims (max 90 characters each), a mix of true and false. Only facts you "
+                 "are completely sure about. why: max 90 characters.")
+        returns = "voice (female or male), items (array of {text, ok: true if the claim is true, why})"
+        fallback = "Pick a fun general-knowledge topic."
+    else:
+        task = (f"Write a 'Red flag or green flag?' game for a {seconds}-second vertical video: a behavior appears "
+                "(dating, friendship, work or roommates), viewers decide, then RED FLAG or GREEN FLAG is stamped.")
+        rules = (f"Exactly {n} relatable behaviors (max 80 characters each), a mix of red and green, light-hearted "
+                 "and not hurtful. why: max 90 characters, a funny but fair reason.")
+        returns = "voice (female or male), items (array of {text, ok: true if it is a green flag, why})"
+        fallback = "Pick dating or friendship habits."
+    return _list_request(task, idea, fallback, language, rules, returns, past)
+
+
+_ITEMS = {"type": "array", "items": {"type": "object", "properties": {
+    "text": {"type": "string"}, "ok": {"type": "boolean"}, "why": {"type": "string"}}, "required": ["text", "ok", "why"]}}
+_COMMON = {"title": {"type": "string"}, "caption": {"type": "string"}, "summary": {"type": "string"},
+           "hashtags": {"type": "array", "items": {"type": "string"}}}
+_REQ = ["title", "caption", "hashtags", "summary"]
+FACTS_SCHEMA = {"type": "object", "properties": {"voice": {"type": "string"}, "facts": {
+    "type": "array", "items": {"type": "string"}}, **_COMMON}, "required": ["facts", *_REQ]}
+TOP_SCHEMA = {"type": "object", "properties": {"topic": {"type": "string"}, "voice": {"type": "string"}, "items": {
+    "type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "why": {"type": "string"}},
+                               "required": ["name", "why"]}}, **_COMMON}, "required": ["topic", "items", *_REQ]}
+VERDICT_SCHEMA = {"type": "object", "properties": {"voice": {"type": "string"}, "items": _ITEMS, **_COMMON},
+                  "required": ["items", *_REQ]}
+
+FORMAT_REQUESTS = {
+    "sohbet": (build_chat_request, CHAT_SCHEMA), "hikaye": (build_story_request, STORY_SCHEMA),
+    "secim": (build_wyr_request, WYR_SCHEMA), "quiz": (build_quiz_request, QUIZ_SCHEMA),
+    "korku": (lambda *a: build_story_request(*a, horror=True), STORY_SCHEMA),
+    "bilgi": (build_facts_request, FACTS_SCHEMA), "liste": (build_top_request, TOP_SCHEMA),
+    "dogru": (lambda *a: build_verdict_request("dogru", *a), VERDICT_SCHEMA),
+    "bayrak": (lambda *a: build_verdict_request("bayrak", *a), VERDICT_SCHEMA),
+}
 
 
 def clean_format(kind: str, data: dict) -> dict:
@@ -313,6 +387,19 @@ def clean_format(kind: str, data: dict) -> dict:
                 qs.append({"q": text, "options": opts, "answer": answer})
         return {**common, "topic": str(data.get("topic", "")).strip()[:30], "questions": qs[:8],
                 "voice": voice(data.get("voice"), "male")}
+    if kind == "bilgi":
+        return {**common, "facts": [str(x).strip()[:180] for x in data.get("facts") or [] if str(x).strip()][:10],
+                "voice": voice(data.get("voice"), "female")}
+    if kind == "liste":
+        items = [{"name": str(x.get("name", "")).strip()[:30], "why": str(x.get("why", "")).strip()[:110]}
+                 for x in data.get("items") or [] if isinstance(x, dict)]
+        return {**common, "topic": str(data.get("topic", "")).strip()[:30],
+                "items": [x for x in items if x["name"]][:7], "voice": voice(data.get("voice"), "male")}
+    if kind in ("dogru", "bayrak"):
+        items = [{"text": str(x.get("text", "")).strip()[:120], "ok": x.get("ok") is True,
+                  "why": str(x.get("why", "")).strip()[:120]}
+                 for x in data.get("items") or [] if isinstance(x, dict) and isinstance(x.get("ok"), bool)]
+        return {**common, "items": [x for x in items if x["text"]][:8], "voice": voice(data.get("voice"), "female")}
     sents = [str(x).strip()[:300] for x in data.get("sentences") or [] if str(x).strip()][:40]
     return {**common, "community": str(data.get("community", "")).strip()[:30] or "?", "sentences": sents,
             "voice": voice(data.get("voice"), "male")}
@@ -663,6 +750,31 @@ class FakeAI:
                   ("Güneş sistemindeki en büyük gezegen hangisi?", ["Jüpiter", "Satürn", "Neptün"], 0)]
             return clean_format(kind, {**common, "topic": idea[:24] or "Genel kültür", "voice": "male",
                                        "questions": [{"q": q, "options": o, "answer": a} for q, o, a in qs]})
+        if kind == "bilgi":
+            return clean_format(kind, {**common, "voice": "female", "facts": [
+                "Ahtapotların üç kalbi vardır.", "Bal, doğru saklanırsa binlerce yıl bozulmadan kalabilir.",
+                "Muz botanik olarak üzümsü bir meyvedir, çilek ise değildir."]})
+        if kind == "liste":
+            items = [("Simit", "Her köşede, her saatte"), ("Lahmacun", "Limonla bambaşka"),
+                     ("Mantı", "Yoğurt ve sarımsak ikilisi"), ("Döner", "Gece 2'nin kurtarıcısı"),
+                     ("Baklava", "Tartışmasız şampiyon")]
+            return clean_format(kind, {**common, "topic": idea[:24] or "Türk lezzetleri", "voice": "male",
+                                       "items": [{"name": a, "why": b} for a, b in items]})
+        if kind in ("dogru", "bayrak"):
+            items = ([("Bir yılda 52 hafta vardır.", True, "52 hafta artı bir iki gün."),
+                      ("Ay kendi ışığını üretir.", False, "Ay, Güneş'in ışığını yansıtır."),
+                      ("Ahtapotların üç kalbi vardır.", True, "İkisi solungaçlara kan pompalar.")]
+                     if kind == "dogru" else
+                     [("Mesajına 3 gün sonra cevap veriyor", False, "Meşgul olabilir ama 3 gün fazla."),
+                      ("Garsona kibar davranıyor", True, "İnsanlara nasıl davrandığı her şeyi anlatır."),
+                      ("Şifreni soruyor", False, "Güven sormakla değil, saygıyla olur.")])
+            return clean_format(kind, {**common, "voice": "female",
+                                       "items": [{"text": t, "ok": o, "why": w} for t, o, w in items]})
+        if kind == "korku":
+            sents = [idea or "Her gece saat 3'te kapım çalınıyordu ama dışarıda kimse olmuyordu",
+                     "İlk hafta komşu çocuklarının şakası sandım.", "Sonra kapıya bir kamera taktım.",
+                     "Kayıtta kapı çalındığında koridor bomboştu.", "Ama kapının altından bir gölge geçiyordu."]
+            return clean_format(kind, {**common, "community": "Korku hikâyeleri", "voice": "male", "sentences": sents})
         sents = [idea or "Ev arkadaşım üç aydır benim yoğurdumu yiyordu ve bunu nasıl öğrendiğime inanamayacaksınız",
                  "Her sabah buzdolabını açtığımda yoğurdum biraz daha azalıyordu.",
                  "Bir gün kabın altına küçük bir not yazdım: Seni görüyorum.",

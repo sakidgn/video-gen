@@ -200,39 +200,69 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             total = times[-1][1] + 1.2
             ass = formatlar.chat_ass(msgs, times, data["contact"], total)
             lines = [("> " if m["me"] else "< ") + m["text"] for m in msgs]
-        elif kind in ("secim", "quiz"):
+        elif kind in ("secim", "quiz", "bilgi", "liste", "dogru", "bayrak"):
+            # tek sesli, tur tur ilerleyen formatlar: açılış + turlar (+ düşünme süresi) + kapanış çağrısı
             w, voice = formatlar.words(language), ai_mod.VOICES[data["voice"]][0]
             if kind == "secim":
                 rounds = data["rounds"][:10]
-                if not rounds:
-                    raise RuntimeError("Seçenekler yazılamadı")
                 texts = [w["wyr_say"], *(f"{r['a']}, {w['or_word']} {r['b']}?" for r in rounds)]
                 gaps = [0.4] + [formatlar.THINK] * len(rounds)
                 lines = [f"{r['a']} / {r['b']}" for r in rounds]
-            else:
+                closing = f"{w['pick']} {w['comment']}"
+            elif kind == "quiz":
                 qs = data["questions"][:8]
-                if not qs:
-                    raise RuntimeError("Quiz soruları yazılamadı")
                 texts, gaps = [f"{w['quiz_say']} {data['topic']}".strip()], [0.4]
                 for q in qs:
                     texts += [q["q"] + " " + " ".join(f"{k}: {o}." for k, o in zip("ABC", q["options"])),
                               f"{w['answer']}: {q['options'][q['answer']]}!"]
                     gaps += [formatlar.THINK, 0.9]
                 lines = [f"{q['q']} → {q['options'][q['answer']]}" for q in qs]
-            texts.append(f"{w['score' if kind == 'quiz' else 'pick']} {w['comment']}")
+                closing = f"{w['score']} {w['comment']}"
+            elif kind == "bilgi":
+                facts = data["facts"][:10]
+                texts, gaps = [w["facts_say"], *facts], [0.4] + [0.6] * len(facts)
+                lines, closing = facts, w["follow"]
+            elif kind == "liste":
+                items = data["items"][:7]
+                n = len(items)
+                texts = [f"{w['top_say']}: {data['topic']}".strip(" :"),
+                         *(f"{n - i}. {x['name']}. {x['why']}" for i, x in enumerate(items))]
+                gaps = [0.4] + [0.7] * n
+                lines = [f"#{n - i} {x['name']} — {x['why']}" for i, x in enumerate(items)]
+                closing = f"{w['agree']} {w['comment']}"
+            else:
+                items = data["items"][:8]
+                yes, no = (w["yes"], w["no"]) if kind == "dogru" else (w["green"], w["red"])
+                texts, gaps = [w["tf_say"] if kind == "dogru" else w["flag_say"]], [0.4]
+                for x in items:
+                    texts += [x["text"], f"{yes if x['ok'] else no}! {x['why']}".strip()]
+                    gaps += [formatlar.THINK, 0.9]
+                lines = [f"{x['text']} → {yes if x['ok'] else no}" for x in items]
+                closing = f"{w['agree']} {w['comment']}"
+            if len(texts) < 2:
+                raise RuntimeError("Format metni yazılamadı")
+            texts.append(closing)
             gaps.append(0.0)
             parts = [generator.speak(text=t, voice=voice, out=tmp / f"q{i}.wav") for i, t in enumerate(texts)]
             times = formatlar.join_audio(parts, gaps, 0.4, 1.2, tmp / "ses.wav")
             total = times[-1][1] + 1.2
-            ass = (formatlar.wyr_ass(rounds, times, total, language) if kind == "secim"
-                   else formatlar.quiz_ass(data["topic"], qs, times, total, language))
-        else:
+            if kind == "secim":
+                ass = formatlar.wyr_ass(rounds, times, total, language)
+            elif kind == "quiz":
+                ass = formatlar.quiz_ass(data["topic"], qs, times, total, language)
+            elif kind == "bilgi":
+                ass = formatlar.facts_ass(facts, times, total, language)
+            elif kind == "liste":
+                ass = formatlar.top_ass(data["topic"], items, times, total, language)
+            else:
+                ass = formatlar.verdict_ass(kind, items, times, total, language)
+        else:  # hikaye ve korku
             sents = data["sentences"][:30] or [idea or "..."]
             voice = ai_mod.VOICES[data["voice"]][0]
             parts = [generator.speak(text=x, voice=voice, out=tmp / f"s{i}.wav") for i, x in enumerate(sents)]
             times = formatlar.join_audio(parts, 0.2, 0.3, 1.0, tmp / "ses.wav")
             total = times[-1][1] + 1.0
-            ass = formatlar.story_ass(sents[0], data["community"], sents, times, total, language)
+            ass = formatlar.story_ass(sents[0], data["community"], sents, times, total, language, dark=kind == "korku")
             lines = sents
         formatlar.render(ass, tmp / "ses.wav", total, background, out)
     return ai_mod.Script(video_prompt="\n".join(lines), title=data["title"], caption=data["caption"],

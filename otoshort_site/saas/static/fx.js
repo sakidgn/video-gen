@@ -295,7 +295,15 @@
       const v = e.target;
       if (e.isIntersecting) { if (!v.src) v.src = v.dataset.vf; v.play().catch(() => {}); } else if (v.src) v.pause();
     }), { threshold: 0.35 });
-    vfs.forEach(v => io.observe(v));
+    // akan şeritte kartlar sürekli yer değiştirir: şerit görünürken içindeki videoların hepsi oynar
+    const marquee = $('[data-vf-marquee]');
+    if (marquee) {
+      const inMq = $$('video[data-vf]', marquee);
+      new IntersectionObserver(es => es.forEach(e => inMq.forEach(v => {
+        if (e.isIntersecting) { if (!v.src) v.src = v.dataset.vf; v.play().catch(() => {}); } else if (v.src) v.pause();
+      })), { threshold: 0.2 }).observe(marquee);
+    }
+    vfs.filter(v => !v.closest('[data-vf-marquee]')).forEach(v => io.observe(v));
   }
 
   // Senaryo oynatıcı: telefon ekranında diyalog kelime kelime (viral altyazı gibi) akar, konuşan karakter zıplar
@@ -444,6 +452,14 @@
         per.textContent = fill(per.dataset.tpl, { n, c: cost, total: n * cost }); }
     };
     studio.addEventListener('change', upd); studio.addEventListener('input', upd); upd();
+    // Korku formatı seçilince (arka planı kendisi değiştirmediyse) karanlık sis arka planı gelsin
+    let bgTouched = false;
+    studio.addEventListener('change', e => {
+      if (e.target.name === 'background') { bgTouched = true; return; }
+      if (e.target.name !== 'format' || bgTouched) return;
+      const dark = $('input[name=background][value=karanlik]', studio), soft = $('input[name=background][value=pastel]', studio);
+      const want = e.target.value === 'korku' ? dark : soft; if (want) want.checked = true;
+    });
     // Fikir önerileri (yapay zekânın getirdikleri de dahil: olay yakalama kapsayıcıda)
     studio.addEventListener('click', e => { const b = e.target.closest('[data-idea]'); if (!b) return;
       const ta = $('textarea[name=idea],textarea[name=topic]', studio); if (ta) { ta.value = b.dataset.idea; ta.focus(); upd(); } });

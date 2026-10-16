@@ -16,6 +16,11 @@ FORMATS = {  # anahtar: (etiket, açıklama)
     "hikaye": ("İtiraf / hikâye", "Gönderi kartı + seslendirme + kelime kelime altyazı"),
     "secim": ("Hangisini seçerdin?", "İki seçenek ve geri sayım; izleyici cevabını yoruma yazar"),
     "quiz": ("Bil bakalım", "Soru, üç şık, geri sayım ve doğru cevap"),
+    "korku": ("Korku hikâyesi", "Ürpertici anlatım, karanlık kart ve kelime kelime altyazı"),
+    "bilgi": ("Bunu biliyor muydun?", "Yalan gibi duran ama gerçek bilgiler, numaralı kartlarla"),
+    "liste": ("Top 5 sıralama", "5'ten 1'e geri sayan liste, birinci sona saklanır"),
+    "dogru": ("Doğru mu yanlış mı?", "İddia, geri sayım, sonra DOĞRU ya da YANLIŞ damgası"),
+    "bayrak": ("Kırmızı bayrak mı?", "Davranış ekrana gelir, izleyici karar verir: kırmızı mı yeşil mi"),
 }
 THINK = 3.0  # seçim/quiz turlarında izleyiciye düşünme süresi (sn)
 # Videoda çizilen ve seslendirilen kalıp sözler (videonun dilinde; listede olmayan dil İngilizce)
@@ -36,14 +41,41 @@ WORDS = {
            "comment": "اكتب في التعليقات!", "quiz": "اختبر معلوماتك", "quiz_say": "اختبر معلوماتك!", "q": "سؤال",
            "answer": "الإجابة الصحيحة", "score": "كم إجابة صحيحة عرفت؟"},
 }
+for _lang, _w in {  # bilgi, sıralama, doğru/yanlış ve bayrak formatlarının sözleri
+    "tr": {"facts": "BUNU BİLİYOR MUYDUN?", "facts_say": "Bunu biliyor muydun?", "fact": "BİLGİ",
+           "top": "EN İYİ 5", "top_say": "İşte en iyi beş", "tf": "DOĞRU MU YANLIŞ MI?",
+           "tf_say": "Doğru mu, yanlış mı?", "yes": "DOĞRU", "no": "YANLIŞ", "flag": "KIRMIZI BAYRAK MI?",
+           "flag_say": "Kırmızı bayrak mı, yeşil bayrak mı?", "red": "KIRMIZI BAYRAK", "green": "YEŞİL BAYRAK",
+           "follow": "Devamı için takip et!", "agree": "Katılıyor musun?"},
+    "en": {"facts": "DID YOU KNOW?", "facts_say": "Did you know?", "fact": "FACT", "top": "TOP 5",
+           "top_say": "Here are the top five", "tf": "TRUE OR FALSE?", "tf_say": "True or false?", "yes": "TRUE",
+           "no": "FALSE", "flag": "RED FLAG OR GREEN FLAG?", "flag_say": "Red flag or green flag?",
+           "red": "RED FLAG", "green": "GREEN FLAG", "follow": "Follow for more!", "agree": "Do you agree?"},
+    "de": {"facts": "WUSSTEST DU SCHON?", "facts_say": "Wusstest du schon?", "fact": "FAKT", "top": "TOP 5",
+           "top_say": "Hier sind die Top fünf", "tf": "WAHR ODER FALSCH?", "tf_say": "Wahr oder falsch?",
+           "yes": "WAHR", "no": "FALSCH", "flag": "RED FLAG ODER GREEN FLAG?", "flag_say": "Red Flag oder Green Flag?",
+           "red": "RED FLAG", "green": "GREEN FLAG", "follow": "Folge für mehr!", "agree": "Stimmst du zu?"},
+    "es": {"facts": "¿SABÍAS QUE...?", "facts_say": "¿Sabías que...?", "fact": "DATO", "top": "TOP 5",
+           "top_say": "Este es el top cinco", "tf": "¿VERDADERO O FALSO?", "tf_say": "¿Verdadero o falso?",
+           "yes": "VERDADERO", "no": "FALSO", "flag": "¿BANDERA ROJA O VERDE?", "flag_say": "¿Bandera roja o verde?",
+           "red": "BANDERA ROJA", "green": "BANDERA VERDE", "follow": "¡Síguenos para más!", "agree": "¿Estás de acuerdo?"},
+    "ar": {"facts": "هل كنت تعلم؟", "facts_say": "هل كنت تعلم؟", "fact": "معلومة", "top": "أفضل 5",
+           "top_say": "إليك أفضل خمسة", "tf": "صح أم خطأ؟", "tf_say": "صح أم خطأ؟", "yes": "صح", "no": "خطأ",
+           "flag": "علامة حمراء أم خضراء؟", "flag_say": "علامة حمراء أم خضراء؟", "red": "علامة حمراء",
+           "green": "علامة خضراء", "follow": "تابعنا للمزيد!", "agree": "هل توافق؟"},
+}.items():
+    WORDS[_lang].update(_w)
 
 
 def words(language: str) -> dict:
     return WORDS.get(language, WORDS["en"])
+
+
 BACKGROUNDS = {  # anahtar: (etiket, ffmpeg lavfi kaynağı ya da None = kütüphanedeki video)
     "girdap": "Sonsuz girdap",
     "piksel": "Piksel evren",
     "pastel": "Yumuşak renkler",
+    "karanlik": "Karanlık sis",
 }
 
 
@@ -167,8 +199,11 @@ def chat_ass(messages: list[dict], times: list[tuple[float, float]], contact: st
 
 # ---------- itiraf / hikâye anlatımı ----------
 def story_ass(title: str, community: str, sentences: list[str], times: list[tuple[float, float]], total: float,
-              language: str) -> str:
-    """İlk cümle (başlık) okunurken gönderi kartı; sonra her cümle kelime kelime viral altyazı."""
+              language: str, dark: bool = False) -> str:
+    """İlk cümle (başlık) okunurken gönderi kartı; sonra her cümle kelime kelime viral altyazı.
+    dark: korku hikâyesi için koyu kart ve kan kırmızısı vurgu."""
+    card, ink, sub, accent = (("#141418", "#F2F2F2", "#8A8A92", "#C1121F") if dark
+                              else ("#FFFFFF", INK, "#7C7C80", "#FF5A1F"))
     out = _header(f"Style: Viral,{FONT_NAME},{round(H * 0.07)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,1,0,0,0,"
                   f"100,100,1,0,1,{round(H * 0.07 * 0.14)},3,5,{round(W * .07)},{round(W * .07)},0,1")
     t_end = times[0][1] + 0.4 if times else 3.0
@@ -176,20 +211,20 @@ def story_ass(title: str, community: str, sentences: list[str], times: list[tupl
     card_h = 170 + len(lines) * 56 + 70
     x, y, cw = 48, int(H * 0.27), W - 96
     f = "\\fad(0,200)"
-    out.append(_ev(0, 0, t_end, f"{{\\an7\\pos({x},{y}){f}\\p1\\c&HFFFFFF&}}{rrect(cw, card_h, 30)}"))
-    out.append(_ev(1, 0, t_end, f"{{\\an7\\pos({x + 30},{y + 30}){f}\\p1\\c{_bgr('#FF5A1F')}}}{rrect(68, 68, 34)}"))
+    out.append(_ev(0, 0, t_end, f"{{\\an7\\pos({x},{y}){f}\\p1\\c{_bgr(card)}}}{rrect(cw, card_h, 30)}"))
+    out.append(_ev(1, 0, t_end, f"{{\\an7\\pos({x + 30},{y + 30}){f}\\p1\\c{_bgr(accent)}}}{rrect(68, 68, 34)}"))
     out.append(_ev(2, 0, t_end, f"{{\\an5\\pos({x + 64},{y + 64}){f}\\fs36\\b1\\c&HFFFFFF&}}"
                                 f"{_upper(plain(community)[:1], language)}"))
-    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 116},{y + 32}){f}\\fs32\\b1\\c{_bgr(INK)}}}"
+    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 116},{y + 32}){f}\\fs32\\b1\\c{_bgr(ink)}}}"
                                 f"{plain(community)[:26]}"))
-    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 116},{y + 70}){f}\\fs24\\c{_bgr('#7C7C80')}}}"
+    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 116},{y + 70}){f}\\fs24\\c{_bgr(sub)}}}"
                                 f"{plain(config.SITE_NAME)}"))
-    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 30},{y + 130}){f}\\fs46\\b1\\c{_bgr(INK)}}}"
+    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 30},{y + 130}){f}\\fs46\\b1\\c{_bgr(ink)}}}"
                                 + "\\N".join(lines)))
     fy = y + card_h - 62
-    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 32},{fy + 6}){f}\\p1\\c{_bgr('#FF5A1F')}}}m 13 0 l 26 20 l 0 20"))
+    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 32},{fy + 6}){f}\\p1\\c{_bgr(accent)}}}m 13 0 l 26 20 l 0 20"))
     comments = "yorum" if language == "tr" else "comments"
-    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 68},{fy}){f}\\fs28\\b1\\c{_bgr('#3C3C43')}}}"
+    out.append(_ev(2, 0, t_end, f"{{\\an7\\pos({x + 68},{fy}){f}\\fs28\\b1\\c{_bgr(sub if dark else '#3C3C43')}}}"
                                 f"12,4B      1,2B {comments}"))
     segs = [{"start": a, "end": b, "text": s} for s, (a, b) in zip(sentences[1:], times[1:])]
     out += [e.replace(",Viral,,", ",Viral,,", 1) for e in _viral_events(segs, language)]
@@ -311,12 +346,120 @@ def quiz_ass(topic: str, questions: list[dict], times: list[tuple[float, float]]
     return "\n".join(out) + "\n"
 
 
+# ---------- "Bunu biliyor muydun?", "Top 5" ve "Doğru mu yanlış mı?" / "Kırmızı bayrak mı?" ----------
+def _viral_style() -> str:
+    size = round(H * 0.07)
+    return (f"Style: Viral,{FONT_NAME},{size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,1,0,0,0,100,100,1,0,1,"
+            f"{round(size * 0.14)},3,5,{round(W * .07)},{round(W * .07)},0,1")
+
+
+def _pill(a: float, b: float, text: str, y: int, color: str = YELLOW) -> list[str]:
+    """Üstte ortalanmış etiket (ör. BİLGİ 2/5)."""
+    w = max(160, len(text) * 19 + 64)
+    return [_ev(4, a, b, f"{{\\an7\\pos({(W - w) // 2},{y})\\p1\\c{_bgr(color)}\\fad(100,0)}}{rrect(w, 64, 32)}"),
+            _ev(5, a, b, f"{{\\an5\\pos({W // 2},{y + 32})\\fs40\\b1\\c&H111111&\\fad(100,0)}}{text}")]
+
+
+def facts_ass(facts: list[str], times: list[tuple[float, float]], total: float, language: str) -> str:
+    """times: açılış, her bilgi, kapanış. Her bilgi üstte numaralı etiketle, kelime kelime altyazıyla okunur."""
+    w = words(language)
+    out = _header(_viral_style())
+    out += _title_card(0, times[1][0] if len(times) > 1 else total, w["facts"], "")
+    segs = []
+    for i, fact in enumerate(facts):
+        start, spoken = times[i + 1]
+        end = times[i + 2][0] if i + 2 < len(times) else total
+        out += _pill(start, end, f"{w['fact']} {i + 1}/{len(facts)}", 230)
+        segs.append({"start": start, "end": spoken, "text": fact})
+    out += _viral_events(segs, language)
+    if len(times) > len(facts) + 1:
+        out += _title_card(times[-1][0], total, w["follow"], w["comment"])
+    return "\n".join(out) + "\n"
+
+
+def top_ass(topic: str, items: list[dict], times: list[tuple[float, float]], total: float, language: str) -> str:
+    """items: [{"name", "why"}] 5'ten 1'e sırayla (sonuncusu birinci). Liste yukarıdan 1..n satır; her sıra
+    okunduğunda kendi satırı sarı yanar, adı yazılır ve açıklaması altta görünür."""
+    w = words(language)
+    n = len(items)
+    out = _header()
+    first = times[1][0] if len(times) > 1 else total
+    out += _title_card(0, first, w["top"], topic)
+    out.append(_ev(3, first, total, f"{{\\an8\\pos({W // 2},56)\\fs62\\b1\\c{_bgr(YELLOW)}{OUTLINE}}}{w['top']}"))
+    out.append(_ev(3, first, total, f"{{\\an8\\pos({W // 2},138)\\fs44\\b1\\c&HFFFFFF&{OUTLINE}}}{plain(topic)[:30]}"))
+    row_y = lambda rank: 240 + (rank - 1) * 118  # noqa: E731
+    for rank in range(1, n + 1):
+        y = row_y(rank)
+        out.append(_ev(0, first, total, f"{{\\an7\\pos(132,{y})\\p1\\c&HFFFFFF&\\1a&H50&}}{rrect(W - 168, 96, 24)}"))
+        out.append(_ev(1, first, total, f"{{\\an7\\pos(36,{y + 8})\\p1\\c{_bgr(VIOLET)}}}{rrect(80, 80, 40)}"))
+        out.append(_ev(2, first, total, f"{{\\an5\\pos(76,{y + 48})\\fs52\\b1\\c&HFFFFFF&}}{rank}"))
+    for i, item in enumerate(items):
+        rank = n - i
+        y = row_y(rank)
+        start, _ = times[i + 1]
+        end = times[i + 2][0] if i + 2 < len(times) else total
+        out.append(_ev(1, start, end, f"{{\\an7\\pos(132,{y})\\p1\\c{_bgr(YELLOW)}{_pop(160)}}}{rrect(W - 168, 96, 24)}"))
+        out.append(_ev(2, start, total, f"{{\\an4\\pos(158,{y + 48})\\fs46\\b1\\c&H111111&\\fad(150,0)}}"
+                                        f"{plain(item['name'])[:24]}"))
+        why = wrap(item.get("why", ""), 26)
+        if why and why != [""]:
+            wy = row_y(n) + 150
+            out.append(_ev(3, start, end, f"{{\\an8\\pos({W // 2},{wy})\\fs54\\b1\\c&HFFFFFF&{OUTLINE}\\fad(150,0)}}"
+                                          + "\\N".join(why[:3])))
+    if len(times) > n + 1:
+        out += _title_card(times[-1][0], total, w["agree"], w["comment"])
+    return "\n".join(out) + "\n"
+
+
+def verdict_ass(kind: str, items: list[dict], times: list[tuple[float, float]], total: float, language: str) -> str:
+    """kind: "dogru" (DOĞRU/YANLIŞ) ya da "bayrak" (YEŞİL/KIRMIZI BAYRAK). items: [{"text", "ok", "why"}];
+    times: açılış, her madde için (iddia, karar), kapanış. İddia kartı + geri sayım, sonra eğik damga ve gerekçe."""
+    w = words(language)
+    title, yes, no = (w["tf"], w["yes"], w["no"]) if kind == "dogru" else (w["flag"], w["green"], w["red"])
+    out = _header()
+    out += _title_card(0, times[1][0] if len(times) > 1 else total, title, "")
+    n = len(items)
+    for i, item in enumerate(items):
+        start, spoken = times[1 + 2 * i]
+        reveal = times[2 + 2 * i][0] if 2 + 2 * i < len(times) else total
+        end = times[3 + 2 * i][0] if 3 + 2 * i < len(times) else total
+        out.append(_ev(3, start, end, f"{{\\an8\\pos({W // 2},62)\\fs48\\b1\\c{_bgr(YELLOW)}{OUTLINE}}}"
+                                      f"{title} {i + 1}/{n}"))
+        lines = wrap(item["text"], 20)
+        card_h = 80 + len(lines) * 70
+        top = 250
+        out.append(_ev(0, start, end, f"{{\\an7\\pos(40,{top})\\p1\\c&HFFFFFF&\\fad(120,0)}}{rrect(W - 80, card_h, 34)}"))
+        out.append(_ev(1, start, end, f"{{\\an5\\pos({W // 2},{top + card_h / 2:.0f})\\fs60\\b1\\c&H111111&\\fad(120,0)}}"
+                                      + "\\N".join(lines)))
+        mid = top + card_h + 150
+        think = min(reveal, spoken + 0.15)
+        if reveal - think > 0.6:
+            out += _countdown(think, reveal, W // 2, mid, 96, 150)
+            out += _bar(think, reveal)
+        label, color = (yes, GREEN) if item["ok"] else (no, RED)
+        sw = max(360, len(label) * 34 + 90)
+        rot = f"\\org({W // 2},{mid})\\frz6"
+        out.append(_ev(4, reveal, end, f"{{\\an7\\pos({(W - sw) // 2},{mid - 62}){rot}\\p1\\c{_bgr(color)}{_pop(160)}}}"
+                                       f"{rrect(sw, 124, 30)}"))
+        out.append(_ev(5, reveal, end, f"{{\\an5\\pos({W // 2},{mid}){rot}\\fs64\\b1\\c&HFFFFFF&{_pop(160)}}}{label}"))
+        why = wrap(item.get("why", ""), 26)
+        if why and why != [""]:
+            out.append(_ev(5, reveal, end, f"{{\\an8\\pos({W // 2},{mid + 110})\\fs52\\b1\\c&HFFFFFF&{OUTLINE}\\fad(150,0)}}"
+                                           + "\\N".join(why[:3])))
+    if len(times) > 2 * n + 1:
+        out += _title_card(times[-1][0], total, w["agree"], w["comment"])
+    return "\n".join(out) + "\n"
+
+
 # ---------- arka plan ----------
 def _bg_source(kind: str, seconds: float) -> list[str]:
     d = f"{seconds:.2f}"
     if kind == "piksel":
         return ["-f", "lavfi", "-i", f"life=s=72x128:mold=6:r=8:ratio=0.10:death_color=#120c22:life_color=#ffb15c:"
                 f"mold_color=#5a2d82", "-t", d]
+    if kind == "karanlik":  # korku hikâyeleri için koyu, yavaş dalgalanan sis
+        return ["-f", "lavfi", "-i", f"gradients=s=240x428:c0=0x040406:c1=0x2a0610:c2=0x0a1018:c3=0x000000:n=4:"
+                f"speed=0.012:rate=24:duration={d}"]
     if kind == "pastel":
         return ["-f", "lavfi", "-i", f"gradients=s=240x428:c0=0xffb38a:c1=0x8a6dff:c2=0x4fd1c5:n=3:speed=0.02:"
                 f"rate=24:duration={d}"]
