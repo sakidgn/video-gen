@@ -33,7 +33,6 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <div class="bg-fx" aria-hidden="true"></div><div class="noise" aria-hidden="true"></div>
-{% if demo_mode %}<div class="demo-bar">{{ icon('sparkles', 14) }} {{ _('Demo sürüm: videolar örnek animasyondur, ödeme alınmaz.') }}</div>{% endif %}
 {% set other = 'tr' if lang == 'en' else 'en' %}
 {% set switch_url = '/dil/' ~ other ~ '?next=' ~ (path|urlencode) %}
 {% block body %}

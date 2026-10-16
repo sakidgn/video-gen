@@ -86,7 +86,6 @@
       </form>
       <p class="trial-err" data-trial-err hidden></p>
       <div class="trial-out" data-trial-out hidden>
-        {% if demo_mode %}<span class="tiny faint">{{ _('Demo: örnek senaryo. Gerçek sürümde yapay zekâ senin fikrine özel yazar.') }}</span>{% endif %}
         <div class="t-stage">
           {% with p=None %}{% include "_phone_player.html" %}{% endwith %}
           <div class="t-script">

@@ -16,7 +16,6 @@
     <div class="ideas tool-topics">{% for t in [_('Komik kediler'), _('Mutfak kazaları'), _('Uzay gerçekleri'), _('Günlük motivasyon'), _('Tarihten ilginç anlar'), _('Ofis hayatı')] %}<button type="button" data-ktool-pick="{{ t }}">{{ icon('sparkles', 13) }} {{ t }}</button>{% endfor %}</div>
     <p class="trial-err" data-ktool-err hidden></p>
     <div class="ktool-out" data-ktool-out hidden aria-live="polite">
-      {% if demo_mode %}<span class="tiny faint">{{ _('Demo: örnek plan. Gerçek sürümde yapay zekâ senin konuna özel yazar.') }}</span>{% endif %}
       <div class="ko-block"><small>{{ _('Kanal adı önerileri') }}</small><div class="ko-names" data-ko-names></div></div>
       <div class="ko-block"><small>{{ _('Açıklama') }}</small><p data-ko-bio></p></div>
       <div class="ko-block"><small>{{ _('Kanalın karakteri') }}</small><p class="ko-char" data-ko-char></p></div>

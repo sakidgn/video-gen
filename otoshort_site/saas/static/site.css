@@ -924,7 +924,6 @@ a.pub-t:hover{color:var(--accent)}
 .ck.zorunlu .ck-ic{color:var(--err);border-color:rgba(227,138,124,.45);background:rgba(227,138,124,.08)}
 .ck.onerilen .ck-ic{color:var(--warn);border-color:rgba(227,192,122,.4)}
 
-.demo-bar{position:relative;z-index:32;display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 16px;background:var(--accent);color:#1a1612;font-size:calc(13px * var(--fs));font-weight:600;text-align:center}
 
 /* fikir makinesi */
 .idea-sec{padding-top:20px}

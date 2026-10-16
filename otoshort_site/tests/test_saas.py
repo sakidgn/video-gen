@@ -1504,7 +1504,7 @@ def test_showcase_mode_is_safe_for_public_demo(client, monkeypatch):
     monkeypatch.setattr(config, "FAKE_AI", True)
     monkeypatch.setattr(config, "SIGNUP_BONUS", 300)
     r = client.get("/")
-    assert "demo-bar" in r.text and r.headers["x-robots-tag"].startswith("noindex")
+    assert "demo-bar" not in r.text and r.headers["x-robots-tag"].startswith("noindex")  # yazı yok, aranmaz
     assert client.get("/robots.txt").text == "User-agent: *\nDisallow: /\n"
     c = TestClient(client.app)
     r = c.post("/kayit", data={"email": "admin@x.com", "password": "sifre1234", "accept": "1", "consent": "1",
@@ -1618,7 +1618,7 @@ def test_idea_machine_carries_idea_through_signup(client, monkeypatch):
         c.get(r.headers["location"]).text)
 
 
-def test_showcase_demo_video_offers_waitlist(client, monkeypatch):
+def test_showcase_video_page_has_no_demo_note(client, monkeypatch):
     monkeypatch.setattr(config, "SHOWCASE", True)
     monkeypatch.setattr(config, "FAKE_AI", True)
     monkeypatch.setattr(config, "PRELAUNCH", True)
@@ -1631,7 +1631,7 @@ def test_showcase_demo_video_offers_waitlist(client, monkeypatch):
     with db.session() as s:
         jid = s.scalar(select(Job.id))
     page = c.get(f"/video/{jid}").text
-    assert "Bu bir demo animasyonu" in page
+    assert "Bu bir demo animasyonu" not in page  # demo yazıları kaldırıldı; bekleme listesi uç noktası çalışır
     c.post("/erken-erisim", data={"email": "d@b.com", "consent": "1", "kaynak": "demo-video", "next": f"/video/{jid}",
                                   "csrf": csrf(c, "/panel")})
     from saas.models import Waitlist
