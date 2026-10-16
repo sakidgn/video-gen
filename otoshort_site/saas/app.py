@@ -900,8 +900,17 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             awaiting = list(dict.fromkeys(s.scalars(  # onaylı kanallardan onay bekleyen videolar
                 select(Publication.job_id).where(Publication.user_id == user.id, Publication.status == "onay")
                 .order_by(Publication.job_id))))
+            from datetime import timedelta, timezone
+
+            month_ago = datetime.now(timezone.utc) - timedelta(days=30)
+            spent = -(s.scalar(select(func.coalesce(func.sum(CreditTx.amount), 0)).where(
+                CreditTx.user_id == user.id, CreditTx.amount < 0, CreditTx.created_at >= month_ago)) or 0)
+            month_videos = s.scalar(select(func.count(Job.id)).where(Job.user_id == user.id, Job.status == "hazir",
+                                                                     Job.created_at >= month_ago))
+        plan = abonelik.active_plan(user)
+        usage = {"spent": spent, "videos": month_videos, "limit": config.PLANS[plan]["credits"] if plan else 0}
         return render(request, "panel.html", user, jobs=jobs, n_channels=n_channels, notices=notices, n_videos=n_videos,
-                      has_credit_tx=has_credit_tx, awaiting=awaiting)
+                      has_credit_tx=has_credit_tx, awaiting=awaiting, usage=usage, plan_until=user.plan_until)
 
     # --- tek video ---
     @app.get("/video/yeni", response_class=HTMLResponse)

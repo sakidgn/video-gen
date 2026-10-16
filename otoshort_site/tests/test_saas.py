@@ -2330,3 +2330,22 @@ def test_yearly_subscription_monthly_refills(client, tmp_path, monkeypatch):
         assert u.plan_refills == 10
     assert balance("y@b.com") == 2 * config.PLANS["pro"]["credits"]
     assert "kalan 10 aylık kredi" in client.get("/abonelik").text
+
+
+
+def test_panel_shows_plan_usage_and_manage_account(client):
+    from saas import abonelik
+
+    signup(client, "u@b.com", plan="")
+    page = client.get("/panel").text
+    assert '<span class="hi-name">Ali</span>' in page and "Aboneliksiz · kredi ile kullanıyorsun" in page
+    with db.session() as s:
+        uid = s.scalar(select(User.id).where(User.email == "u@b.com"))
+        abonelik.activate(s, uid, "pro")
+    give("u@b.com", 0)
+    client.post("/video/yeni", data={"idea": "x", "quality": "fast", "csrf": csrf(client, "/video/yeni")})
+    page = client.get("/panel").text
+    cost = config.price("fast", config.DEFAULT_SECONDS)
+    assert f"<b>{cost}</b> / {config.PLANS['pro']['credits']}" in page and "pn-bar" in page and "glow-ring" in page
+    hesap = client.get("/hesap").text
+    assert "Hesabı yönet" in hesap and 'href="/abonelik"' in hesap and 'action="/hesap/sil"' in hesap

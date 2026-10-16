@@ -1333,3 +1333,17 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 .sub-cta{display:flex;align-items:center;gap:14px;margin-bottom:18px}
 .sub-cta div{display:grid;gap:2px;flex:1}
 .glow-ring>.tag{z-index:2}
+
+/* ============ Panel: isim vurgusu, abonelik + kullanım ============ */
+.hi-name{font-style:italic;background:linear-gradient(100deg,#ff3d8b,#ff8a00 55%,#ffd23f);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.08em}
+.plan-now{margin-bottom:18px;display:grid;gap:16px}
+.pn-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pn-usage{display:grid;gap:8px}
+.pn-bar{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.pn-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#22d3ee,#a855f7);transition:width .6s var(--ease)}
+.pn-bar.hot i{background:linear-gradient(90deg,#ff8a00,#ff3d8b)}
+.manage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.manage-grid a{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:var(--surface);transition:border-color .2s,background .2s}
+.manage-grid a:hover{border-color:var(--border-3);background:var(--surface-2)}
+.manage-grid a .ic{color:var(--accent)}
+.manage-grid span{display:grid;font-weight:700;font-size:calc(14px * var(--fs))}.manage-grid small{font-weight:500;color:var(--text-3);font-size:calc(12px * var(--fs))}

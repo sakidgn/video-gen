@@ -2,8 +2,25 @@
 {% block title %}{{ _('Panel') }} · {{ site }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div class="t"><span class="eyebrow">{{ _('Panel') }}</span><h1>{{ _('Merhaba') }}{% if user.name %}, {{ user.name }}{% endif %}</h1></div>
+  <div class="t"><span class="eyebrow">{{ _('Panel') }}</span><h1>{{ _('Merhaba') }}, <span class="hi-name">{{ user.name or user.email.split('@')[0] }}</span></h1></div>
   <div class="row"><a class="btn btn-ghost" href="/kanallar/yeni">{{ icon('repeat', 16) }} {{ _('Otomatik kanal') }}</a><a class="btn btn-accent" href="/video/yeni">{{ icon('plus', 16) }} {{ _('Yeni video') }}</a></div>
+</div>
+{# Abonelik ve bu ayki kullanım (son 30 gün) #}
+<div class="card plan-now reveal {{ 'glow-ring' if my_plan }}">
+  <div class="pn-head">
+    <span class="icon-box accent">{{ icon('crown' if my_plan else 'gem', 18) }}</span>
+    <div class="set-txt">{% if my_plan %}<b>{{ _h('<b>{plan}</b> aboneliğin açık', plan=_(plans[my_plan].label)) }}</b><small>{{ _('{date} tarihine kadar', date=plan_until|tarih) }}</small>
+      {% else %}<b>{{ _('Aboneliksiz · kredi ile kullanıyorsun') }}</b><small>{{ _('Abonelikle her ay kredi gelir ve daha güçlü yapay zekâlar açılır.') }}</small>{% endif %}</div>
+    <a class="btn btn-sm {{ 'btn-ghost' if my_plan else 'btn-primary' }}" href="/abonelik">{{ _('Aboneliği yönet') if my_plan else _('Abone ol') }}</a>
+  </div>
+  <div class="pn-usage">
+    <div class="row between"><span class="small muted">{{ _('Bu ay kullanım') }}</span>
+      <span class="small"><b>{{ usage.spent }}</b>{% if usage.limit %} / {{ usage.limit }}{% endif %} {{ _('kredi') }} · {{ _('{n} video', n=usage.videos) }}</span></div>
+    {% if usage.limit %}{% set pct = [100, (usage.spent * 100 // usage.limit)]|min %}
+    <div class="pn-bar {{ 'hot' if pct >= 85 }}"><i style="width:{{ pct }}%"></i></div>
+    <p class="tiny faint" style="margin:6px 0 0">{{ _('Aylık plan kredin: {n}. Bakiyende {b} kredi var; kalan kredi devreder.', n=usage.limit, b=user.credits) }}</p>
+    {% else %}<p class="tiny faint" style="margin:6px 0 0">{{ _('Bakiyende {b} kredi var.', b=user.credits) }}</p>{% endif %}
+  </div>
 </div>
 {% if awaiting %}<a class="card invite-cta approve-cta reveal" href="/video/{{ awaiting[0] }}" style="margin-bottom:14px"><span class="icon-box accent">{{ icon('eye', 18) }}</span><div><b>{{ _('{n} video onayını bekliyor', n=awaiting|length) }}</b><span class="small muted">{{ _('İzle; beğenirsen tek tıkla onayla, paylaşılsın.') }}</span></div>{{ icon('arrow-right', 16) }}</a>{% endif %}
 {% for ch in notices %}<div class="flash warn" style="margin-bottom:12px">{{ icon('alert', 16) }}<div><b>{{ ch.name }}:</b> {{ _db(ch.notice) }} <a href="/kredi">{{ _('Kredi yükle') }}</a></div></div>{% endfor %}

@@ -3,6 +3,17 @@
 {% block content %}
 <div class="page-head"><div class="t"><span class="eyebrow">{{ _('Hesap') }}</span><h1>{{ _('Hesabım') }}</h1></div></div>
 <div class="stack" style="gap:18px;max-width:760px">
+  <div class="card card-lg reveal manage">
+    <div class="card-head"><h3>{{ icon('settings', 18) }} {{ _('Hesabı yönet') }}</h3>
+      <span class="badge {{ 'b-ok' if my_plan else 'b-off' }}">{{ _(plans[my_plan].label) if my_plan else _('Aboneliksiz') }}</span></div>
+    <div class="manage-grid">
+      <a href="/abonelik">{{ icon('crown', 16) }}<span>{{ _('Abonelik') }}<small>{% if my_plan %}{{ _('{date} tarihine kadar', date=user.plan_until|tarih) }}{% else %}{{ _('Aylık ya da yıllık') }}{% endif %}</small></span></a>
+      <a href="/kredi">{{ icon('gem', 16) }}<span>{{ _('Kredi ve hareketler') }}<small>{{ _('{n} kredi', n=user.credits) }}</small></span></a>
+      <a href="/baglantilar">{{ icon('share', 16) }}<span>{{ _('Bağlantılar') }}<small>{{ _('YouTube, TikTok, Instagram') }}</small></span></a>
+      <a href="/davet">{{ icon('gift', 16) }}<span>{{ _('Davet et') }}<small>{{ _('Kredi kazan') }}</small></span></a>
+    </div>
+    <form method="post" action="/cikis" style="margin-top:14px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('logout', 15) }} {{ _('Çıkış yap') }}</button></form>
+  </div>
   <form class="card card-lg reveal" method="post" action="/hesap/profil">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="card-head"><h3>{{ icon('user', 18) }} {{ _('Profil') }}</h3>{% if user.google_sub %}<span class="badge b-off">{{ _('Google ile bağlı') }}</span>{% endif %}</div>
