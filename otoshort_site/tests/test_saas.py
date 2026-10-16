@@ -2130,7 +2130,7 @@ def test_viral_formats_chat_and_story_videos(client, tmp_path):
     chat, story, plain = jobs
     assert (chat.format, chat.background, chat.cost, chat.seconds) == ("sohbet", "piksel", config.FORMAT_CREDITS,
                                                                        config.FORMAT_MIN_SECONDS)
-    assert (story.format, story.background) == ("hikaye", "pastel") and plain.format == ""
+    assert (story.format, story.background) == ("hikaye", "parkur") and plain.format == ""
     assert chat.status == story.status == "hazir" and "> " in chat.prompt and "Ahmet" not in chat.title
     assert balance("a@b.com") == 100 - 2 * config.FORMAT_CREDITS - config.price("lite", 8)
     for j in (chat, story):
@@ -2293,5 +2293,5 @@ def test_horror_facts_top5_true_false_and_flag_formats(client, tmp_path):
     clean = ai.clean_format("dogru", {"items": [{"text": "a", "ok": "evet", "why": ""}, {"text": "b", "ok": True}]})
     assert [x["text"] for x in clean["items"]] == ["b"]
     home = client.get("/").text
-    assert "data-vf-marquee" in home and home.count('href="/video/yeni?format=liste"') == 2
-    assert home.count('aria-hidden="true" tabindex="-1"') >= 10  # ikinci kopya ekran okuyuculardan gizli
+    assert "data-vf-marquee" in home and home.count("/static/formatlar/secim.mp4") == 2  # 5 kart, iki kopya
+    assert home.count('aria-hidden="true" tabindex="-1"') == 5  # ikinci kopya ekran okuyuculardan gizli

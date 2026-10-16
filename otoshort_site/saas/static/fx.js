@@ -457,7 +457,7 @@
     studio.addEventListener('change', e => {
       if (e.target.name === 'background') { bgTouched = true; return; }
       if (e.target.name !== 'format' || bgTouched) return;
-      const dark = $('input[name=background][value=karanlik]', studio), soft = $('input[name=background][value=pastel]', studio);
+      const dark = $('input[name=background][value=karanlik]', studio), soft = $('input[name=background][value=parkur]', studio);
       const want = e.target.value === 'korku' ? dark : soft; if (want) want.checked = true;
     });
     // Fikir önerileri (yapay zekânın getirdikleri de dahil: olay yakalama kapsayıcıda)

@@ -44,16 +44,12 @@
     <h2>{{ _h('Tek tıkla <span class="hl">viral format.</span>') }}</h2>
     <p class="lead">{{ _('Mesajlaşma, korku, itiraf, quiz, Top 5, doğru mu yanlış mı ve daha fazlası. Konuyu sen yaz; metin, ses ve video otomatik.') }}</p></div>
 </div>
-  {# Format şeridi: kartlar sağa doğru akar (kesintisiz döngü için iki kopya; ikincisi ekran okuyuculardan gizli) #}
+  {# Format şeridi: en çok tutan 4 format + yapay zekâ videosu sürekli sağa doğru akar
+     (kesintisiz döngü için iki kopya; ikincisi ekran okuyuculardan gizli). Örnekler kendi motorumuzla üretildi. #}
   {% set vf_cards = [('sohbet', 'mail', _('Yazışmayı yapay zekâ yazar'), _('İki farklı sesle okunur')),
-                     ('korku', 'moon', _('Karanlık kart, ürpertici anlatım'), _('Gizem ve korku kanalları için')),
-                     ('secim', 'zap', _('İzleyici yoruma cevabını yazar'), _('İki seçenek, geri sayım')),
-                     ('bilgi', 'brain', _('Yalan gibi ama gerçek bilgiler'), _('Numaralı kartlar, viral altyazı')),
-                     ('quiz', 'help', _('Soru, şıklar, geri sayım, cevap'), _('Konuyu sen seç')),
-                     ('liste', 'list', _('5’ten 1’e sıralama'), _('Birinci sona saklanır')),
-                     ('dogru', 'check', _('İddia, geri sayım, damga'), _('DOĞRU mu YANLIŞ mı?')),
                      ('hikaye', 'film', _('Gönderi kartı + kelime kelime altyazı'), _('Seslendirmeli itiraf')),
-                     ('bayrak', 'flag', _('İzleyiciler yorumda tartışır'), _('Kırmızı mı yeşil mi?'))] %}
+                     ('secim', 'zap', _('İzleyici yoruma cevabını yazar'), _('İki seçenek, geri sayım')),
+                     ('quiz', 'help', _('Soru, şıklar, geri sayım, cevap'), _('Konuyu sen seç'))] %}
   <div class="vf-marquee" data-vf-marquee>
     <div class="vf-track">
     {% for copy in (0, 1) %}

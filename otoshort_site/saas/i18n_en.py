@@ -1053,6 +1053,7 @@ EN = {
     'İki seçenek, geri sayım': 'Two options, countdown',
     'İzleyiciler yorumda tartışır': 'Viewers argue in the comments',
     # Seçim ve quiz formatları
+    'Blok parkur': 'Block parkour',
     'Karanlık sis': 'Dark fog',
     'Viral formatlar: 9 hazır kalıp': 'Viral formats: 9 ready-made templates',
     "Video modeli kullanmayan, ucuz ve çok izlenen formatlar: mesajlaşmadan korkuya, quizden Top 5'e.": "Cheap, highly watched formats that don't use a video model: from text stories to horror, quizzes to Top 5.",

@@ -72,6 +72,7 @@ def words(language: str) -> dict:
 
 
 BACKGROUNDS = {  # anahtar: (etiket, ffmpeg lavfi kaynağı ya da None = kütüphanedeki video)
+    "parkur": "Blok parkur",
     "girdap": "Sonsuz girdap",
     "piksel": "Piksel evren",
     "pastel": "Yumuşak renkler",
@@ -477,6 +478,11 @@ def background_choices() -> dict[str, str]:
     return {**BACKGROUNDS, **{k: k[4:].replace("_", " ").capitalize() for k in library_backgrounds()}}
 
 
+# Siteyle gelen video arka planlar (kendi ürettiğimiz; araclar/parkur/yap.py)
+BUILTIN_VIDEOS = {"parkur": config.ROOT / "static" / "arka_planlar" / "parkur.mp4"}
+DEFAULT_BACKGROUND = "parkur"
+
+
 def render(ass_text: str, audio: Path, seconds: float, background: str, out: Path) -> Path:
     """Arka plan + çizimler (ASS) + ses → 720x1280 mp4."""
     import imageio_ffmpeg
@@ -488,8 +494,8 @@ def render(ass_text: str, audio: Path, seconds: float, background: str, out: Pat
         (tmp / "f.ass").write_text(ass_text, encoding="utf-8")
         shutil.copy(FONT, tmp / FONT.name)
         shutil.copy(audio, tmp / "ses.wav")
-        if background in lib:
-            shutil.copy(lib[background], tmp / "bg.mp4")
+        if background in lib or background in BUILTIN_VIDEOS:
+            shutil.copy(lib.get(background) or BUILTIN_VIDEOS[background], tmp / "bg.mp4")
             src = ["-stream_loop", "-1", "-i", "bg.mp4", "-t", f"{seconds:.2f}"]
         else:
             src = _bg_source(background if background in BACKGROUNDS else "girdap", seconds)

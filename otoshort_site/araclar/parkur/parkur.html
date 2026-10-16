@@ -1,0 +1,102 @@
+<!doctype html>
+<!-- Blok parkur arka planı: birinci şahıs kamerayla havada süzülen blok adalar arasında koşu ve zıplama.
+     Tamamen kendi çizimimiz (Minecraft dosyası/dokusu kullanılmaz). render(t) bir kare çizer; yol 10 sn'de bir
+     birebir tekrar eder, böylece video kesintisiz döngü olur. Kareleri yap.py çeker. -->
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c" width="360" height="640"></canvas>
+<script>
+const C = document.getElementById('c'), g = C.getContext('2d'), W = C.width, H = C.height;
+const N = 16, GAP = 3, SPEED = N * GAP / 10;  // 16 blok, aralık 3 → döngü 48 birim = 10 sn
+// tekrarlanan yol: her blok (x kayması, yükseklik)
+function rnd(i) { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
+const PATH = [...Array(N)].map((_, i) => ({ x: Math.round((rnd(i) - .5) * 2.6), y: rnd(i + 50) < .2 ? 1 : (rnd(i + 90) < .15 ? -1 : 0) }));
+PATH[0] = { x: 0, y: 0 }; PATH[N - 1].y = 0;
+// yol kenarındaki ağaçlı adacıklar (yine periyodik)
+const DECOR = [...Array(N)].map((_, i) => ({ side: rnd(i + 7) < .5 ? -1 : 1, d: 5 + Math.floor(rnd(i + 11) * 4), h: -2 - Math.floor(rnd(i + 13) * 3), tree: rnd(i + 17) < .6 }));
+const block = i => { const p = PATH[((i % N) + N) % N]; return { x: p.x, y: p.y, z: i * GAP }; };
+
+const PAL = { grass: [94, 168, 64], dirt: [134, 96, 67], stone: [128, 128, 132], log: [104, 80, 52], leaf: [58, 132, 52], sand: [218, 206, 150] };
+const shade = (c, k) => `rgb(${c.map(v => Math.max(0, Math.min(255, v * k))|0)})`;
+
+let cam = { x: 0, y: 1.6, z: 0 }, PITCH = 0.32, F = 300;
+function proj(x, y, z) {
+  x -= cam.x; y -= cam.y; z -= cam.z;
+  const cp = Math.cos(PITCH), sp = Math.sin(PITCH);
+  const y2 = y * cp + z * sp, z2 = z * cp - y * sp;  // aşağı bakış
+  return z2 < 0.08 ? null : [W / 2 + F * x / z2, H * 0.42 - F * y2 / z2, z2];
+}
+function quad(pts, color) {
+  if (pts.some(p => !p)) return;
+  g.fillStyle = color; g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+  for (const p of pts.slice(1)) g.lineTo(p[0], p[1]);
+  g.closePath(); g.fill();
+}
+// bir yüz: 4x4 piksel desenli (blok dokusu hissi)
+function face(o, u, v, base, k, seed, fog, stripe) {
+  const n = 4;
+  // önce yüzün tamamı (alt kareler arasında ince boşluk kalmasın)
+  quad([proj(...o), proj(o[0] + u[0], o[1] + u[1], o[2] + u[2]), proj(o[0] + u[0] + v[0], o[1] + u[1] + v[1], o[2] + u[2] + v[2]),
+        proj(o[0] + v[0], o[1] + v[1], o[2] + v[2])], mixFog(shade(base, k), fog));
+  for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) {
+    const P = (s, t) => proj(o[0] + u[0] * s + v[0] * t, o[1] + u[1] * s + v[1] * t, o[2] + u[2] * s + v[2] * t);
+    const s0 = a / n, s1 = (a + 1) / n, t0 = b / n, t1 = (b + 1) / n;
+    let col = base;
+    if (stripe && b >= n - 1) col = PAL.grass;  // yan yüzün üst şeridi çimen
+    const j = 0.88 + rnd(seed * 31 + a * 7 + b * 13) * 0.24;
+    const c = shade(col, k * j);
+    const q = [P(s0, t0), P(s1, t0), P(s1, t1), P(s0, t1)]; quad(q, mixFog(c, fog));
+    if (!q.some(x => !x)) { g.strokeStyle = g.fillStyle; g.lineWidth = .6; g.stroke(); }
+  }
+}
+function mixFog(rgb, f) {
+  if (f <= 0) return rgb;
+  const m = rgb.match(/\d+/g).map(Number), sky = [170, 205, 245];
+  return `rgb(${m.map((v, i) => (v + (sky[i] - v) * f) | 0)})`;
+}
+function cube(x, y, z, kind, seed) {
+  const dist = Math.hypot(x + .5 - cam.x, z + .5 - cam.z), fog = Math.max(0, Math.min(.85, (dist - 14) / 30));
+  const top = kind === 'grass' ? PAL.grass : kind === 'log' ? PAL.log : PAL[kind];
+  const side = kind === 'grass' ? PAL.dirt : PAL[kind];
+  const stripe = kind === 'grass';
+  if (cam.z < z) face([x, y, z], [1, 0, 0], [0, 1, 0], side, .82, seed + 1, fog, stripe);              // ön
+  if (cam.x < x) face([x, y, z + 1], [0, 0, -1], [0, 1, 0], side, .66, seed + 2, fog, stripe);         // sol
+  if (cam.x > x + 1) face([x + 1, y, z], [0, 0, 1], [0, 1, 0], side, .66, seed + 3, fog, stripe);      // sağ
+  if (cam.y > y + 1) face([x, y + 1, z], [1, 0, 0], [0, 0, 1], top, 1.0, seed + 4, fog, false);        // üst
+}
+function render(t) {
+  const p = (t * SPEED) % (N * GAP), i = Math.floor(p / GAP), f = (p - i * GAP) / GAP;
+  const a = block(i), b = block(i + 1);
+  const e = f * f * (3 - 2 * f);
+  cam.x = a.x + .5 + (b.x - a.x) * e;
+  cam.z = p - 1.2;
+  const base = a.y + (b.y - a.y) * e;
+  cam.y = 1 + base + 1.55 + Math.sin(Math.PI * f) * 1.15;  // zıplama yayı
+  // gökyüzü ve uzakta su
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#5f9fe8'); sky.addColorStop(.32, '#a9cdf5'); sky.addColorStop(.33, '#7fb0d8'); sky.addColorStop(1, '#2d5f8f');
+  g.fillStyle = sky; g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,248,214,.95)'; g.fillRect(W * .72, H * .06, 38, 38);  // kare güneş
+  // bulutlar (sabit: video kesintisiz döngü olsun)
+  g.fillStyle = 'rgba(255,255,255,.85)';
+  for (let k = 0; k < 5; k++) { const cx = (k * 97 + 40) % (W + 60) - 40; g.fillRect(cx, 30 + k * 26, 70 + k * 9, 14); g.fillRect(cx + 14, 22 + k * 26, 36, 10); }
+  const items = [];
+  for (let k = i - 2; k < i + 18; k++) {
+    const B = block(k);
+    items.push([B.x, B.y, B.z, 'grass', k]);
+    if ((((k % N) + N) % N) % 5 === 2) items.push([B.x, B.y - 1, B.z, 'dirt', k + 500]);
+    const D = DECOR[((k % N) + N) % N], dx = B.x + D.side * D.d;
+    items.push([dx, D.h, B.z + 1, 'grass', k + 900], [dx + D.side, D.h, B.z + 1, 'grass', k + 901], [dx, D.h - 1, B.z + 1, 'stone', k + 902]);
+    if (D.tree) {
+      for (let h = 1; h <= 3; h++) items.push([dx, D.h + h, B.z + 1, 'log', k + 910 + h]);
+      for (const [lx, ly, lz] of [[0, 4, 0], [-1, 3, 0], [1, 3, 0], [0, 3, -1], [0, 3, 1], [0, 5, 0]]) items.push([dx + lx, D.h + ly, B.z + 1 + lz, 'leaf', k + 930 + lx * 3 + lz]);
+    }
+  }
+  items.sort((u, v) => Math.hypot(v[0] + .5 - cam.x, v[1] - cam.y, v[2] + .5 - cam.z) - Math.hypot(u[0] + .5 - cam.x, u[1] - cam.y, u[2] + .5 - cam.z));
+  for (const [x, y, z, kind, s] of items) cube(x, y, z, kind, s);
+  // hafif kenar karartma
+  const vg = g.createRadialGradient(W / 2, H / 2, H * .25, W / 2, H / 2, H * .75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.35)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+}
+render(0);
+</script></body></html>

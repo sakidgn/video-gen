@@ -1162,16 +1162,18 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 .bg-piksel{background:#120c22 repeating-conic-gradient(#ffb15c 0 7%,transparent 7% 25%,#5a2d82 25% 30%,transparent 30% 50%) 0 0/12px 12px;image-rendering:pixelated}
 .bg-pastel{background:linear-gradient(135deg,#ffb38a,#8a6dff 55%,#4fd1c5)}
 .bg-lib{background:linear-gradient(135deg,#2a221a,#14110d)}
+.bg-parkur{background:#7fb0d8 url(arka_planlar/parkur.jpg) center/cover}
 .bg-karanlik{background:radial-gradient(70% 60% at 30% 30%,#3a0a14,transparent 70%),radial-gradient(60% 60% at 80% 80%,#121a26,transparent 70%),#050507}
 @keyframes bgspin{to{filter:hue-rotate(360deg)}}
 
 /* viral format vitrini: dikey video kartları */
 .vf-sec{padding-top:clamp(50px,6vw,90px)}
 .vf-marquee{position:relative;overflow:hidden;padding:10px 0 30px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
-.vf-track{display:flex;gap:18px;width:max-content;animation:vfflow 70s linear infinite}
+.vf-track{display:flex;gap:22px;width:max-content;animation:vfflow 45s linear infinite}
 .vf-marquee:hover .vf-track,.vf-marquee:focus-within .vf-track{animation-play-state:paused}
-@keyframes vfflow{from{transform:translateX(calc(-50% - 9px))}to{transform:translateX(0)}}
-.vf-track .vf-card{flex:none;width:clamp(170px,17vw,230px)}
+@keyframes vfflow{from{transform:translateX(calc(-50% - 11px))}to{transform:translateX(0)}}
+.vf-track .vf-card{flex:none;width:clamp(230px,23vw,330px)}
+@media(max-width:640px){.vf-track .vf-card{width:64vw}}
 @media(prefers-reduced-motion:reduce){.vf-marquee{overflow-x:auto}.vf-track{animation:none}}
 .vf-card{position:relative;display:block;aspect-ratio:9/16;border-radius:26px;overflow:hidden;border:1px solid var(--border-2);background:#0f0d0b;box-shadow:0 40px 80px -40px rgba(0,0,0,.9);transition:transform .5s var(--spring,var(--ease)),border-color .25s}
 .vf-card:hover{transform:translateY(-6px);border-color:rgba(216,185,138,.45)}

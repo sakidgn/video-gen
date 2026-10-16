@@ -82,7 +82,7 @@ def create_job(s, user_id: int, *, idea: str, characters: str, style: str, langu
     format = format if format in formatlar.FORMATS else ""
     if format:  # viral format: video modeli yok, sabit fiyat, abonelik gerekmez
         seconds = max(config.FORMAT_MIN_SECONDS, config.clamp_seconds(seconds))
-        background = background if background in formatlar.background_choices() else "pastel"
+        background = background if background in formatlar.background_choices() else formatlar.DEFAULT_BACKGROUND
         cost = config.FORMAT_CREDITS
     else:
         abonelik.check(s, user_id, quality)  # bu yapay zekâ kullanıcının aboneliğinde yoksa PlanRequired

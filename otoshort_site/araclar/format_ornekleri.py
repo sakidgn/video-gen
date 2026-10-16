@@ -1,5 +1,5 @@
 """Ana sayfadaki "Viral formatlar" kartlarının örnek videolarını üretir (sitenin kendi format motoruyla):
-mesajlaşma, itiraf, korku, seçim, quiz, bilgi, Top 5, doğru/yanlış ve kırmızı bayrak.
+mesajlaşma, itiraf, "Hangisini seçerdin?" ve "Bil bakalım"; arkada kendi ürettiğimiz blok parkur oynar.
 Ses yok (kartlar sessiz oynar); süreler kelime sayısına göre. Çıktı: saas/static/formatlar/{ad}[-en].mp4 + .jpg
 
     python araclar/format_ornekleri.py
@@ -58,41 +58,6 @@ QUIZ = {
 }
 
 
-KORKU = {
-    "tr": ("Korku hikâyeleri", ["Her gece saat 3'te kapım çalınıyordu ama dışarıda kimse olmuyordu",
-                                "İlk hafta komşu çocuklarının şakası sandım.", "Sonra kapıya bir kamera taktım.",
-                                "Kayıtta kapı çalındığında koridor bomboştu.", "Ama kapının altından bir gölge geçiyordu."]),
-    "en": ("Scary stories", ["Every night at 3 am someone knocked on my door, but nobody was ever there",
-                             "At first I thought it was the neighbor's kids.", "Then I put a camera on the door.",
-                             "When the knock came, the hallway was empty.", "But a shadow slid under the door."]),
-}
-BILGI = {
-    "tr": ["Ahtapotların üç kalbi vardır.", "Bal, doğru saklanırsa binlerce yıl bozulmadan kalabilir.",
-           "Muz botanik olarak üzümsü bir meyvedir, çilek ise değildir."],
-    "en": ["Octopuses have three hearts.", "Honey can stay edible for thousands of years if stored well.",
-           "Botanically, bananas are berries but strawberries are not."],
-}
-LISTE = {
-    "tr": ("Türk lezzetleri", [("Simit", "Her köşede, her saatte"), ("Lahmacun", "Limonla bambaşka"),
-                               ("Mantı", "Yoğurt ve sarımsak ikilisi"), ("Döner", "Gece 2'nin kurtarıcısı"),
-                               ("Baklava", "Tartışmasız şampiyon")]),
-    "en": ("Snacks", [("Pretzels", "Salty and simple"), ("Popcorn", "Movie night classic"),
-                      ("Nachos", "Cheese makes it"), ("Fries", "Never a bad idea"), ("Chocolate", "Undisputed champion")]),
-}
-DOGRU = {
-    "tr": [("Bir yılda 52 hafta vardır.", True, "52 hafta artı bir iki gün."),
-           ("Ay kendi ışığını üretir.", False, "Ay, Güneş'in ışığını yansıtır.")],
-    "en": [("A year has 52 weeks.", True, "52 weeks plus a day or two."),
-           ("The Moon makes its own light.", False, "It reflects sunlight.")],
-}
-BAYRAK = {
-    "tr": [("Garsona kibar davranıyor", True, "İnsanlara nasıl davrandığı her şeyi anlatır."),
-           ("Şifreni soruyor", False, "Güven sormakla değil, saygıyla olur.")],
-    "en": [("Is kind to the waiter", True, "How they treat people says it all."),
-           ("Asks for your passwords", False, "Trust comes from respect, not checking.")],
-}
-
-
 def silent_clips(texts: list[str], tmp: Path) -> list[Path]:
     import imageio_ffmpeg
 
@@ -128,21 +93,21 @@ def main() -> None:
             messages = [{"me": me, "text": t} for me, t in msgs]
             times = F.join_audio(silent_clips([m["text"] for m in messages], tmp), 0.3, 0.5, 1.2, tmp / "a.wav")
             total = times[-1][1] + 1.2
-            F.render(F.chat_ass(messages, times, contact, total), tmp / "a.wav", total, "pastel", tmp / "chat.mp4")
+            F.render(F.chat_ass(messages, times, contact, total), tmp / "a.wav", total, "parkur", tmp / "chat.mp4")
             web(tmp / "chat.mp4", f"sohbet{suffix}", poster_at=total - 1.5)  # kapakta dolu sohbet
             community, sents = STORY[lang]
             times = F.join_audio(silent_clips(sents, tmp), 0.2, 0.3, 1.0, tmp / "b.wav")
             total = times[-1][1] + 1.0
-            F.render(F.story_ass(sents[0], community, sents, times, total, lang), tmp / "b.wav", total, "piksel",
+            F.render(F.story_ass(sents[0], community, sents, times, total, lang), tmp / "b.wav", total, "parkur",
                      tmp / "story.mp4")
-            web(tmp / "story.mp4", f"hikaye{suffix}", fps=16, crf=32)  # piksel desen saniyede 8 kare değişir
+            web(tmp / "story.mp4", f"hikaye{suffix}", crf=32)  # piksel desen saniyede 8 kare değişir
             w = F.words(lang)
             rounds = [{"a": a, "b": b} for a, b in SECIM[lang]]
             texts = [w["wyr_say"], *(f"{r['a']}, {w['or_word']} {r['b']}?" for r in rounds), w["pick"]]
             gaps = [0.4] + [F.THINK] * len(rounds) + [0.0]
             times = F.join_audio(silent_clips(texts, tmp), gaps, 0.4, 1.2, tmp / "c.wav")
             total = times[-1][1] + 1.2
-            F.render(F.wyr_ass(rounds, times, total, lang), tmp / "c.wav", total, "pastel", tmp / "wyr.mp4")
+            F.render(F.wyr_ass(rounds, times, total, lang), tmp / "c.wav", total, "parkur", tmp / "wyr.mp4")
             web(tmp / "wyr.mp4", f"secim{suffix}", poster_at=times[1][1] + 1.6)  # kapakta geri sayım
             topic, qs = QUIZ[lang]
             questions = [{"q": q, "options": o, "answer": a} for q, o, a in qs]
@@ -154,39 +119,8 @@ def main() -> None:
             gaps.append(0.0)
             times = F.join_audio(silent_clips(texts, tmp), gaps, 0.4, 1.2, tmp / "d.wav")
             total = times[-1][1] + 1.2
-            F.render(F.quiz_ass(topic, questions, times, total, lang), tmp / "d.wav", total, "piksel", tmp / "quiz.mp4")
-            web(tmp / "quiz.mp4", f"quiz{suffix}", fps=16, crf=32, poster_at=times[2][0] + 0.8)  # kapakta doğru cevap
-            community, sents = KORKU[lang]
-            times = F.join_audio(silent_clips(sents, tmp), 0.2, 0.3, 1.0, tmp / "e.wav")
-            total = times[-1][1] + 1.0
-            F.render(F.story_ass(sents[0], community, sents, times, total, lang, dark=True), tmp / "e.wav", total,
-                     "karanlik", tmp / "korku.mp4")
-            web(tmp / "korku.mp4", f"korku{suffix}", fps=20, crf=32)
-            facts = BILGI[lang]
-            times = F.join_audio(silent_clips([w["facts_say"], *facts, w["follow"]], tmp),
-                                 [0.4] + [0.6] * len(facts) + [0.0], 0.4, 1.2, tmp / "f.wav")
-            total = times[-1][1] + 1.2
-            F.render(F.facts_ass(facts, times, total, lang), tmp / "f.wav", total, "pastel", tmp / "bilgi.mp4")
-            web(tmp / "bilgi.mp4", f"bilgi{suffix}", poster_at=times[1][0] + 1.0)
-            topic, pairs = LISTE[lang]
-            items = [{"name": a, "why": b} for a, b in pairs]
-            times = F.join_audio(silent_clips([topic, *(f"{x['name']} {x['why']}" for x in items), w["agree"]], tmp),
-                                 [0.4] + [0.5] * len(items) + [0.0], 0.4, 1.2, tmp / "g.wav")
-            total = times[-1][1] + 1.2
-            F.render(F.top_ass(topic, items, times, total, lang), tmp / "g.wav", total, "pastel", tmp / "liste.mp4")
-            web(tmp / "liste.mp4", f"liste{suffix}", poster_at=times[4][0] + 0.6)
-            for kind, rows in (("dogru", DOGRU[lang]), ("bayrak", BAYRAK[lang])):
-                items = [{"text": t, "ok": o, "why": y} for t, o, y in rows]
-                texts, gaps = [w["tf_say"]], [0.4]
-                for x in items:
-                    texts += [x["text"], x["why"]]
-                    gaps += [F.THINK, 0.9]
-                times = F.join_audio(silent_clips([*texts, w["agree"]], tmp), gaps + [0.0], 0.4, 1.2, tmp / "h.wav")
-                total = times[-1][1] + 1.2
-                F.render(F.verdict_ass(kind, items, times, total, lang), tmp / "h.wav", total,
-                         "pastel" if kind == "dogru" else "piksel", tmp / f"{kind}.mp4")
-                web(tmp / f"{kind}.mp4", f"{kind}{suffix}", fps=24 if kind == "dogru" else 16, crf=32,
-                    poster_at=times[4][0] + 0.8)  # kapakta ikinci maddenin damgası
+            F.render(F.quiz_ass(topic, questions, times, total, lang), tmp / "d.wav", total, "parkur", tmp / "quiz.mp4")
+            web(tmp / "quiz.mp4", f"quiz{suffix}", crf=32, poster_at=times[2][0] + 0.8)  # kapakta doğru cevap
     for p in sorted(OUT.iterdir()):
         print(f"{p.name:20s} {p.stat().st_size // 1024} KB")
 
