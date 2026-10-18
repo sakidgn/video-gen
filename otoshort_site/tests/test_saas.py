@@ -2473,3 +2473,18 @@ def test_free_hook_and_title_tools(client):
     assert 'href="/araclar"' in client.get("/panel").text
     hub = client.get("/araclar").text  # girişliyken de panel değil, site görünümü
     assert "side-link" not in hub and 'id="nav"' in hub
+
+
+def test_ai_video_can_be_switched_off(client, monkeypatch):
+    monkeypatch.setattr(config, "VIDEO_OFF", True)
+    signup(client, "a@b.com")
+    give("a@b.com", 500)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni").text
+    assert re.search(r'name="format" value=""[^>]*disabled', page) and re.search(r'value="quiz"[^>]*checked', page)
+    r = client.post("/video/yeni", data={"idea": "x", "quality": "lite", "csrf": t}, follow_redirects=False)
+    assert r.headers["location"].startswith("/video/yeni?format=")
+    r = client.post("/video/yeni", data={"idea": "Uzay", "format": "quiz", "csrf": t}, follow_redirects=False)
+    assert r.headers["location"].startswith("/video/")
+    with db.session() as s:
+        assert [j.format for j in s.scalars(select(Job))] == ["quiz"] and balance("a@b.com") == 500 - config.FORMAT_CREDITS

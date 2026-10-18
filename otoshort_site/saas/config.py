@@ -50,6 +50,7 @@ LOYALTY_EVERY = int(_env("SADAKAT_ESIK", "400") or 0)
 # e-posta doğrulaması atlanır; arama motorlarına kapalıdır.
 SHOWCASE = _env("VITRIN_MODU") == "1"
 FAKE_AI = _env("SAHTE_AI") == "1" or SHOWCASE  # geliştirme/test: API'ye gitmeden sahte video üretir
+VIDEO_OFF = _env("YZ_VIDEO_KAPALI") == "1"  # ücretli video modeli yokken: yalnızca viral formatlar açık
 PRELAUNCH = SHOWCASE or _env("ERKEN_ERISIM") == "1"
 TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-lite-latest")  # hızlı ve ücretsiz katmanda
 TTS_MODEL = _env("SES_MODELI", "gemini-2.5-flash-preview-tts")  # viral formatların seslendirmesi

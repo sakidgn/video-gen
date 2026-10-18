@@ -21,6 +21,13 @@ class PlanRequired(Exception):
         super().__init__(quality)
 
 
+class VideoOff(PlanRequired):
+    """Yapay zekâ videosu bu sitede kapalı (YZ_VIDEO_KAPALI=1): yalnızca viral formatlar üretilir."""
+
+    def __init__(self):
+        super().__init__("lite")
+
+
 def _aware(dt: datetime | None) -> datetime | None:
     return dt.replace(tzinfo=timezone.utc) if dt and dt.tzinfo is None else dt
 

@@ -86,6 +86,8 @@ def create_job(s, user_id: int, *, idea: str, characters: str, style: str, langu
         background = background if background in formatlar.background_choices() else formatlar.DEFAULT_BACKGROUND
         cost = config.FORMAT_CREDITS
     else:
+        if config.VIDEO_OFF:
+            raise abonelik.VideoOff()
         abonelik.check(s, user_id, quality)  # bu yapay zekâ kullanıcının aboneliğinde yoksa PlanRequired
         seconds = config.clamp_seconds(seconds)
         cost = config.price(quality, seconds)

@@ -248,7 +248,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
                                                          base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
         my_plan=abonelik.active_plan(user) if user else "",
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
-        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), sub_styles=media.SUB_STYLE_LABELS,
+        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF,
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
         theme=current_theme(request), themes=config.THEMES,
         yearly_save=config.YEARLY_SAVE_PCT,
@@ -1186,6 +1186,9 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
         return go(f"/video/{new_id}")
 
     def _plan_needed(request: Request, e: "abonelik.PlanRequired"):
+        if isinstance(e, abonelik.VideoOff):
+            flash(request, "Yapay zekâ videosu şu an kapalı. Viral formatlardan birini seç.", "warn")
+            return go("/video/yeni?format=quiz")
         flash(request, "{quality} yapay zekâsı {plan} aboneliğinde. Aboneliğini seçip havaleni bildirince açılır.",
               "warn", quality=i18n.t(config.QUALITIES[e.quality]["label"]), plan=i18n.t(config.PLANS[e.plan]["label"]))
         return go("/abonelik")
@@ -1620,6 +1623,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             return blocked
         form = await request.form()
         data = _channel_from_form(form)
+        if not data["format"] and config.VIDEO_OFF:
+            return _plan_needed(request, abonelik.VideoOff())
         if not data["format"] and data["quality"] not in abonelik.allowed(user):
             return _plan_needed(request, abonelik.PlanRequired(data["quality"]))
         ref_image = await read_reference(request, form.get("ref"), user.id)
@@ -1653,6 +1658,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     async def channel_edit(request: Request, cid: int, user: User = Depends(require_user)):
         form = await request.form()
         data = _channel_from_form(form)
+        if not data["format"] and config.VIDEO_OFF:
+            return _plan_needed(request, abonelik.VideoOff())
         if not data["format"] and data["quality"] not in abonelik.allowed(user):
             return _plan_needed(request, abonelik.PlanRequired(data["quality"]))
         with db.session() as s:

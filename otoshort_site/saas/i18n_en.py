@@ -1336,6 +1336,7 @@ EN = {
     'Evet. Ana sayfadaki senaryo denemesi, Kanal Kurucu, Kanca Üretici ve Başlık ve Hashtag Üretici kayıt istemez. Video üretmek için ücretsiz hesap açman yeterli.': 'Yes. The script demo on the home page, Channel Builder, Hook Generator and Title & Hashtag Generator need no sign-up. To make videos, just create a free account.',
     'Viral formatlarda ses seçebilir miyim?': 'Can I choose the voice in viral formats?',
     'Evet. Quiz, hikâye, korku, Top 5 gibi formatlarda anlatıcıyı otomatik, kadın ya da erkek seçebilirsin. Mesajlaşma formatında iki farklı ses otomatik atanır.': 'Yes. In formats like quiz, story, horror and Top 5 you can pick an automatic, female or male narrator. The chat format gets two different voices automatically.',
+    'Yapay zekâ videosu şu an kapalı. Viral formatlardan birini seç.': 'AI video is off right now. Pick one of the viral formats.',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)
