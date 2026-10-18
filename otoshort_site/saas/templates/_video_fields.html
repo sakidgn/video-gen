@@ -101,13 +101,16 @@
 {% set want_voice = ch.voice if ch and ch.voice is defined else '' %}
 <div class="only-format">
 <div class="step-title"><span class="n"></span><h3>{{ _('Anlatıcı sesi') }}</h3></div>
-<div class="seg voice-pick">
-{% for k, label, ic in [('', _('Otomatik'), 'sparkles'), ('female', _('Kadın'), 'user'), ('male', _('Erkek'), 'user')] %}
-  <label class="opt"><input type="radio" name="voice" value="{{ k }}" {% if want_voice == k %}checked{% endif %}>
-    <span class="opt-body"><span class="icon-box">{{ icon(ic, 15) }}</span><span class="opt-title">{{ label }}</span></span></label>
-{% endfor %}
+<div class="voice-pick" data-voice-pick data-err="{{ _('Ses örneği şu an hazırlanamadı, biraz sonra tekrar dene.') }}">
+  <label class="opt vp-auto"><input type="radio" name="voice" value="" {% if want_voice in ('', 'female', 'male') %}checked{% endif %}>
+    <span class="opt-body"><span class="icon-box">{{ icon('sparkles', 15) }}</span><span class="opt-title">{{ _('Otomatik') }}</span><span class="opt-sub">{{ _('konuya göre seçilir') }}</span></span></label>
+  {% for name, (gender, desc) in voice_list.items() %}
+  <label class="opt"><input type="radio" name="voice" value="{{ name }}" {% if want_voice == name %}checked{% endif %}>
+    <span class="opt-body"><button type="button" class="vp-play" data-voice-play="/ses-ornek/{{ name }}" aria-label="{{ _('{v} sesini dinle', v=_(desc)) }}">{{ icon('play', 13) }}</button>
+      <span class="opt-title">{{ _(desc) }}</span><span class="opt-sub">{{ _('Kadın') if gender == 'female' else _('Erkek') }}</span></span></label>
+  {% endfor %}
 </div>
-<p class="hint" style="margin-top:8px">{{ _('Mesajlaşma formatında iki farklı ses otomatik seçilir.') }}</p>
+<p class="hint" style="margin-top:8px">{{ _('Mesajlaşmada seçtiğin ses “ben” olur, karşı tarafın sesi otomatik seçilir. ▶ ile dinleyebilirsin.') }}</p>
 </div>
 <div class="extras">
   <label class="toggle-row only-video">

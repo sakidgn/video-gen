@@ -469,6 +469,25 @@ def clean_format(kind: str, data: dict) -> dict:
 
 
 VOICES = {"female": ("Kore", "Leda"), "male": ("Puck", "Charon")}  # Gemini hazır sesleri
+# Kullanıcının seçebildiği sesler: Gemini hazır ses adı → (cinsiyet, tarif). Sitede tarif gösterilir.
+VOICE_LIST = {
+    "Kore": ("female", "Kararlı"), "Leda": ("female", "Genç"), "Zephyr": ("female", "Parlak"),
+    "Aoede": ("female", "Ferah"), "Achernar": ("female", "Yumuşak"), "Sulafat": ("female", "Sıcak"),
+    "Gacrux": ("female", "Olgun"),
+    "Puck": ("male", "Neşeli"), "Charon": ("male", "Anlatıcı"), "Fenrir": ("male", "Heyecanlı"),
+    "Enceladus": ("male", "Fısıltılı"), "Algenib": ("male", "Kalın"), "Achird": ("male", "Samimi"),
+    "Iapetus": ("male", "Net"),
+}
+
+
+def valid_voice(v: str) -> bool:
+    """Formlardan gelen ses seçimi: "" otomatik, "female"/"male" ya da VOICE_LIST'teki bir ses."""
+    return v in VOICES or v in VOICE_LIST
+
+
+def voice_name(choice: str, gender: str) -> str:
+    """Seçilen ses adı; seçim yoksa ya da yalnızca cinsiyetse o cinsiyetin varsayılan sesi."""
+    return choice if choice in VOICE_LIST else VOICES[choice if choice in VOICES else gender][0]
 
 
 IDEA_POOL = [
@@ -888,7 +907,7 @@ class FakeAI:
     def speak(self, *, text: str, voice: str, out: Path) -> Path:
         from .formatlar import fake_voice
 
-        return fake_voice(text, out, 0 if voice in VOICES["female"] else 1)
+        return fake_voice(text, out, 0 if VOICE_LIST.get(voice, ("female",))[0] == "female" else 1)
 
     def channel_plan(self, *, topic: str, language: str) -> dict:
         """Sahte mod: konudan kalıp kanal planı (demo)."""

@@ -87,6 +87,27 @@
     history.replaceState(null, '', a.hash);
   });
 
+  // Ses örnekleri: ▶ ile seçilebilen sesi dinle (ilk seferde üretilir, sonra hazırdan çalar)
+  let vpAudio = null, vpBtn = null;
+  document.addEventListener('click', async e => {
+    const b = e.target.closest && e.target.closest('[data-voice-play]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    if (vpAudio) { vpAudio.pause(); vpBtn && vpBtn.classList.remove('playing'); }
+    if (vpBtn === b && vpAudio) { vpAudio = vpBtn = null; return; }
+    const box = b.closest('[data-voice-pick]'), old = box && box.querySelector('.vp-err'); if (old) old.remove();
+    b.classList.add('is-loading');
+    try {
+      const r = await fetch(b.dataset.voicePlay);
+      if (!r.ok) { let m = box ? box.dataset.err : ''; try { m = (await r.json()).error || m; } catch (x) {} throw new Error(m); }
+      vpAudio = new Audio(URL.createObjectURL(await r.blob())); vpBtn = b;
+      vpAudio.addEventListener('ended', () => { b.classList.remove('playing'); vpAudio = vpBtn = null; });
+      await vpAudio.play(); b.classList.add('playing');
+    } catch (x) {
+      if (box && x.message) { const p = document.createElement('p'); p.className = 'vp-err'; p.textContent = x.message; box.appendChild(p); }
+    }
+    b.classList.remove('is-loading');
+  });
+
   // Hızlı geçiş: bağlantının üstüne gelince / dokununca sayfa önceden indirilir, tıklayınca anında açılır
   const fetched = new Set([location.pathname + location.search]);
   const skip = /^\/(en\/)?(cikis|tema\/|dil\/|s\/|d\/|e\/|dogrula\/|auth\/|baglan\/|yayin\/|admin|api\/|kesfet\/\d)|\/(dosya|altyazi\.srt|kapak|durum|video)$|[?&]indir=/;

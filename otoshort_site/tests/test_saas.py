@@ -2406,7 +2406,7 @@ def test_caption_styles_opening_hook_progress_bar_and_srt(client, tmp_path):
     for k in ("viral", "kutu", "neon", "tek", "klasik", "sade"):
         assert f'name="subtitle_style" value="{k}"' in page
     assert re.search(r'name="hook" value="1"\s+checked', page) and 'name="progress" value="1"' in page
-    assert 'name="voice" value="male"' in page
+    assert 'name="voice" value="Puck"' in page
     client.post("/video/yeni", data={"idea": "x", "quality": "lite", "subtitles": "1", "subtitle_style": "kutu",
                                      "hook": "1", "progress": "1", "voice": "male", "csrf": t})
     client.post("/video/yeni", data={"idea": "y", "quality": "lite", "hook": "1", "csrf": t})  # altyazısız, kancalı
@@ -2560,3 +2560,33 @@ def test_library_background_becomes_default(client, tmp_path, monkeypatch):
     assert re.search(r'name="background" value="lib:minecraft_parkur"\s+checked', page) and "Minecraft parkur" in page
     monkeypatch.setenv("VARSAYILAN_ARKA_PLAN", "girdap")
     assert formatlar.default_background() == "girdap"
+
+
+def test_named_voices_and_voice_samples(client, tmp_path):
+    class Spy(ai.FakeAI):
+        voices = []
+
+        def speak(self, *, text, voice, out):
+            Spy.voices.append(voice)
+            return super().speak(text=text, voice=voice, out=out)
+
+    client.app.state.generator = Spy()
+    signup(client, "a@b.com", plan="")
+    give("a@b.com", 100)
+    t = csrf(client, "/video/yeni")
+    page = client.get("/video/yeni?format=korku").text
+    assert 'name="voice" value="Enceladus"' in page and "Fısıltılı" in page and 'data-voice-play="/ses-ornek/Enceladus"' in page
+    r = client.get("/ses-ornek/Enceladus")
+    assert r.status_code == 200 and r.headers["content-type"] == "audio/wav"
+    client.get("/ses-ornek/Enceladus")  # ikinci seferde hazırdan gelir, yeniden üretilmez
+    assert Spy.voices == ["Enceladus"] and client.get("/ses-ornek/Yok").status_code == 404
+    client.post("/video/yeni", data={"idea": "Uzay", "format": "korku", "voice": "Enceladus", "csrf": t})
+    client.post("/video/yeni", data={"idea": "x", "format": "sohbet", "voice": "Fenrir", "csrf": t})
+    client.post("/video/yeni", data={"idea": "y", "format": "quiz", "voice": "<script>", "csrf": t})
+    Spy.voices.clear()
+    run_queue(Spy())
+    with db.session() as s:
+        jobs = s.scalars(select(Job).order_by(Job.id)).all()
+    assert [j.voice for j in jobs] == ["Enceladus", "Fenrir", ""] and all(j.status == "hazir" for j in jobs)
+    assert Spy.voices[0] == "Enceladus" and "Fenrir" in Spy.voices[1:3] and len(set(Spy.voices[1:3])) == 2
+    assert "Fısıltılı ses" in client.get(f"/video/{jobs[0].id}").text

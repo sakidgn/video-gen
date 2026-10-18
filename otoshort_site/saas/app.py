@@ -248,7 +248,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
                                                          base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
         my_plan=abonelik.active_plan(user) if user else "",
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
-        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), default_bg=formatlar.default_background(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF,
+        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), default_bg=formatlar.default_background(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF, voice_list=ai_mod.VOICE_LIST,
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
         theme=current_theme(request), themes=config.THEMES,
         yearly_save=config.YEARLY_SAVE_PCT,
@@ -1419,6 +1419,31 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             raise HTTPException(404)
         return FileResponse(path, media_type="application/x-subrip", filename=f"video-{job.id}.srt")
 
+    voice_sample_limiter = RateLimiter(limit=20, window=600)
+
+    @app.get("/ses-ornek/{name}")
+    def voice_sample(request: Request, name: str, user: User = Depends(require_user)):
+        """Seçilebilen sesin kısa örneği. Bir kez üretilip saklanır (seslendirme hakkı boşa gitmesin)."""
+        if name not in ai_mod.VOICE_LIST:
+            raise HTTPException(404)
+        lang = "en" if i18n.current() == "en" else "tr"
+        folder = config.DATA_DIR / "ses_ornekleri"
+        path = folder / f"{name}-{lang}.wav"
+        if not path.exists():
+            if not voice_sample_limiter.allow(f"v:{user.id}"):
+                return JSONResponse({"error": i18n.t("Çok fazla deneme, birkaç dakika sonra tekrar dene.")}, status_code=429)
+            folder.mkdir(parents=True, exist_ok=True)
+            text = ("Hi! I can narrate your next video. Ready when you are." if lang == "en" else
+                    "Selam! Bir sonraki videonu ben seslendirebilirim. Hazırsan başlayalım.")
+            try:
+                _generator(request).speak(text=text, voice=name, out=path)
+            except Exception:
+                log.exception("Ses örneği üretilemedi")
+                path.unlink(missing_ok=True)
+                return JSONResponse({"error": i18n.t("Ses örneği şu an hazırlanamadı, biraz sonra tekrar dene.")},
+                                    status_code=503)
+        return FileResponse(path, media_type="audio/wav", headers={"Cache-Control": "private, max-age=86400"})
+
     @app.get("/video/{job_id}/kapak")
     def job_poster(job_id: int, user: User = Depends(require_user)):
         with db.session() as s:
@@ -1585,7 +1610,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             publish_to=" ".join(p for p in social.PLATFORMS if form.get(f"pub_{p}")),
             approval=form.get("approval") == "1",
             hook=bool(form.get("hook")) and not form.get("format"), progress=bool(form.get("progress")),
-            voice=str(form.get("voice", "")) if form.get("format") and form.get("voice") in ai_mod.VOICES else "",
+            voice=str(form.get("voice", "")) if form.get("format") and ai_mod.valid_voice(str(form.get("voice", ""))) else "",
         )
 
     @app.get("/kanallar", response_class=HTMLResponse)

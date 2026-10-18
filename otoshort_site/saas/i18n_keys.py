@@ -84,6 +84,9 @@ def constant_keys() -> set[str]:
     from .ai import HOOK_TYPES
 
     keys |= set(HOOK_TYPES.values())
+    from .ai import VOICE_LIST
+
+    keys |= {desc for _g, desc in VOICE_LIST.values()}
     return keys
 
 

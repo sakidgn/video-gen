@@ -96,7 +96,7 @@ def create_job(s, user_id: int, *, idea: str, characters: str, style: str, langu
               language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles),
               subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "", seconds=seconds,
               format=format, background=background, hook=bool(hook) and not format, progress=bool(progress),
-              voice=voice if format and voice in ai_mod.VOICES else "")
+              voice=voice if format and ai_mod.valid_voice(voice) else "")
     s.add(job)
     s.flush()
     label = formatlar.FORMATS[format][0] if format else config.QUALITIES[quality]["label"]
@@ -192,21 +192,21 @@ def run_job(job_id: int, generator) -> None:
 def make_format(generator, kind: str, idea: str, language: str, seconds: int, background: str, past: list[str],
                 out: Path, voice: str = "", bar: bool = False) -> "ai_mod.Script":
     """Viral format videosu: yapay zekâ metni yazar, her satır seslendirilir, balonlar/kart + altyazı çizilir.
-    voice: tek sesli formatlarda anlatıcı ("female"/"male"; boşsa yapay zekâ seçer) · bar: en altta ilerleme çubuğu.
+    voice: anlatıcı (ai.VOICE_LIST'ten bir ses ya da "female"/"male"; boşsa yapay zekâ seçer; mesajlaşmada "ben") · bar: en altta ilerleme çubuğu.
     Okunan metinler zamanlarıyla '<ad>.srt' altyazı dosyasına da yazılır."""
     import tempfile
 
     from . import formatlar, media
 
     data = generator.write_format(kind=kind, idea=idea, language=language, seconds=seconds, past=past)
-    if voice in ai_mod.VOICES and "voice" in data:
-        data["voice"] = voice
+    narrator = ai_mod.voice_name(voice, data.get("voice", "female"))  # tek sesli formatların anlatıcısı
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)
         if kind == "sohbet":
             msgs = data["messages"][:20] or [{"me": False, "text": idea or "..."}]
-            me_v = ai_mod.VOICES[data["me_voice"]][0]
-            other_v = ai_mod.VOICES[data["contact_voice"]][1 if data["contact_voice"] == data["me_voice"] else 0]
+            # seçilen ses "ben" olur; karşı taraf yapay zekânın seçtiği cinsiyette, benden farklı bir ses
+            me_v = ai_mod.voice_name(voice, data["me_voice"])
+            other_v = next(v for v in ai_mod.VOICES[data["contact_voice"]] if v != me_v)
             parts: list = [None] * len(msgs)  # her ses kendi satırlarını tek seferde okur (2 istek)
             for v, who in ((me_v, True), (other_v, False)):
                 idx = [i for i, m in enumerate(msgs) if bool(m["me"]) == who]
@@ -221,7 +221,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             spoken = [m["text"] for m in msgs]
         elif kind in ("secim", "quiz", "bilgi", "liste", "dogru", "bayrak"):
             # tek sesli, tur tur ilerleyen formatlar: açılış + turlar (+ düşünme süresi) + kapanış çağrısı
-            w, voice = formatlar.words(language), ai_mod.VOICES[data["voice"]][0]
+            w, voice = formatlar.words(language), narrator
             if kind == "secim":
                 rounds = data["rounds"][:10]
                 texts = [w["wyr_say"], *(f"{r['a']}, {w['or_word']} {r['b']}?" for r in rounds)]
@@ -278,8 +278,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
                 ass = formatlar.verdict_ass(kind, items, times, total, language)
         else:  # hikaye ve korku
             sents = data["sentences"][:30] or [idea or "..."]
-            voice = ai_mod.VOICES[data["voice"]][0]
-            parts = speak_lines(generator, sents, voice, tmp, "s")
+            parts = speak_lines(generator, sents, narrator, tmp, "s")
             times = formatlar.join_audio(parts, 0.2, 0.3, 1.0, tmp / "ses.wav")
             total = times[-1][1] + 1.0
             ass = formatlar.story_ass(sents[0], data["community"], sents, times, total, language, dark=kind == "korku")
