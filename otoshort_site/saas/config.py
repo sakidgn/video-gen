@@ -51,7 +51,7 @@ LOYALTY_EVERY = int(_env("SADAKAT_ESIK", "400") or 0)
 SHOWCASE = _env("VITRIN_MODU") == "1"
 FAKE_AI = _env("SAHTE_AI") == "1" or SHOWCASE  # geliştirme/test: API'ye gitmeden sahte video üretir
 PRELAUNCH = SHOWCASE or _env("ERKEN_ERISIM") == "1"
-TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-latest")
+TEXT_MODEL = _env("METIN_MODELI", "gemini-flash-lite-latest")  # hızlı ve ücretsiz katmanda
 TTS_MODEL = _env("SES_MODELI", "gemini-2.5-flash-preview-tts")  # viral formatların seslendirmesi
 # Viral formatlar (mesajlaşma, itiraf/hikâye): video modeli kullanmaz, sadece metin + seslendirme → ucuz, sabit fiyat.
 FORMAT_CREDITS = int(_env("KREDI_FORMAT", "19") or 19)
