@@ -483,6 +483,16 @@ BUILTIN_VIDEOS = {"parkur": config.ROOT / "static" / "arka_planlar" / "parkur.mp
 DEFAULT_BACKGROUND = "parkur"
 
 
+def random_start(video: Path, seconds: float) -> float:
+    """Arka plan videosu istenen süreden epey uzunsa rastgele bir başlangıç anı (sn); kısaysa 0 (döngüyle oynar)."""
+    import random
+
+    from .media import _probe
+
+    total = _probe(video)[1]
+    return random.uniform(1.0, total - seconds - 2) if total > seconds + 10 else 0.0
+
+
 def render(ass_text: str, audio: Path, seconds: float, background: str, out: Path) -> Path:
     """Arka plan + çizimler (ASS) + ses → 720x1280 mp4."""
     import imageio_ffmpeg
@@ -495,8 +505,13 @@ def render(ass_text: str, audio: Path, seconds: float, background: str, out: Pat
         shutil.copy(FONT, tmp / FONT.name)
         shutil.copy(audio, tmp / "ses.wav")
         if background in lib or background in BUILTIN_VIDEOS:
-            shutil.copy(lib.get(background) or BUILTIN_VIDEOS[background], tmp / "bg.mp4")
-            src = ["-stream_loop", "-1", "-i", "bg.mp4", "-t", f"{seconds:.2f}"]
+            bg = lib.get(background) or BUILTIN_VIDEOS[background]
+            start = random_start(bg, seconds)  # uzun videodan (ör. 2 saatlik oyun kaydı) her seferinde başka bir an
+            if start:  # dosyayı kopyalamadan doğrudan oradan okunur
+                src = ["-ss", f"{start:.2f}", "-i", str(bg), "-t", f"{seconds:.2f}"]
+            else:
+                shutil.copy(bg, tmp / "bg.mp4")
+                src = ["-stream_loop", "-1", "-i", "bg.mp4", "-t", f"{seconds:.2f}"]
         else:
             src = _bg_source(background if background in BACKGROUNDS else "girdap", seconds)
         vf = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase:flags=neighbor,crop={W}:{H},"
