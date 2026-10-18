@@ -2471,3 +2471,5 @@ def test_free_hook_and_title_tools(client):
     d = client.post("/api/kancalar", data={"topic": "Uzay", "csrf": csrf(client, "/araclar/kanca-uretici")}).json()
     assert d["hooks"][0]["start"].startswith("/video/yeni?idea=")
     assert 'href="/araclar"' in client.get("/panel").text
+    hub = client.get("/araclar").text  # girişliyken de panel değil, site görünümü
+    assert "side-link" not in hub and 'id="nav"' in hub

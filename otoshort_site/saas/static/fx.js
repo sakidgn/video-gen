@@ -49,7 +49,45 @@
   const io = !reduce && 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { const t = e.target; t.classList.add('in'); io.unobserve(t); setTimeout(() => { t.classList.add('done'); dispatchEvent(new Event('scroll')); }, 950 + (+t.dataset.delay || 0) * 90); }
   }), { threshold: .12, rootMargin: '0px 0px -40px 0px' }) : null;
-  $$('.reveal').forEach(el => { el.style.transitionDelay = `${(+el.dataset.delay || 0) * 90}ms`; io ? io.observe(el) : el.classList.add('in', 'done'); });
+  // ilk ekrandakiler beklemeden görünür (sayfa geçişi anında hissedilsin), aşağıdakiler kaydırınca belirir
+  const firstScreen = innerHeight * .92;
+  $$('.reveal').forEach(el => {
+    if (io && el.getBoundingClientRect().top < firstScreen) { el.style.transition = 'none'; el.classList.add('in', 'done'); requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transition = ''; })); return; }
+    el.style.transitionDelay = `${(+el.dataset.delay || 0) * 90}ms`; io ? io.observe(el) : el.classList.add('in', 'done');
+  });
+
+  // Sayfa içi bağlantılar (Nasıl çalışır, Fiyatlar, SSS…): uzun yolu bir anda atlar, son kısmı yumuşak kayar.
+  // Ağır bölümlerin üstünden uzun yumuşak kaydırma takılma yapıyordu.
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[href*="#"]');
+    if (!a || a.origin !== location.origin || a.pathname !== location.pathname || !a.hash || e.metaKey || e.ctrlKey) return;
+    let t; try { t = document.querySelector(decodeURIComponent(a.hash)); } catch (x) { return; }
+    if (!t) return;
+    e.preventDefault();
+    const navH = nav ? nav.offsetHeight : 0, top = t.getBoundingClientRect().top + scrollY - navH - 8;
+    const near = Math.max(0, top - Math.sign(top - scrollY) * Math.min(innerHeight * .35, Math.abs(top - scrollY)));
+    if (Math.abs(top - scrollY) > innerHeight * .6) window.scrollTo({ top: near, behavior: 'instant' });
+    $$('.reveal', t).forEach(el => el.classList.add('in'));
+    window.scrollTo({ top, behavior: reduce ? 'instant' : 'smooth' });
+    history.replaceState(null, '', a.hash);
+  });
+
+  // Hızlı geçiş: bağlantının üstüne gelince / dokununca sayfa önceden indirilir, tıklayınca anında açılır
+  const fetched = new Set([location.pathname + location.search]);
+  const skip = /^\/(en\/)?(cikis|tema\/|dil\/|s\/|d\/|e\/|dogrula\/|auth\/|baglan\/|yayin\/|admin|api\/|kesfet\/\d)|\/(dosya|altyazi\.srt|kapak|durum|video)$|[?&]indir=/;
+  const prefetch = a => {
+    if (!a || a.target || a.hasAttribute('download') || a.origin !== location.origin || a.dataset.noPrefetch !== undefined) return;
+    const key = a.pathname + a.search;
+    if (fetched.has(key) || skip.test(a.pathname + a.search) || fetched.size > 40) return;
+    fetched.add(key);
+    const l = document.createElement('link'); l.rel = 'prefetch'; l.href = key; l.as = 'document'; document.head.appendChild(l);
+  };
+  let hoverT;
+  document.addEventListener('pointerover', e => { const a = e.target.closest && e.target.closest('a[href]'); if (!a) return; clearTimeout(hoverT); hoverT = setTimeout(() => prefetch(a), 65); }, { passive: true });
+  document.addEventListener('pointerout', () => clearTimeout(hoverT), { passive: true });
+  document.addEventListener('touchstart', e => prefetch(e.target.closest && e.target.closest('a[href]')), { passive: true });
+  // telefonda alt menü ve kenar menü sayfaları boşta önceden hazırlanır
+  (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => $$('.tabbar a[href], .side-link[href]').slice(0, 8).forEach(prefetch));
 
   // Tanıtım filmi: telefonda dikey, masaüstünde yatay sürüm
   const hv = $('[data-hero-video]');

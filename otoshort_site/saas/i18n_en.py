@@ -1330,6 +1330,12 @@ EN = {
     'Altyazı dosyasını indir': 'Download the caption file',
     "Video sayfasındaki “Altyazı dosyası (.srt)” ile altyazıyı YouTube'a ayrıca yükleyebilir ya da başka bir düzenleyicide kullanabilirsin.": 'Use “Caption file (.srt)” on the video page to upload captions to YouTube separately or use them in another editor.',
     'Ücretsiz kanca üret': 'Generate free hooks',
+    'Altyazı ve kanca yazısı ekleniyor mu?': 'Do you add captions and a hook?',
+    'Evet, ücretsiz. 6 altyazı stilinden birini seçersin (Viral, Kutu, Neon, Tek kelime, Klasik, Minimal). İstersen ilk 3 saniyede merak uyandıran bir açılış kancası ve en altta ilerleme çubuğu da eklenir. Altyazıyı .srt dosyası olarak da indirebilirsin.': 'Yes, for free. Pick one of 6 caption styles (Viral, Box, Neon, One word, Classic, Minimal). You can also add an opening hook for the first 3 seconds and a progress bar at the bottom. Captions can be downloaded as an .srt file too.',
+    'Kayıt olmadan deneyebilir miyim?': 'Can I try it without signing up?',
+    'Evet. Ana sayfadaki senaryo denemesi, Kanal Kurucu, Kanca Üretici ve Başlık ve Hashtag Üretici kayıt istemez. Video üretmek için ücretsiz hesap açman yeterli.': 'Yes. The script demo on the home page, Channel Builder, Hook Generator and Title & Hashtag Generator need no sign-up. To make videos, just create a free account.',
+    'Viral formatlarda ses seçebilir miyim?': 'Can I choose the voice in viral formats?',
+    'Evet. Quiz, hikâye, korku, Top 5 gibi formatlarda anlatıcıyı otomatik, kadın ya da erkek seçebilirsin. Mesajlaşma formatında iki farklı ses otomatik atanır.': 'Yes. In formats like quiz, story, horror and Top 5 you can pick an automatic, female or male narrator. The chat format gets two different voices automatically.',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)

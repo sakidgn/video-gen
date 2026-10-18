@@ -49,7 +49,7 @@
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;font-variant-numeric:lining-nums}
+html{-webkit-text-size-adjust:100%;font-variant-numeric:lining-nums}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:calc(16px * var(--fs));line-height:1.65;letter-spacing:.006em;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 body{overflow-x:hidden;min-height:100vh}
@@ -563,7 +563,7 @@ body.menu-open{overflow:hidden}
 .tabbar a.on{background:none!important}
 .btn:active,.icon-btn:active,.opt:active .opt-body,.vcard:active{transform:scale(.96)}
 ::view-transition-group(side-pill),::view-transition-group(tab-pill){animation-duration:.5s;animation-timing-function:var(--spring)}
-::view-transition-old(root),::view-transition-new(root){animation-duration:.28s}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.16s}
 @media(max-width:960px){.nav-burger{display:grid}.nav-right>.btn{display:none}}
 /* masaüstünde de sağ üstte menü: açılır panel sağa yaslı */
 @media(min-width:961px){.nav-burger{display:grid;order:9}.mobile-menu{left:auto;right:clamp(20px,4.6vw,96px);width:320px}.mobile-menu .btn{display:none}}
@@ -581,7 +581,7 @@ a.ob:hover{border-color:rgba(var(--accent-rgb),0.3);transform:translateY(-2px)}
 .prose a{color:var(--text);text-decoration:underline;text-underline-offset:3px}
 
 /* kaydırınca belirme */
-.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .5s var(--ease),transform .5s var(--ease)}
 .reveal.in{opacity:1;transform:none;filter:none}
 /* yumuşak kaydırma (Lenis) */
 /* başlıklar kelime kelime belirir */
@@ -1353,10 +1353,12 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 /* ============ Aylık / yıllık geçiş ============ */
 .plans-wrap{position:relative}
 .per-in{position:absolute;opacity:0;pointer-events:none}
-.per-toggle{display:flex;width:max-content;margin:0 auto 26px;padding:5px;gap:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border-2)}
-.per-toggle label{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;border-radius:999px;cursor:pointer;font-weight:700;color:var(--text-2);transition:background .25s,color .25s}
+.per-toggle{position:relative;display:grid;grid-template-columns:1fr 1fr;width:max-content;margin:0 auto 26px;padding:5px;gap:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border-2)}
+.per-toggle label{position:relative;z-index:1;justify-content:center;display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 20px;border-radius:999px;cursor:pointer;font-weight:700;color:var(--text-2);transition:background .25s,color .25s}
 #per-m:checked~.per-toggle label[for=per-m],#per-y:checked~.per-toggle label[for=per-y],
-#pp-m:checked~.per-toggle label[for=pp-m],#pp-y:checked~.per-toggle label[for=pp-y]{background:linear-gradient(90deg,#ff3d8b,#ff8a00);color:#fff}
+#pp-m:checked~.per-toggle label[for=pp-m],#pp-y:checked~.per-toggle label[for=pp-y]{color:#fff}
+.per-toggle:before{content:"";position:absolute;top:5px;bottom:5px;left:5px;width:calc((100% - 14px) / 2);border-radius:999px;background:linear-gradient(90deg,#ff3d8b,#ff8a00);box-shadow:0 6px 18px -6px rgba(255,61,139,.55);transition:transform .45s var(--spring,cubic-bezier(.3,1.4,.5,1))}
+#per-y:checked~.per-toggle:before,#pp-y:checked~.per-toggle:before{transform:translateX(calc(100% + 4px))}
 .per-in:focus-visible~.per-toggle{outline:2px solid var(--accent);outline-offset:3px}
 .per-save{font-size:11px;font-weight:800;padding:3px 7px;border-radius:99px;background:rgba(var(--accent-rgb),.16);color:var(--accent)}
 #per-y:checked~.per-toggle .per-save,#pp-y:checked~.per-toggle .per-save{background:rgba(255,255,255,.22);color:#fff}
@@ -1399,10 +1401,13 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 
 /* ============ Görünüm seçici: mod çubuğu + renkler ============ */
 .theme-pick{display:grid;gap:12px;margin-top:16px;justify-items:start}
-.mode-bar{display:inline-flex;gap:3px;padding:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border-2)}
-.mode-bar a{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;font-size:calc(13px * var(--fs));font-weight:700;color:var(--text-2);transition:background .2s,color .2s}
+.mode-bar{position:relative;display:inline-grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:4px;border-radius:999px;background:var(--surface);border:1px solid var(--border-2);--i:0}
+.mode-bar:has(a.on:nth-child(2)){--i:1}.mode-bar:has(a.on:nth-child(3)){--i:2}
+.mode-bar:before{content:"";position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 14px) / 3);border-radius:999px;background:var(--text);transform:translateX(calc(var(--i) * (100% + 3px)));transition:transform .4s var(--spring,cubic-bezier(.3,1.4,.5,1))}
+.mode-bar:not(:has(a.on)):before{opacity:0}
+.mode-bar a{position:relative;z-index:1;justify-content:center;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;font-size:calc(13px * var(--fs));font-weight:700;color:var(--text-2);transition:background .2s,color .2s}
 .mode-bar a:hover{color:var(--text)}
-.mode-bar a.on{background:var(--text);color:var(--on-text)}
+.mode-bar a.on{color:var(--on-text)}
 .tp-swatches{display:flex;flex-wrap:wrap;gap:8px}
 .tp-swatches a{display:inline-flex;align-items:center;gap:8px;border-radius:999px;transition:transform .2s,box-shadow .2s}
 .tp-swatches a i{width:24px;height:24px;border-radius:50%;background:var(--sw);border:1px solid rgba(128,128,128,.45);box-shadow:0 1px 3px rgba(0,0,0,.18)}
@@ -1413,3 +1418,7 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 .theme-pick.lg .tp-swatches a.on{border-color:var(--accent);color:var(--text)}
 .theme-pick.lg .tp-swatches a.on i{box-shadow:none}
 .tp-note{margin:0;font-size:calc(12.5px * var(--fs));color:var(--text-3)}
+/* modlar değişince çubuk yerinde kalsın: üç renk paneli aynı hücrede üst üste durur, gizliler yer kaplar ama görünmez */
+.theme-pick>[data-swatches]{grid-row:2;grid-column:1}
+.theme-pick>.tp-swatches[hidden]{display:flex!important;visibility:hidden}
+.theme-pick>.tp-note[hidden]{display:block!important;visibility:hidden}

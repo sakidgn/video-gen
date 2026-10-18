@@ -56,7 +56,12 @@ FAQS = [
     ("Yapay zekâ saçma bir şey üretirse hesabımda doğrudan paylaşılır mı?",
      "İstemezsen hayır. Otomatik kanalda “Onaylı paylaşım” modunu seç: video hazır olunca sana bildirim gelir, izleyip tek tıkla onayladığında paylaşılır. Beğenmezsen paylaşma; hiçbir yere gitmez."),
     ("Otomatik kanalda kredim bitince ne olur?",
-     "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),
+     "Video üretimi durur ve panelinde bir uyarı görürsün. Borçlanma ya da otomatik çekim yoktur."),    ('Altyazı ve kanca yazısı ekleniyor mu?',
+     'Evet, ücretsiz. 6 altyazı stilinden birini seçersin (Viral, Kutu, Neon, Tek kelime, Klasik, Minimal). İstersen ilk 3 saniyede merak uyandıran bir açılış kancası ve en altta ilerleme çubuğu da eklenir. Altyazıyı .srt dosyası olarak da indirebilirsin.'),
+    ('Kayıt olmadan deneyebilir miyim?',
+     'Evet. Ana sayfadaki senaryo denemesi, Kanal Kurucu, Kanca Üretici ve Başlık ve Hashtag Üretici kayıt istemez. Video üretmek için ücretsiz hesap açman yeterli.'),
+    ('Viral formatlarda ses seçebilir miyim?',
+     'Evet. Quiz, hikâye, korku, Top 5 gibi formatlarda anlatıcıyı otomatik, kadın ya da erkek seçebilirsin. Mesajlaşma formatında iki farklı ses otomatik atanır.'),
 ]
 PUBLIC_PAGES = ["/", "/fiyatlar", "/kesfet", "/sablonlar", "/araclar", "/araclar/kanal-kurucu", "/araclar/kanca-uretici",
                 "/araclar/baslik-uretici", "/rehberler",
