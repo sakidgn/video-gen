@@ -544,12 +544,69 @@ def fake_voice(text: str, out: Path, voice: int = 0) -> Path:
     """Sahte mod: metin uzunluğuna göre süreli hafif bir ton (gerçek sürümde Gemini seslendirir)."""
     import imageio_ffmpeg
 
-    dur = max(0.9, min(8.0, 0.32 * len(text.split()) + 0.3))
     freq = 220 if voice else 320
-    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi", "-i",
-                    f"sine=frequency={freq}:duration={dur:.2f}", "-af", "volume=0.04", "-ar", "24000", str(out)],
-                   check=True, timeout=60)
+    paras = [p for p in text.split("\n\n") if p.strip()] or [text]
+    srcs, chain = [], []
+    for i, p in enumerate(paras):  # her paragraf bir ton, aralarında 0.6 sn sessizlik
+        dur = max(0.9, min(8.0, 0.32 * len(p.split()) + 0.3))
+        srcs += ["-f", "lavfi", "-i", f"sine=frequency={freq}:sample_rate=24000:duration={dur:.2f}"]
+        chain.append(f"[{2 * i}:a]")
+        if i < len(paras) - 1:
+            srcs += ["-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono:d=0.6"]
+            chain.append(f"[{2 * i + 1}:a]")
+    filt = "".join(chain) + f"concat=n={len(chain)}:v=0:a=1,volume=0.3,aresample=24000[a]"
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", *srcs, "-filter_complex", filt,
+                    "-map", "[a]", "-ac", "1", str(out)], check=True, timeout=60)
     return out
+
+
+def silences(audio: Path, noise_db: int = -38, min_len: float = 0.18) -> tuple[list[tuple[float, float]], float]:
+    """Sesteki sessiz aralıklar [(başlangıç, bitiş)] ve toplam süre (ffmpeg silencedetect)."""
+    import re
+
+    import imageio_ffmpeg
+
+    from .media import _probe
+
+    r = subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-hide_banner", "-i", str(audio), "-af",
+                        f"silencedetect=noise={noise_db}dB:d={min_len}", "-f", "null", "-"],
+                       capture_output=True, text=True, timeout=120)
+    starts = [float(x) for x in re.findall(r"silence_start: ([\d.]+)", r.stderr)]
+    ends = [float(x) for x in re.findall(r"silence_end: ([\d.]+)", r.stderr)]
+    total = _probe(audio)[1]
+    return [(a, b) for a, b in zip(starts, ends + [total] * (len(starts) - len(ends)))], total
+
+
+def split_audio(audio: Path, n: int, out_dir: Path, prefix: str, weights: list[float] | None = None) -> list[Path] | None:
+    """Tek seferde seslendirilmiş n satırlık sesi en uzun n-1 sessizlikten bölüp n parçaya ayırır.
+    Yeterince belirgin sessizlik yoksa ya da parça süreleri satır uzunluklarına (weights) uymuyorsa None
+    (çağıran satır satır seslendirir)."""
+    import imageio_ffmpeg
+
+    gaps, total = silences(audio)
+    inner = [(a, b) for a, b in gaps if a > 0.05 and b < total - 0.05]
+    if len(inner) < n - 1:
+        return None
+    cuts = sorted(sorted(inner, key=lambda g: g[1] - g[0], reverse=True)[:n - 1])
+    lead = gaps[0][1] if gaps and gaps[0][0] <= 0.05 else 0.0
+    tail = gaps[-1][0] if gaps and gaps[-1][1] >= total - 0.05 else total
+    bounds = [lead, *(x for a, b in cuts for x in (a, b)), tail]
+    if weights:  # bir satır cümle içi duraksamadan bölündüyse süreler orantısız çıkar: güvenme
+        spoken, wsum = sum(bounds[2 * i + 1] - bounds[2 * i] for i in range(n)), sum(weights)
+        for i in range(n):
+            share = (bounds[2 * i + 1] - bounds[2 * i]) / spoken
+            if not weights[i] / wsum / 3 <= share <= weights[i] / wsum * 3:
+                return None
+    parts = []
+    for i in range(n):
+        a, b = bounds[2 * i], bounds[2 * i + 1]
+        if b - a < 0.15:
+            return None
+        out = out_dir / f"{prefix}{i}.wav"
+        subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(audio), "-ss", f"{a:.3f}",
+                        "-to", f"{b:.3f}", "-ar", "24000", "-ac", "1", str(out)], check=True, timeout=60)
+        parts.append(out)
+    return parts
 
 
 def estimate_seconds(n_words: int) -> int:

@@ -8,7 +8,7 @@
   </div>
   <div class="plan-cards {{ 'swipe-m' if plans_swipe }}">
   {% for k, p in plans.items() %}{% set q = qualities[p.quality] %}{% set ym = (p.price * yearly_months / 12)|round|int %}
-    <div class="card plan-card reveal {{ 'featured glow-ring' if k == 'pro' }} {{ 'mine' if my_plan == k }}" data-delay="{{ loop.index0 }}">
+    <div class="card plan-card {{ 'featured glow-ring' if k == 'pro' }} {{ 'mine' if my_plan == k }}" data-delay="{{ loop.index0 }}">
       {% if k == 'pro' %}<span class="tag hot-tag">{{ _('EN POPÜLER') }}</span>{% endif %}
       <div class="pc-top"><span class="icon-box {{ 'accent' if k == 'pro' }}">{{ icon({'lite':'zap','fast':'rocket','standard':'crown'}[p.quality], 18) }}</span>
         <div><h3>{{ _(p.label) }}</h3><div class="tiny faint">{{ _(p.desc) }}</div></div></div>

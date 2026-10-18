@@ -491,6 +491,28 @@ IDEA_POOL = [
 ]
 
 
+def is_quota_error(e: Exception) -> bool:
+    s = str(e)
+    return "429" in s or "RESOURCE_EXHAUSTED" in s
+
+
+def with_quota_retry(call, tries: int = 4, max_wait: float = 70.0):
+    """Ücretsiz katmanın dakikalık sınırına takılırsa Google'ın söylediği süre kadar bekleyip yeniden dener."""
+    import re
+
+    for attempt in range(tries):
+        try:
+            return call()
+        except Exception as e:
+            if not is_quota_error(e) or attempt == tries - 1:
+                raise
+            m = re.search(r"retry in ([\d.]+)s|'retryDelay': '(\d+)s'", str(e))
+            wait = float(m.group(1) or m.group(2)) + 1 if m else 20.0 * (attempt + 1)
+            if wait > max_wait:  # günlük sınır gibi uzun bekleme: hemen hata ver
+                raise
+            time.sleep(wait)
+
+
 class RealAI:
     def __init__(self, client=None):
         if client is None:
@@ -561,12 +583,12 @@ class RealAI:
 
         from google.genai import types
 
-        resp = self.client.models.generate_content(
-            model=config.TTS_MODEL, contents=text,
-            config=types.GenerateContentConfig(
-                response_modalities=["AUDIO"],
-                speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
-                    prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)))))
+        cfg = types.GenerateContentConfig(
+            response_modalities=["AUDIO"],
+            speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
+                prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice))))
+        resp = with_quota_retry(lambda: self.client.models.generate_content(
+            model=config.TTS_MODEL, contents=text, config=cfg))
         pcm = resp.candidates[0].content.parts[0].inline_data.data
         out.parent.mkdir(parents=True, exist_ok=True)
         with wave.open(str(out), "wb") as w:

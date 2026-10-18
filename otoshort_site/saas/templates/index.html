@@ -196,10 +196,10 @@
 {% endif %}
 
 <section id="fiyat" style="padding-top:40px"><div class="wrap">
-  <div class="sec-head reveal"><span class="eyebrow">{{ _('Fiyatlar') }}</span><h2>{{ _h('Üç abonelik, <span class="hl">üç yapay zekâ.</span>') }}</h2>
+  <div class="sec-head"><span class="eyebrow">{{ _('Fiyatlar') }}</span><h2>{{ _h('Üç abonelik, <span class="hl">üç yapay zekâ.</span>') }}</h2>
     <p class="lead">{{ _('Her plan farklı bir yapay zekâyla gelir. Süreyi sen seçersin: {b} saniyeye kadar sabit fiyat, üstü saniye başı. Otomatik çekim yok, istediğin zaman bırak.', b=sec.base) }}</p></div>
   {% with plans_swipe=true %}{% include "_plans.html" %}{% endwith %}
-  <a class="card tool-cta price-more reveal" href="{{ L('/fiyatlar') }}">
+  <a class="card tool-cta price-more" href="{{ L('/fiyatlar') }}">
     <span class="icon-box">{{ icon('gem', 18) }}</span>
     <div><b>{{ _('Süreye göre fiyatlar, kredi paketleri ve hesaplayıcı') }}</b>
       <span class="small muted">{{ _('Ekonomik {a} kredi’den başlar (10 sn’ye kadar). Abonelik istemeyene kredi paketi de var.', a=qualities.lite.credits) }}</span></div>

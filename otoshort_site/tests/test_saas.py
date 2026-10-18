@@ -2488,3 +2488,41 @@ def test_ai_video_can_be_switched_off(client, monkeypatch):
     assert r.headers["location"].startswith("/video/")
     with db.session() as s:
         assert [j.format for j in s.scalars(select(Job))] == ["quiz"] and balance("a@b.com") == 500 - config.FORMAT_CREDITS
+
+
+def test_formats_speak_in_one_request_and_retry_quota(client, monkeypatch, tmp_path):
+    """Ücretsiz katman dakikada birkaç seslendirme isteğine izin verir: her ses video başına tek istekte okunur."""
+    from saas import formatlar
+
+    class Spy(ai.FakeAI):
+        calls = []
+
+        def speak(self, *, text, voice, out):
+            Spy.calls.append(text.count("\n\n") + 1)
+            return super().speak(text=text, voice=voice, out=out)
+
+    parts = worker.speak_lines(ai.FakeAI(), ["bir iki üç", "dört beş", "altı yedi sekiz dokuz"], "Kore", tmp_path, "t")
+    assert len(parts) == 3 and all(p.exists() for p in parts)
+    durs = [formatlar.silences(p)[1] for p in parts]
+    assert all(0.6 < d < 2.0 for d in durs)  # her parça kendi satırının sesi, sessizlikler ayıklandı
+    signup(client, "a@b.com", plan="")
+    give("a@b.com", 100)
+    t = csrf(client, "/video/yeni")
+    for f in ("korku", "quiz", "sohbet"):
+        client.post("/video/yeni", data={"idea": "Uzay", "format": f, "csrf": t})
+    run_queue(Spy())
+    with db.session() as s:
+        assert [j.status for j in s.scalars(select(Job))] == ["hazir"] * 3
+    assert len(Spy.calls) == 4 and all(n > 1 for n in Spy.calls)  # korku 1, quiz 1, sohbet 2 (iki ses)
+    # dakikalık sınır: söylenen süre kadar bekleyip yeniden dener; uzun bekleme (günlük sınır) hemen hata verir
+    waits, n = [], {"i": 0}
+    monkeypatch.setattr(ai.time, "sleep", waits.append)
+
+    def flaky():
+        n["i"] += 1
+        if n["i"] < 3:
+            raise RuntimeError("429 RESOURCE_EXHAUSTED ... Please retry in 12.5s.")
+        return "ok"
+    assert ai.with_quota_retry(flaky) == "ok" and waits == [13.5, 13.5]
+    with pytest.raises(RuntimeError):
+        ai.with_quota_retry(lambda: (_ for _ in ()).throw(RuntimeError("429 ... retry in 3600s.")))

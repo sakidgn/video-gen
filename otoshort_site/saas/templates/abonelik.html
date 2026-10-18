@@ -23,7 +23,7 @@
   </div>
   <div class="cmp swipe-m">
   {% for c in cols %}{% set mine = (my_plan == c.key) %}
-    <div class="card cmp-col reveal {{ 'featured glow-ring' if c.key == 'pro' }} {{ 'mine' if mine }}" data-delay="{{ loop.index0 }}">
+    <div class="card cmp-col {{ 'featured glow-ring' if c.key == 'pro' }} {{ 'mine' if mine }}" data-delay="{{ loop.index0 }}">
       {% if mine %}<span class="tag mine-tag">{{ _('MEVCUT PLANIN') }}</span>{% elif c.key == 'pro' %}<span class="tag hot-tag">{{ _('EN POPÜLER') }}</span>{% endif %}
       <h3>{{ _(c.label) }}</h3>
       <p class="tiny faint cmp-desc">{{ _(c.desc) }}</p>

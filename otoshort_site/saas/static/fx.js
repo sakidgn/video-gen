@@ -56,19 +56,34 @@
     el.style.transitionDelay = `${(+el.dataset.delay || 0) * 90}ms`; io ? io.observe(el) : el.classList.add('in', 'done');
   });
 
-  // Sayfa içi bağlantılar (Nasıl çalışır, Fiyatlar, SSS…): uzun yolu bir anda atlar, son kısmı yumuşak kayar.
-  // Ağır bölümlerin üstünden uzun yumuşak kaydırma takılma yapıyordu.
+  // Sayfa içi bağlantılar (Nasıl çalışır, Fiyatlar, SSS…): yumuşak kayar. Takılmasın diye kendi animasyonumuzla
+  // ~0.7 sn'de gider ve kayarken sayfadaki animasyonlar (şerit, parıltı) bekletilir.
+  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  let jumpRaf = 0;
+  const glide = top => {
+    cancelAnimationFrame(jumpRaf);
+    const from = scrollY, dist = top - from;
+    if (reduce || Math.abs(dist) < 4) { window.scrollTo(0, top); return; }
+    const dur = Math.min(900, 420 + Math.abs(dist) * .06), t0 = performance.now(), root = document.documentElement;
+    root.classList.add('jumping');
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      window.scrollTo(0, from + dist * ease(k));
+      if (k < 1) jumpRaf = requestAnimationFrame(step); else root.classList.remove('jumping');
+    };
+    jumpRaf = requestAnimationFrame(step);
+  };
+  addEventListener('wheel', () => { cancelAnimationFrame(jumpRaf); document.documentElement.classList.remove('jumping'); }, { passive: true });
+  addEventListener('touchstart', () => { cancelAnimationFrame(jumpRaf); document.documentElement.classList.remove('jumping'); }, { passive: true });
   document.addEventListener('click', e => {
     const a = e.target.closest && e.target.closest('a[href*="#"]');
     if (!a || a.origin !== location.origin || a.pathname !== location.pathname || !a.hash || e.metaKey || e.ctrlKey) return;
     let t; try { t = document.querySelector(decodeURIComponent(a.hash)); } catch (x) { return; }
     if (!t) return;
     e.preventDefault();
-    const navH = nav ? nav.offsetHeight : 0, top = t.getBoundingClientRect().top + scrollY - navH - 8;
-    const near = Math.max(0, top - Math.sign(top - scrollY) * Math.min(innerHeight * .35, Math.abs(top - scrollY)));
-    if (Math.abs(top - scrollY) > innerHeight * .6) window.scrollTo({ top: near, behavior: 'instant' });
     $$('.reveal', t).forEach(el => el.classList.add('in'));
-    window.scrollTo({ top, behavior: reduce ? 'instant' : 'smooth' });
+    const navH = nav ? nav.offsetHeight : 0;
+    glide(Math.max(0, t.getBoundingClientRect().top + scrollY - navH - 8));
     history.replaceState(null, '', a.hash);
   });
 

@@ -1,5 +1,6 @@
 @import url("fonts/fonts.css");
 @view-transition{navigation:auto}
+html.jumping *,html.jumping *:before,html.jumping *:after{animation-play-state:paused!important}
 
 /* ============ Tasarım değişkenleri ============ */
 :root{
