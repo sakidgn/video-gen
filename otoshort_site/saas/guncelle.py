@@ -26,7 +26,10 @@ def extract_site(data: bytes, dest: Path) -> int:
                 continue
             target = dest / rel
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(z.read(info))
+            data_ = z.read(info)
+            if rel.endswith(".bat"):  # Windows komut dosyaları CRLF ister (LF'de etiketler/goto bozulur, pencere kapanır)
+                data_ = data_.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+            target.write_bytes(data_)
             n += 1
     return n
 
