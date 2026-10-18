@@ -248,7 +248,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
                                                          base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
         my_plan=abonelik.active_plan(user) if user else "",
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
-        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), default_bg=formatlar.default_background(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF, voice_list=ai_mod.VOICE_LIST,
+        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), default_bg=formatlar.default_background(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF, voice_presets=ai_mod.VOICE_PRESETS, voice_groups=ai_mod.VOICE_GROUPS,
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
         theme=current_theme(request), themes=config.THEMES,
         yearly_save=config.YEARLY_SAVE_PCT,
@@ -1424,11 +1424,12 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
     @app.get("/ses-ornek/{name}")
     def voice_sample(request: Request, name: str, user: User = Depends(require_user)):
         """Seçilebilen sesin kısa örneği. Bir kez üretilip saklanır (seslendirme hakkı boşa gitmesin)."""
-        if name not in ai_mod.VOICE_LIST:
+        if name not in ai_mod.VOICE_PRESETS:
             raise HTTPException(404)
+        _g, _label, voice, _gender, style = ai_mod.VOICE_PRESETS[name]
         lang = "en" if i18n.current() == "en" else "tr"
         folder = config.DATA_DIR / "ses_ornekleri"
-        path = folder / f"{name}-{lang}.wav"
+        path = folder / f"{name}-{lang}-2.wav"  # -2: doğal okuma notlu sürüm
         if not path.exists():
             if not voice_sample_limiter.allow(f"v:{user.id}"):
                 return JSONResponse({"error": i18n.t("Çok fazla deneme, birkaç dakika sonra tekrar dene.")}, status_code=429)
@@ -1436,7 +1437,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             text = ("Hi! I can narrate your next video. Ready when you are." if lang == "en" else
                     "Selam! Bir sonraki videonu ben seslendirebilirim. Hazırsan başlayalım.")
             try:
-                _generator(request).speak(text=text, voice=name, out=path)
+                _generator(request).speak(text=text, voice=voice, out=path, style=style)
             except Exception:
                 log.exception("Ses örneği üretilemedi")
                 path.unlink(missing_ok=True)

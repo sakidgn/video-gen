@@ -2395,9 +2395,9 @@ def test_caption_styles_opening_hook_progress_bar_and_srt(client, tmp_path):
             Spy.words.append(words)
             return super().transcribe(video=video, language=language)
 
-        def speak(self, *, text, voice, out):
+        def speak(self, *, text, voice, out, style=""):
             Spy.voices.append(voice)
-            return super().speak(text=text, voice=voice, out=out)
+            return super().speak(text=text, voice=voice, out=out, style=style)
 
     signup(client, "a@b.com")
     give("a@b.com", 500)
@@ -2406,7 +2406,7 @@ def test_caption_styles_opening_hook_progress_bar_and_srt(client, tmp_path):
     for k in ("viral", "kutu", "neon", "tek", "klasik", "sade"):
         assert f'name="subtitle_style" value="{k}"' in page
     assert re.search(r'name="hook" value="1"\s+checked', page) and 'name="progress" value="1"' in page
-    assert 'name="voice" value="Puck"' in page
+    assert 'name="voice" value="kalin"' in page
     client.post("/video/yeni", data={"idea": "x", "quality": "lite", "subtitles": "1", "subtitle_style": "kutu",
                                      "hook": "1", "progress": "1", "voice": "male", "csrf": t})
     client.post("/video/yeni", data={"idea": "y", "quality": "lite", "hook": "1", "csrf": t})  # altyazısız, kancalı
@@ -2497,9 +2497,9 @@ def test_formats_speak_in_one_request_and_retry_quota(client, monkeypatch, tmp_p
     class Spy(ai.FakeAI):
         calls = []
 
-        def speak(self, *, text, voice, out):
+        def speak(self, *, text, voice, out, style=""):
             Spy.calls.append(text.count("\n\n") + 1)
-            return super().speak(text=text, voice=voice, out=out)
+            return super().speak(text=text, voice=voice, out=out, style=style)
 
     parts = worker.speak_lines(ai.FakeAI(), ["bir iki üç", "dört beş", "altı yedi sekiz dokuz"], "Kore", tmp_path, "t")
     assert len(parts) == 3 and all(p.exists() for p in parts)
@@ -2566,30 +2566,38 @@ def test_named_voices_and_voice_samples(client, tmp_path):
     class Spy(ai.FakeAI):
         voices = []
 
-        def speak(self, *, text, voice, out):
-            Spy.voices.append(voice)
-            return super().speak(text=text, voice=voice, out=out)
+        def speak(self, *, text, voice, out, style=""):
+            Spy.voices.append((voice, style))
+            return super().speak(text=text, voice=voice, out=out, style=style)
 
     client.app.state.generator = Spy()
     signup(client, "a@b.com", plan="")
     give("a@b.com", 100)
     t = csrf(client, "/video/yeni")
     page = client.get("/video/yeni?format=korku").text
-    assert 'name="voice" value="Enceladus"' in page and "Fısıltılı" in page and 'data-voice-play="/ses-ornek/Enceladus"' in page
-    r = client.get("/ses-ornek/Enceladus")
+    for grp in ("Çocuk", "Yaşlı", "Özel"):
+        assert f'<span class="vp-group">{grp}</span>' in page
+    assert 'name="voice" value="fisilti"' in page and "Kız çocuk" in page and 'data-voice-play="/ses-ornek/cocuk_k"' in page
+    r = client.get("/ses-ornek/cocuk_k")
     assert r.status_code == 200 and r.headers["content-type"] == "audio/wav"
-    client.get("/ses-ornek/Enceladus")  # ikinci seferde hazırdan gelir, yeniden üretilmez
-    assert Spy.voices == ["Enceladus"] and client.get("/ses-ornek/Yok").status_code == 404
-    client.post("/video/yeni", data={"idea": "Uzay", "format": "korku", "voice": "Enceladus", "csrf": t})
-    client.post("/video/yeni", data={"idea": "x", "format": "sohbet", "voice": "Fenrir", "csrf": t})
+    client.get("/ses-ornek/cocuk_k")  # ikinci seferde hazırdan gelir, yeniden üretilmez
+    assert Spy.voices == [("Leda", ai.VOICE_PRESETS["cocuk_k"][4])] and client.get("/ses-ornek/Yok").status_code == 404
+    client.post("/video/yeni", data={"idea": "Uzay", "format": "korku", "voice": "fisilti", "csrf": t})
+    client.post("/video/yeni", data={"idea": "x", "format": "sohbet", "voice": "genc_e", "csrf": t})
     client.post("/video/yeni", data={"idea": "y", "format": "quiz", "voice": "<script>", "csrf": t})
     Spy.voices.clear()
     run_queue(Spy())
     with db.session() as s:
         jobs = s.scalars(select(Job).order_by(Job.id)).all()
-    assert [j.voice for j in jobs] == ["Enceladus", "Fenrir", ""] and all(j.status == "hazir" for j in jobs)
-    assert Spy.voices[0] == "Enceladus" and "Fenrir" in Spy.voices[1:3] and len(set(Spy.voices[1:3])) == 2
-    assert "Fısıltılı ses" in client.get(f"/video/{jobs[0].id}").text
+    assert [j.voice for j in jobs] == ["fisilti", "genc_e", ""] and all(j.status == "hazir" for j in jobs)
+    assert Spy.voices[0] == ("Enceladus", ai.VOICE_PRESETS["fisilti"][4])
+    chat = Spy.voices[1:3]
+    assert ("Fenrir", ai.VOICE_PRESETS["genc_e"][4]) in chat and len({v for v, _ in chat}) == 2
+    assert "Korku fısıltısı sesi" in client.get(f"/video/{jobs[0].id}").text
+    # yapmacık okumayı önleyen yönetmen notu; okunan metin TRANSCRIPT'te
+    prompt = ai.tts_prompt("Merhaba dünya", "a teenage boy")
+    assert prompt.endswith("TRANSCRIPT:\nMerhaba dünya") and "not sound like a radio announcer" in prompt
+
 
 
 def test_parkur_file_replaces_builtin_parkour(client):

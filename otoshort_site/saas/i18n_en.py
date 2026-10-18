@@ -1340,7 +1340,7 @@ EN = {
     'Mesajlaşmada seçtiğin ses “ben” olur, karşı tarafın sesi otomatik seçilir. ▶ ile dinleyebilirsin.': 'In chats your voice is “me” and the other side gets one automatically. Tap ▶ to listen.',
     'Ses örneği şu an hazırlanamadı, biraz sonra tekrar dene.': "Couldn't prepare the voice sample right now, try again in a bit.",
     'konuya göre seçilir': 'picked for the topic',
-    '{v} ses': '{v} voice',
+    '{v} sesi': '{v} voice',
     '{v} sesini dinle': 'Listen to the {v} voice',
     'Çok fazla deneme, birkaç dakika sonra tekrar dene.': 'Too many tries, try again in a few minutes.',
     'Kararlı': 'Firm',
@@ -1358,6 +1358,19 @@ EN = {
     'Samimi': 'Friendly',
     'Net': 'Clear',
     'Parkur': 'Parkour',
+    'Belgesel anlatıcı': 'Documentary narrator',
+    'Dede': 'Grandpa',
+    'Erkek çocuk': 'Little boy',
+    'Genç erkek': 'Teen boy',
+    'Genç kız': 'Teen girl',
+    'Kalın erkek': 'Deep male',
+    'Korku fısıltısı': 'Horror whisper',
+    'Kız çocuk': 'Little girl',
+    'Teyze': 'Grandma',
+    'Yaşlı': 'Elderly',
+    'Yetişkin': 'Adult',
+    'Yumuşak kadın': 'Soft female',
+    'Özel': 'Special',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)

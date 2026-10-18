@@ -192,27 +192,27 @@ def run_job(job_id: int, generator) -> None:
 def make_format(generator, kind: str, idea: str, language: str, seconds: int, background: str, past: list[str],
                 out: Path, voice: str = "", bar: bool = False) -> "ai_mod.Script":
     """Viral format videosu: yapay zekâ metni yazar, her satır seslendirilir, balonlar/kart + altyazı çizilir.
-    voice: anlatıcı (ai.VOICE_LIST'ten bir ses ya da "female"/"male"; boşsa yapay zekâ seçer; mesajlaşmada "ben") · bar: en altta ilerleme çubuğu.
+    voice: anlatıcı (ai.VOICE_PRESETS'ten bir ses ya da "female"/"male"; boşsa yapay zekâ seçer; mesajlaşmada "ben") · bar: en altta ilerleme çubuğu.
     Okunan metinler zamanlarıyla '<ad>.srt' altyazı dosyasına da yazılır."""
     import tempfile
 
     from . import formatlar, media
 
     data = generator.write_format(kind=kind, idea=idea, language=language, seconds=seconds, past=past)
-    narrator = ai_mod.voice_name(voice, data.get("voice", "female"))  # tek sesli formatların anlatıcısı
+    narrator, nstyle = ai_mod.voice_for(voice, data.get("voice", "female"))  # tek sesli formatların anlatıcısı
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)
         if kind == "sohbet":
             msgs = data["messages"][:20] or [{"me": False, "text": idea or "..."}]
             # seçilen ses "ben" olur; karşı taraf yapay zekânın seçtiği cinsiyette, benden farklı bir ses
-            me_v = ai_mod.voice_name(voice, data["me_voice"])
+            me_v, me_style = ai_mod.voice_for(voice, data["me_voice"])
             other_v = next(v for v in ai_mod.VOICES[data["contact_voice"]] if v != me_v)
             parts: list = [None] * len(msgs)  # her ses kendi satırlarını tek seferde okur (2 istek)
-            for v, who in ((me_v, True), (other_v, False)):
+            for v, who, st in ((me_v, True, me_style), (other_v, False, "")):
                 idx = [i for i, m in enumerate(msgs) if bool(m["me"]) == who]
                 if idx:
                     for i, part in zip(idx, speak_lines(generator, [msgs[i]["text"] for i in idx], v, tmp,
-                                                        "me" if who else "o")):
+                                                        "me" if who else "o", st)):
                         parts[i] = part
             times = formatlar.join_audio(parts, 0.3, 0.5, 1.2, tmp / "ses.wav")
             total = times[-1][1] + 1.2
@@ -262,7 +262,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
                 raise RuntimeError("Format metni yazılamadı")
             texts.append(closing)
             gaps.append(0.0)
-            parts = speak_lines(generator, texts, voice, tmp, "q")
+            parts = speak_lines(generator, texts, voice, tmp, "q", nstyle)
             spoken = texts
             times = formatlar.join_audio(parts, gaps, 0.4, 1.2, tmp / "ses.wav")
             total = times[-1][1] + 1.2
@@ -278,7 +278,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
                 ass = formatlar.verdict_ass(kind, items, times, total, language)
         else:  # hikaye ve korku
             sents = data["sentences"][:30] or [idea or "..."]
-            parts = speak_lines(generator, sents, narrator, tmp, "s")
+            parts = speak_lines(generator, sents, narrator, tmp, "s", nstyle)
             times = formatlar.join_audio(parts, 0.2, 0.3, 1.0, tmp / "ses.wav")
             total = times[-1][1] + 1.0
             ass = formatlar.story_ass(sents[0], data["community"], sents, times, total, language, dark=kind == "korku")
@@ -292,18 +292,20 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
                          hashtags=data["hashtags"], summary=data["summary"])
 
 
-def speak_lines(generator, texts: list[str], voice: str, tmp: Path, prefix: str) -> list[Path]:
+def speak_lines(generator, texts: list[str], voice: str, tmp: Path, prefix: str, style: str = "") -> list[Path]:
     """Satırları tek seferde seslendirir (paragraflar arası duraksamadan bölünür): ücretsiz katmanda dakikada
     birkaç seslendirme isteği hakkı olduğu için video başına bir istek. Bölünemezse satır satır seslendirir."""
     from . import formatlar
 
     if len(texts) > 1:
-        whole = generator.speak(text="\n\n".join(t.strip() for t in texts), voice=voice, out=tmp / f"{prefix}hepsi.wav")
+        whole = generator.speak(text="\n\n".join(t.strip() for t in texts), voice=voice, out=tmp / f"{prefix}hepsi.wav",
+                                style=style)
         parts = formatlar.split_audio(whole, len(texts), tmp, prefix, [len(t) + 8 for t in texts])
         if parts:
             return parts
         log.info("Ses bölünemedi, satır satır seslendiriliyor (%d satır)", len(texts))
-    return [generator.speak(text=t, voice=voice, out=tmp / f"{prefix}{i}.wav") for i, t in enumerate(texts)]
+    return [generator.speak(text=t, voice=voice, out=tmp / f"{prefix}{i}.wav", style=style)
+            for i, t in enumerate(texts)]
 
 
 def make_scenes(generator, shots: list[str], clips: list[int], quality: str, refs: list, out: Path,

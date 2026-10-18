@@ -469,25 +469,48 @@ def clean_format(kind: str, data: dict) -> dict:
 
 
 VOICES = {"female": ("Kore", "Leda"), "male": ("Puck", "Charon")}  # Gemini hazır sesleri
-# Kullanıcının seçebildiği sesler: Gemini hazır ses adı → (cinsiyet, tarif). Sitede tarif gösterilir.
-VOICE_LIST = {
-    "Kore": ("female", "Kararlı"), "Leda": ("female", "Genç"), "Zephyr": ("female", "Parlak"),
-    "Aoede": ("female", "Ferah"), "Achernar": ("female", "Yumuşak"), "Sulafat": ("female", "Sıcak"),
-    "Gacrux": ("female", "Olgun"),
-    "Puck": ("male", "Neşeli"), "Charon": ("male", "Anlatıcı"), "Fenrir": ("male", "Heyecanlı"),
-    "Enceladus": ("male", "Fısıltılı"), "Algenib": ("male", "Kalın"), "Achird": ("male", "Samimi"),
-    "Iapetus": ("male", "Net"),
+# Kullanıcının seçebildiği sesler: anahtar → (grup, ad, Gemini hazır sesi, cinsiyet, yönetmen notu).
+# Çocuk, yaşlı gibi karakterler hazır sese verilen yönetmen notuyla yapılır (Gemini seslendirme doğal dilde yönlendirilir).
+VOICE_GROUPS = ("Çocuk", "Genç", "Yetişkin", "Yaşlı", "Özel")
+VOICE_PRESETS = {
+    "cocuk_k": ("Çocuk", "Kız çocuk", "Leda", "female", "a cheerful 8-year-old girl with a high, playful child's voice"),
+    "cocuk_e": ("Çocuk", "Erkek çocuk", "Puck", "male", "a lively 8-year-old boy with a high, playful child's voice"),
+    "genc_k": ("Genç", "Genç kız", "Zephyr", "female", "a teenage girl, casual and upbeat"),
+    "genc_e": ("Genç", "Genç erkek", "Fenrir", "male", "a teenage boy, casual and upbeat"),
+    "kadin": ("Yetişkin", "Kadın", "Kore", "female", "a warm adult woman"),
+    "kadin_y": ("Yetişkin", "Yumuşak kadın", "Achernar", "female", "a soft-spoken, gentle adult woman"),
+    "erkek": ("Yetişkin", "Erkek", "Achird", "male", "a friendly adult man"),
+    "kalin": ("Yetişkin", "Kalın erkek", "Algenib", "male", "an adult man with a deep, low, slightly gravelly voice"),
+    "yasli_k": ("Yaşlı", "Teyze", "Gacrux", "female", "a warm elderly grandmother, a little slower"),
+    "yasli_e": ("Yaşlı", "Dede", "Charon", "male", "a kind elderly grandfather, slow and slightly raspy"),
+    "fisilti": ("Özel", "Korku fısıltısı", "Enceladus", "male",
+                "a quiet, breathy, suspenseful voice for a scary story, almost a whisper"),
+    "anlatici": ("Özel", "Belgesel anlatıcı", "Iapetus", "male", "a calm, clear documentary narrator"),
+    "heyecan": ("Özel", "Heyecanlı", "Fenrir", "male", "an excited friend who can't wait to tell the news"),
 }
+NATURAL = ("Sound like a real person talking, natural and relaxed, with normal everyday pacing and intonation. "
+           "Do not sound like a radio announcer or an advert, no exaggerated acting.")
+
+
+def tts_prompt(text: str, style: str = "") -> str:
+    """Seslendirme istemi: yönetmen notu + okunacak metin (yalnızca TRANSCRIPT okunur). Yapmacık sunucu tonunu önler."""
+    return (f"Read the transcript aloud.\nDIRECTOR'S NOTES: The speaker is {style or 'a friendly person'}. {NATURAL} "
+            "Leave a short pause between paragraphs.\nTRANSCRIPT:\n" + text.strip())
 
 
 def valid_voice(v: str) -> bool:
-    """Formlardan gelen ses seçimi: "" otomatik, "female"/"male" ya da VOICE_LIST'teki bir ses."""
-    return v in VOICES or v in VOICE_LIST
+    """Formlardan gelen ses seçimi: "" otomatik, "female"/"male" ya da VOICE_PRESETS'teki bir ses."""
+    return v in VOICES or v in VOICE_PRESETS
 
 
-def voice_name(choice: str, gender: str) -> str:
-    """Seçilen ses adı; seçim yoksa ya da yalnızca cinsiyetse o cinsiyetin varsayılan sesi."""
-    return choice if choice in VOICE_LIST else VOICES[choice if choice in VOICES else gender][0]
+def voice_for(choice: str, gender: str) -> tuple[str, str]:
+    """(Gemini hazır sesi, yönetmen notu). Seçim yoksa ya da yalnızca cinsiyetse o cinsiyetin varsayılan sesi.
+    Eski kayıtlardaki doğrudan ses adları (ör. "Enceladus") olduğu gibi kullanılır."""
+    if choice in VOICE_PRESETS:
+        return VOICE_PRESETS[choice][2], VOICE_PRESETS[choice][4]
+    if choice and choice not in VOICES and choice[:1].isupper():
+        return choice, ""
+    return VOICES[choice if choice in VOICES else gender][0], ""
 
 
 IDEA_POOL = [
@@ -596,8 +619,8 @@ class RealAI:
                                                temperature=1.1))
         return clean_format(kind, json.loads(resp.text))
 
-    def speak(self, *, text: str, voice: str, out: Path) -> Path:
-        """Gemini seslendirme (TTS): metni seçilen hazır sesle okur, 24 kHz WAV kaydeder."""
+    def speak(self, *, text: str, voice: str, out: Path, style: str = "") -> Path:
+        """Gemini seslendirme (TTS): metni seçilen hazır sesle, yönetmen notuna (style) göre okur, 24 kHz WAV kaydeder."""
         import wave
 
         from google.genai import types
@@ -607,7 +630,7 @@ class RealAI:
             speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
                 prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice))))
         resp = with_quota_retry(lambda: self.client.models.generate_content(
-            model=config.TTS_MODEL, contents=text, config=cfg))
+            model=config.TTS_MODEL, contents=tts_prompt(text, style), config=cfg))
         pcm = resp.candidates[0].content.parts[0].inline_data.data
         out.parent.mkdir(parents=True, exist_ok=True)
         with wave.open(str(out), "wb") as w:
@@ -904,10 +927,10 @@ class FakeAI:
                  "Ertesi sabah notun altına cevap yazılmıştı: Ben de seni."]
         return clean_format(kind, {**common, "community": "İtiraf köşesi", "voice": "male", "sentences": sents})
 
-    def speak(self, *, text: str, voice: str, out: Path) -> Path:
+    def speak(self, *, text: str, voice: str, out: Path, style: str = "") -> Path:
         from .formatlar import fake_voice
 
-        return fake_voice(text, out, 0 if VOICE_LIST.get(voice, ("female",))[0] == "female" else 1)
+        return fake_voice(text, out, 0 if voice in ("Kore", "Leda", "Zephyr", "Achernar", "Gacrux") else 1)
 
     def channel_plan(self, *, topic: str, language: str) -> dict:
         """Sahte mod: konudan kalıp kanal planı (demo)."""
