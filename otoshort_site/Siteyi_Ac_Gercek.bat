@@ -1,0 +1,42 @@
+@echo off
+cd /d "%~dp0"
+title Zaply Site (gercek yapay zeka)
+echo ============================================
+echo  ZAPLY SITE - GERCEK yapay zeka (.env anahtariyla)
+echo ============================================
+if not exist ".env" (
+  echo .env dosyasi yok. .env.ornek dosyasini .env adiyla kopyalayip GEMINI_API_KEY satirini doldur.
+  pause
+  exit /b 1
+)
+if not exist ".venv\Scripts\python.exe" (
+  where python >nul 2>nul
+  if errorlevel 1 goto nopython
+  echo Ilk kurulum yapiliyor, 1-2 dakika surebilir...
+  python -m venv .venv
+)
+".venv\Scripts\python.exe" -m pip install -q -r saas\requirements.txt
+set SAHTE_AI=0
+set ADMIN_EPOSTALAR=admin@deneme.com
+set KAYIT_HEDIYE_KREDI=1000
+set VERI_KLASORU=%~dp0saas_veri_deneme
+set PORT=8000
+echo.
+echo Site aciliyor: http://localhost:8000
+echo Telefondan bakmak icin (ayni Wi-Fi):
+powershell -NoProfile -Command "Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } | ForEach-Object { '   http://' + $_.IPAddress + ':8000' }"
+echo Kayit olurken admin@deneme.com yazarsan Yonetim paneli de acilir.
+echo Her yeni hesaba deneme icin 1000 kredi verilir.
+echo Ucretsiz anahtarla: VIRAL FORMATLAR (quiz, korku, Top 5...) ve ucretsiz araclar calisir.
+echo Yapay zeka VIDEOSU (Veo) ucretlidir; ucretsiz anahtarla hata verir, kredi iade edilir.
+echo Kapatmak icin bu pencereyi kapat.
+echo.
+start "" http://localhost:8000
+".venv\Scripts\python.exe" -m saas
+pause
+exit /b 0
+
+:nopython
+echo Python bulunamadi. python.org adresinden kur, kurarken "Add python.exe to PATH" kutusunu isaretle.
+pause
+exit /b 1
