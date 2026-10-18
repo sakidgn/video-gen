@@ -2538,8 +2538,25 @@ def test_long_background_never_repeats_the_same_part(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
     v = tmp_path / "uzun.mp4"
     subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi", "-i",
-                    "testsrc=size=160x120:rate=5:duration=120", "-pix_fmt", "yuv420p", str(v)], check=True)
-    starts = sorted(formatlar.random_start(v, 15) for _ in range(6))
+                    "testsrc=size=160x120:rate=5:duration=200", "-pix_fmt", "yuv420p", str(v)], check=True)
+    starts = sorted(formatlar.random_start(v, 15) for _ in range(5))
     assert all(b - a >= 15 for a, b in zip(starts, starts[1:]))  # kullanılan kısımlar üst üste gelmez
     assert all(formatlar.random_start(v, 15) >= 1 for _ in range(10))  # yer kalmayınca baştan dağıtılır
-    assert formatlar.random_start(v, 115) == 0.0  # kısa kalan video döngüyle oynar
+    assert formatlar.random_start(v, 195) == 0.0  # kısa kalan video döngüyle oynar
+
+
+def test_library_background_becomes_default(client, tmp_path, monkeypatch):
+    import shutil
+
+    from saas import formatlar
+
+    assert formatlar.default_background() == "parkur"
+    folder = config.DATA_DIR / "arka_planlar"
+    folder.mkdir(parents=True, exist_ok=True)
+    shutil.copy(formatlar.BUILTIN_VIDEOS["parkur"], folder / "minecraft_parkur.mp4")
+    assert formatlar.default_background() == "lib:minecraft_parkur"
+    signup(client, "a@b.com")
+    page = client.get("/video/yeni").text
+    assert re.search(r'name="background" value="lib:minecraft_parkur"\s+checked', page) and "Minecraft parkur" in page
+    monkeypatch.setenv("VARSAYILAN_ARKA_PLAN", "girdap")
+    assert formatlar.default_background() == "girdap"

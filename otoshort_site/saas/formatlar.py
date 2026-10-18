@@ -483,6 +483,17 @@ BUILTIN_VIDEOS = {"parkur": config.ROOT / "static" / "arka_planlar" / "parkur.mp
 DEFAULT_BACKGROUND = "parkur"
 
 
+def default_background() -> str:
+    """Varsayılan arka plan: .env'de VARSAYILAN_ARKA_PLAN (ör. minecraft_parkur) varsa o, yoksa kütüphaneye konan
+    ilk video, o da yoksa sitenin kendi parkuru."""
+    lib = library_backgrounds()
+    want = config._env("VARSAYILAN_ARKA_PLAN")
+    for key in (want, f"lib:{want}"):
+        if key and key in background_choices():
+            return key
+    return next(iter(lib), DEFAULT_BACKGROUND)
+
+
 def random_start(video: Path, seconds: float) -> float:
     """Arka plan videosu istenen süreden epey uzunsa daha önce kullanılmamış rastgele bir başlangıç anı (sn);
     kısaysa 0 (döngüyle oynar). Kullanılan aralıklar <veri>/arka_plan_kullanim.json'da tutulur, böylece uzun bir

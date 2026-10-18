@@ -248,7 +248,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
                                                          base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
         my_plan=abonelik.active_plan(user) if user else "",
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
-        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF,
+        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), default_bg=formatlar.default_background(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF,
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
         theme=current_theme(request), themes=config.THEMES,
         yearly_save=config.YEARLY_SAVE_PCT,

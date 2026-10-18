@@ -70,7 +70,7 @@
   <div class="dur-scale" aria-hidden="true"><span>{{ sec.min }} {{ _('sn') }}</span><span class="dur-base" style="--p:{{ ((sec.base - sec.min) * 100 / (sec.max - sec.min))|round(2) }}%">{{ sec.base }}</span><span>{{ sec.max }} {{ _('sn') }}</span></div>
   <p class="hint dur-note"><span data-dur-note>–</span> · <b><span data-dur-price>–</span> {{ _('kredi') }}</b></p>
 </div>
-{% set want_bg = ch.background if ch and ch.background is defined and ch.background in backgrounds else 'parkur' %}
+{% set want_bg = ch.background if ch and ch.background is defined and ch.background in backgrounds else default_bg %}
 <div class="only-format">
 <div class="step-title"><span class="n"></span><h3>{{ _('Arka plan') }}</h3><span class="faint">{{ _('videonun arkasında döner') }}</span></div>
 <div class="opts bg-pick">
