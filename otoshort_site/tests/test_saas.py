@@ -2526,3 +2526,20 @@ def test_formats_speak_in_one_request_and_retry_quota(client, monkeypatch, tmp_p
     assert ai.with_quota_retry(flaky) == "ok" and waits == [13.5, 13.5]
     with pytest.raises(RuntimeError):
         ai.with_quota_retry(lambda: (_ for _ in ()).throw(RuntimeError("429 ... retry in 3600s.")))
+
+
+def test_long_background_never_repeats_the_same_part(tmp_path, monkeypatch):
+    import subprocess
+
+    import imageio_ffmpeg
+
+    from saas import formatlar
+
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    v = tmp_path / "uzun.mp4"
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                    "testsrc=size=160x120:rate=5:duration=120", "-pix_fmt", "yuv420p", str(v)], check=True)
+    starts = sorted(formatlar.random_start(v, 15) for _ in range(6))
+    assert all(b - a >= 15 for a, b in zip(starts, starts[1:]))  # kullanılan kısımlar üst üste gelmez
+    assert all(formatlar.random_start(v, 15) >= 1 for _ in range(10))  # yer kalmayınca baştan dağıtılır
+    assert formatlar.random_start(v, 115) == 0.0  # kısa kalan video döngüyle oynar

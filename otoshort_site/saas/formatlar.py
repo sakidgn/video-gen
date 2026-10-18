@@ -484,13 +484,48 @@ DEFAULT_BACKGROUND = "parkur"
 
 
 def random_start(video: Path, seconds: float) -> float:
-    """Arka plan videosu istenen süreden epey uzunsa rastgele bir başlangıç anı (sn); kısaysa 0 (döngüyle oynar)."""
+    """Arka plan videosu istenen süreden epey uzunsa daha önce kullanılmamış rastgele bir başlangıç anı (sn);
+    kısaysa 0 (döngüyle oynar). Kullanılan aralıklar <veri>/arka_plan_kullanim.json'da tutulur, böylece uzun bir
+    kayıttan (ör. 2,5 saatlik parkur) aynı kısım tekrar gelmez; video bitince en baştan yeniden dağıtılır."""
+    import json
     import random
+    import threading
 
     from .media import _probe
 
     total = _probe(video)[1]
-    return random.uniform(1.0, total - seconds - 2) if total > seconds + 10 else 0.0
+    if total <= seconds + 10:
+        return 0.0
+    store = config.DATA_DIR / "arka_plan_kullanim.json"
+    lock = random_start.__dict__.setdefault("lock", threading.Lock())
+    with lock:
+        try:
+            used = json.loads(store.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            used = {}
+        key = f"{video.name}:{int(total)}"
+        spans = [tuple(x) for x in used.get(key, [])]
+        lo, hi = 1.0, total - seconds - 2
+        free = []  # kullanılmamış boşluklar (başlangıç, bitiş)
+        cur = lo
+        for a, b in sorted(spans):
+            if a - cur >= seconds:
+                free.append((cur, a - seconds))
+            cur = max(cur, b)
+        if hi - cur >= 0:
+            free.append((cur, hi))
+        if not free:  # hepsi kullanıldı: baştan başla
+            spans, free = [], [(lo, hi)]
+        a, b = random.choices(free, weights=[y - x + 1 for x, y in free])[0]
+        start = random.uniform(a, max(a, b))
+        spans.append((round(start, 2), round(start + seconds + 1, 2)))
+        used[key] = spans
+        try:
+            store.parent.mkdir(parents=True, exist_ok=True)
+            store.write_text(json.dumps(used), encoding="utf-8")
+        except OSError:
+            pass
+    return start
 
 
 def render(ass_text: str, audio: Path, seconds: float, background: str, out: Path) -> Path:
