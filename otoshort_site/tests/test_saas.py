@@ -2590,3 +2590,19 @@ def test_named_voices_and_voice_samples(client, tmp_path):
     assert [j.voice for j in jobs] == ["Enceladus", "Fenrir", ""] and all(j.status == "hazir" for j in jobs)
     assert Spy.voices[0] == "Enceladus" and "Fenrir" in Spy.voices[1:3] and len(set(Spy.voices[1:3])) == 2
     assert "Fısıltılı ses" in client.get(f"/video/{jobs[0].id}").text
+
+
+def test_parkur_file_replaces_builtin_parkour(client):
+    import shutil
+
+    from saas import formatlar
+
+    folder = config.DATA_DIR / "arka_planlar"
+    folder.mkdir(parents=True, exist_ok=True)
+    shutil.copy(formatlar.BUILTIN_VIDEOS["parkur"], folder / "parkur.mp4")
+    choices = formatlar.background_choices()
+    assert choices["parkur"] == "Parkur" and "lib:parkur" not in choices and "Blok parkur" not in choices.values()
+    assert formatlar.background_video("parkur") == folder / "parkur.mp4" and formatlar.default_background() == "parkur"
+    signup(client, "a@b.com")
+    page = client.get("/video/yeni?format=quiz").text
+    assert re.search(r'name="background" value="parkur"\s+checked', page) and "Blok parkur" not in page

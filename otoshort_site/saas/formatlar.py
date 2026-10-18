@@ -479,7 +479,17 @@ def library_backgrounds() -> dict[str, Path]:
 
 
 def background_choices() -> dict[str, str]:
-    return {**BACKGROUNDS, **{k: k[4:].replace("_", " ").capitalize() for k in library_backgrounds()}}
+    """Seçilebilen arka planlar. Klasöre sitedekiyle aynı adda video konursa (ör. parkur.mp4) sitenin kendi
+    videosunun yerine geçer: anahtar aynı kalır (eski kanallar etkilenmez), adı "Parkur" olur."""
+    lib = library_backgrounds()
+    base = {k: ("Parkur" if f"lib:{k}" in lib else v) for k, v in BACKGROUNDS.items()}
+    return {**base, **{k: k[4:].replace("_", " ").capitalize() for k in lib if k[4:] not in BACKGROUNDS}}
+
+
+def background_video(key: str) -> Path | None:
+    """Arka planın video dosyası: klasördeki video (aynı adlıysa sitenin videosunun yerine), yoksa sitenin videosu."""
+    lib = library_backgrounds()
+    return lib.get(key) or lib.get(f"lib:{key}") or BUILTIN_VIDEOS.get(key)
 
 
 # Siteyle gelen video arka planlar (kendi ürettiğimiz; araclar/parkur/yap.py)
@@ -490,7 +500,7 @@ DEFAULT_BACKGROUND = "parkur"
 def default_background() -> str:
     """Varsayılan arka plan: .env'de VARSAYILAN_ARKA_PLAN (ör. minecraft_parkur) varsa o, yoksa kütüphaneye konan
     ilk video, o da yoksa sitenin kendi parkuru."""
-    lib = library_backgrounds()
+    lib = {k: v for k, v in library_backgrounds().items() if k[4:] not in BACKGROUNDS}
     want = config._env("VARSAYILAN_ARKA_PLAN")
     for key in (want, f"lib:{want}"):
         if key and key in background_choices():
@@ -548,14 +558,13 @@ def render(ass_text: str, audio: Path, seconds: float, background: str, out: Pat
     import imageio_ffmpeg
 
     ff = imageio_ffmpeg.get_ffmpeg_exe()
-    lib = library_backgrounds()
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)
         (tmp / "f.ass").write_text(ass_text, encoding="utf-8")
         shutil.copy(FONT, tmp / FONT.name)
         shutil.copy(audio, tmp / "ses.wav")
-        if background in lib or background in BUILTIN_VIDEOS:
-            bg = lib.get(background) or BUILTIN_VIDEOS[background]
+        if background_video(background):
+            bg = background_video(background)
             start = random_start(bg, seconds)  # uzun videodan (ör. 2 saatlik oyun kaydı) her seferinde başka bir an
             if start:  # dosyayı kopyalamadan doğrudan oradan okunur
                 src = ["-ss", f"{start:.2f}", "-i", str(bg), "-t", f"{seconds:.2f}"]

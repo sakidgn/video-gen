@@ -1357,6 +1357,7 @@ EN = {
     'Kalın': 'Deep',
     'Samimi': 'Friendly',
     'Net': 'Clear',
+    'Parkur': 'Parkour',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)

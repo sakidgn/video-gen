@@ -87,6 +87,7 @@ def constant_keys() -> set[str]:
     from .ai import VOICE_LIST
 
     keys |= {desc for _g, desc in VOICE_LIST.values()}
+    keys.add("Parkur")  # klasördeki parkur.mp4 sitenin parkurunun yerine geçince (formatlar.background_choices)
     return keys
 
 
