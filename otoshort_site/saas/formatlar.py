@@ -469,9 +469,13 @@ def _bg_source(kind: str, seconds: float) -> list[str]:
 
 
 def library_backgrounds() -> dict[str, Path]:
-    """Yöneticinin koyduğu arka plan videoları: <veri>/arka_planlar/*.mp4 (ad = dosya adı)."""
+    """Yöneticinin koyduğu arka plan videoları: <veri>/arka_planlar/*.mp4|mkv|webm|mov (ad = dosya adı)."""
     folder = config.DATA_DIR / "arka_planlar"
-    return {f"lib:{p.stem}": p for p in sorted(folder.glob("*.mp4"))} if folder.exists() else {}
+    if not folder.exists():
+        return {}
+    exts = {".mp4", ".mkv", ".webm", ".mov", ".m4v"}
+    files = sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in exts)
+    return {f"lib:{p.name[:-len(p.suffix)].split('.')[0]}": p for p in files}
 
 
 def background_choices() -> dict[str, str]:
