@@ -12,8 +12,9 @@ PREFIX = "otoshort_site/"
 KEEP = (".env", "saas_veri", ".venv")
 
 
-def extract_site(data: bytes, dest: Path) -> int:
-    """Depo zip'inden otoshort_site/ altındaki dosyaları dest klasörüne yazar; yazılan dosya sayısını döndürür."""
+def extract_site(data: bytes, dest: Path, skip: tuple[str, ...] = ()) -> int:
+    """Depo zip'inden otoshort_site/ altındaki dosyaları dest klasörüne yazar; değişen dosya sayısını döndürür.
+    Aynı kalan dosyalara dokunulmaz (tarayıcı önbelleği boşa bozulmasın); skip: o an çalışan .bat gibi atlanacaklar."""
     n = 0
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         for info in z.infolist():
@@ -22,13 +23,15 @@ def extract_site(data: bytes, dest: Path) -> int:
             if info.is_dir() or not rel.startswith(PREFIX):
                 continue
             rel = rel[len(PREFIX):]
-            if not rel or rel.startswith(KEEP) or "__pycache__" in rel:
+            if not rel or rel.startswith(KEEP) or "__pycache__" in rel or rel in skip:
                 continue
             target = dest / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             data_ = z.read(info)
             if rel.endswith(".bat"):  # Windows komut dosyaları CRLF ister (LF'de etiketler/goto bozulur, pencere kapanır)
                 data_ = data_.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+            if target.exists() and target.read_bytes() == data_:
+                continue
             target.write_bytes(data_)
             n += 1
     return n
@@ -47,7 +50,9 @@ def main() -> int:
     except Exception as e:
         print(f"İndirilemedi: {e}")
         return 1
-    print(f"Güncellendi ({extract_site(data, dest)} dosya).")
+    skip = tuple(sys.argv[sys.argv.index("--atla") + 1:]) if "--atla" in sys.argv else ()
+    n = extract_site(data, dest, skip)
+    print(f"Güncellendi ({n} dosya değişti)." if n else "Zaten en son sürüm.")
     return 0
 
 

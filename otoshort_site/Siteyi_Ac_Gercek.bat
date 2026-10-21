@@ -15,6 +15,8 @@ if not exist ".venv\Scripts\python.exe" (
   echo Ilk kurulum yapiliyor, 1-2 dakika surebilir...
   python -m venv .venv
 )
+echo Guncelleme kontrol ediliyor...
+".venv\Scripts\python.exe" -m saas.guncelle --atla Siteyi_Ac_Gercek.bat
 ".venv\Scripts\python.exe" -m pip install -q -r saas\requirements.txt
 set SAHTE_AI=0
 set ADMIN_EPOSTALAR=admin@deneme.com

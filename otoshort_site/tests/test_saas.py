@@ -2231,7 +2231,7 @@ def test_would_you_rather_and_quiz_formats(client, tmp_path):
     t = csrf(client, "/video/yeni")
     page = client.get("/video/yeni?format=quiz").text
     assert re.search(r'name="format" value="quiz"[^>]*checked', page) and 'data-kind="secim"' in page \
-        and 'data-src="/static/formatlar/quiz.mp4"' in page
+        and 'data-src="/static/formatlar/quiz.mp4?v=' in page
     client.post("/video/yeni", data={"idea": "", "format": "secim", "background": "pastel", "csrf": t})
     client.post("/video/yeni", data={"idea": "Uzay", "format": "quiz", "background": "piksel", "csrf": t})
     run_queue(ai.FakeAI())
@@ -2298,7 +2298,7 @@ def test_horror_facts_top5_true_false_and_flag_formats(client, tmp_path):
     clean = ai.clean_format("dogru", {"items": [{"text": "a", "ok": "evet", "why": ""}, {"text": "b", "ok": True}]})
     assert [x["text"] for x in clean["items"]] == ["b"]
     home = client.get("/").text
-    assert "data-vf-marquee" in home and home.count("/static/formatlar/secim.mp4") == 2  # 5 kart, iki kopya
+    assert "data-vf-marquee" in home and home.count("/static/formatlar/secim.mp4?v=") == 2  # 5 kart, iki kopya
     assert home.count('aria-hidden="true" tabindex="-1"') == 5  # ikinci kopya ekran okuyuculardan gizli
 
 

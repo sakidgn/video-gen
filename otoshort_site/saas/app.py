@@ -337,17 +337,36 @@ templates.env.globals["icon"] = icon
 templates.env.globals["brand"] = brand
 
 
+def _asset_files() -> list:
+    return sorted((config.ROOT / "static").glob("*.*")) + sorted((config.ROOT / "static" / "vendor").glob("*.js"))
+
+
 def _asset_version() -> str:
     """Statik dosyalar değişince adres de değişsin (tarayıcı eski CSS/JS'i önbellekten kullanmasın)."""
     import hashlib
 
     h = hashlib.md5()
-    for f in sorted((config.ROOT / "static").glob("*.*")) + sorted((config.ROOT / "static" / "vendor").glob("*.js")):
+    for f in _asset_files():
         h.update(f.read_bytes())
     return h.hexdigest()[:10]
 
 
-templates.env.globals["v"] = _asset_version()
+class _AssetVersion:
+    """Şablondaki {{ v }}: site açıkken güncelleme gelirse (dosyaların değişme zamanı değişir) yeniden hesaplanır."""
+
+    def __init__(self):
+        self._key, self._v = None, ""
+
+    def __str__(self) -> str:
+        key = tuple((f.name, f.stat().st_mtime_ns, f.stat().st_size) for f in _asset_files())
+        if key != self._key:
+            self._key, self._v = key, _asset_version()
+        return self._v
+
+    __html__ = __str__
+
+
+templates.env.globals["v"] = _AssetVersion()
 templates.env.globals["LOGO"] = LOGO
 STATUS_BADGE = {"sirada": "b-wait", "uretiliyor": "b-wait", "hazir": "b-ok", "hata": "b-err"}
 templates.env.globals["status_badge"] = STATUS_BADGE
@@ -355,13 +374,17 @@ templates.env.globals["L"] = lambda path: i18n.localized_path(path, public=tuple
 
 
 def static_for_lang(path: str) -> str:
-    """/static/hero/hero.mp4 → dil İngilizceyse ve dosyası varsa /static/hero/hero-en.mp4 (yoksa Türkçesi)."""
+    """/static/hero/hero.mp4 → dil İngilizceyse ve dosyası varsa /static/hero/hero-en.mp4 (yoksa Türkçesi).
+    Sonuna dosyanın değişme zamanından ?v= eklenir: güncellemede yeni video/görsel eskisi önbellekte kalmadan gelir."""
     if i18n.current() == "en":
         stem, dot, ext = path.rpartition(".")
         alt = f"{stem}-en{dot}{ext}"
         if (config.ROOT / alt.removeprefix("/")).exists():
-            return alt
-    return path
+            path = alt
+    try:
+        return f"{path}?v={int((config.ROOT / path.removeprefix('/')).stat().st_mtime) % 46656 ** 2:x}"
+    except OSError:
+        return path
 
 
 templates.env.globals["S"] = static_for_lang
