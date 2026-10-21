@@ -70,13 +70,14 @@ def channel_params(s, ch: Channel) -> dict:
     return dict(idea=ch.topic, characters=characters, style=ch.style, language=ch.language, quality=ch.quality,
                 channel_id=ch.id, ref_image=ref_image, subtitles=ch.subtitles, subtitle_style=ch.subtitle_style,
                 seconds=ch.seconds, format=ch.format, background=ch.background, hook=ch.hook, progress=ch.progress,
-                voice=ch.voice)
+                voice=ch.voice, music=ch.music)
 
 
 def create_job(s, user_id: int, *, idea: str, characters: str, style: str, language: str, quality: str,
                channel_id: int | None = None, slot: str | None = None, ref_image: str = "",
                subtitles: bool = False, subtitle_style: str = "viral", seconds: int = 8, format: str = "",
-               background: str = "", hook: bool = False, progress: bool = False, voice: str = "") -> Job:
+               background: str = "", hook: bool = False, progress: bool = False, voice: str = "",
+               music: str = "") -> Job:
     """İşi oluşturur ve krediyi düşer (yetmezse credits.NotEnoughCredits)."""
     from . import abonelik, formatlar
 
@@ -96,7 +97,8 @@ def create_job(s, user_id: int, *, idea: str, characters: str, style: str, langu
               language=language, quality=quality, cost=cost, ref_image=ref_image or "", subtitles=bool(subtitles),
               subtitle_style=subtitle_style if subtitle_style in SUB_STYLES else "", seconds=seconds,
               format=format, background=background, hook=bool(hook) and not format, progress=bool(progress),
-              voice=voice if format and ai_mod.valid_voice(voice) else "")
+              voice=voice if format and ai_mod.valid_voice(voice) else "",
+              music=music if format and music in formatlar.music_choices() else "")
     s.add(job)
     s.flush()
     label = formatlar.FORMATS[format][0] if format else config.QUALITIES[quality]["label"]
@@ -118,7 +120,7 @@ def run_job(job_id: int, generator) -> None:
         quality, seconds = job.quality, config.clamp_seconds(job.seconds)
         fmt, background = job.format, job.background
         want_subs, sub_style = job.subtitles, job.subtitle_style
-        want_hook, want_bar, voice = job.hook, job.progress, job.voice
+        want_hook, want_bar, voice, music = job.hook, job.progress, job.voice, job.music
         from . import media
 
         ref = media.ref_path(job.ref_image) if job.ref_image and config.supports_refs(job.quality) else None
@@ -129,7 +131,7 @@ def run_job(job_id: int, generator) -> None:
         rel = f"{job_id}.mp4"
         if fmt:  # viral format: yazışma/hikâye metni + seslendirme + çizim
             script = make_format(generator, fmt, params["idea"], params["language"], seconds, background, past,
-                                 video_dir() / rel, voice=voice, bar=want_bar)
+                                 video_dir() / rel, voice=voice, bar=want_bar, music=music)
             raw = None
         else:
             clips = config.plan_clips(quality, seconds)
@@ -190,7 +192,7 @@ def run_job(job_id: int, generator) -> None:
 
 
 def make_format(generator, kind: str, idea: str, language: str, seconds: int, background: str, past: list[str],
-                out: Path, voice: str = "", bar: bool = False) -> "ai_mod.Script":
+                out: Path, voice: str = "", bar: bool = False, music: str = "") -> "ai_mod.Script":
     """Viral format videosu: yapay zekâ metni yazar, her satır seslendirilir, balonlar/kart + altyazı çizilir.
     voice: anlatıcı (ai.VOICE_PRESETS'ten bir ses ya da "female"/"male"; boşsa yapay zekâ seçer; mesajlaşmada "ben") · bar: en altta ilerleme çubuğu.
     Okunan metinler zamanlarıyla '<ad>.srt' altyazı dosyasına da yazılır."""
@@ -285,7 +287,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             lines = spoken = sents
         if bar:
             ass += "\n".join(media.progress_events(total, formatlar.W, formatlar.H, style="D")) + "\n"
-        formatlar.render(ass, tmp / "ses.wav", total, background, out)
+        formatlar.render(ass, tmp / "ses.wav", total, background, out, music=formatlar.pick_music(music))
     out.with_suffix(".srt").write_text(media.srt([{"text": t, "start": a, "end": b}
                                                   for t, (a, b) in zip(spoken, times)]), encoding="utf-8")
     return ai_mod.Script(video_prompt="\n".join(lines), title=data["title"], caption=data["caption"],

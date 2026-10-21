@@ -1371,6 +1371,12 @@ EN = {
     'Yetişkin': 'Adult',
     'Yumuşak kadın': 'Soft female',
     'Özel': 'Special',
+    'Fon müziği': 'Background music',
+    'Fon müziği için veri klasöründeki “muzikler” klasörüne telifsiz müzik (mp3) koy; burada seçenek olarak çıkar.': 'For background music, put royalty-free tracks (mp3) in the “muzikler” folder of the data directory; they show up here.',
+    'Müziksiz': 'No music',
+    'fon müziği': 'background music',
+    'konuşurken kısılır': 'ducks under the voice',
+    'Rastgele': 'Random',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)

@@ -87,7 +87,7 @@ def constant_keys() -> set[str]:
     from .ai import VOICE_GROUPS, VOICE_PRESETS
 
     keys |= set(VOICE_GROUPS) | {label for _g, label, *_ in VOICE_PRESETS.values()}
-    keys.add("Parkur")  # klasördeki parkur.mp4 sitenin parkurunun yerine geçince (formatlar.background_choices)
+    keys |= {"Parkur", "Rastgele"}  # klasördeki parkur.mp4 sitenin parkurunun yerine geçince (formatlar.background_choices)
     return keys
 
 

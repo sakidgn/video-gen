@@ -139,4 +139,4 @@ def as_channel(t: SimpleNamespace, lang: str) -> SimpleNamespace:
     return SimpleNamespace(id=None, name=t.name, topic=t.topic, characters=t.characters, style=t.style,
                            language=lang if lang in ("tr", "en") else "tr", quality="fast", times=t.times,
                            subtitles=True, subtitle_style="viral", publish_to="", ref_image="", active=True, idea=t.ideas[0], title="",
-                           hook=True, progress=False, voice="")
+                           hook=True, progress=False, voice="", music="rastgele")

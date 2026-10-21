@@ -61,6 +61,8 @@ kartı + seslendirme + kelime kelime altyazı). Metni Gemini yazar, seslendirmey
 video ffmpeg + libass ile çizilir (`saas/formatlar.py`). Sabit fiyat `KREDI_FORMAT` (19), abonelik gerekmez.
 Arka planlar: ffmpeg desenleri (girdap, piksel, pastel) ya da `saas_veri/arka_planlar/*.mp4` içine koyduğun
 kendi videoların. Ana sayfadaki örnek videolar: `python araclar/format_ornekleri.py`.
+Fon müziği: `saas_veri/muzikler/` klasörüne konan telifsiz parçalar (mp3, m4a, wav…) formlarda seçenek olur;
+müzik konuşurken kısılır, sonda yavaşça biter. `arka_planlar/parkur.mp4` sitenin parkurunun yerine geçer.
 
 ## Ziyaretçiyi yakalayan araçlar
 - **Senaryo oynatıcı:** ana sayfadaki kayıtsız denemede senaryo telefon ekranında kelime kelime altyazıyla oynar.

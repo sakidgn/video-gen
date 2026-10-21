@@ -75,6 +75,8 @@ NEW_COLUMNS = [
     ("channels", "hook", "BOOLEAN NOT NULL DEFAULT 0"),
     ("channels", "progress", "BOOLEAN NOT NULL DEFAULT 0"),
     ("channels", "voice", "VARCHAR(10) NOT NULL DEFAULT ''"),
+    ("jobs", "music", "VARCHAR(60) NOT NULL DEFAULT ''"),
+    ("channels", "music", "VARCHAR(60) NOT NULL DEFAULT ''"),
 ]
 
 

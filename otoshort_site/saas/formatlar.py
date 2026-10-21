@@ -2,6 +2,7 @@
 Video modeli kullanılmaz: yapay zekâ metni yazar, seslendirme (TTS) okunur, ffmpeg + libass ile arka plan videosunun
 üstüne sohbet balonları / gönderi kartı ve kelime kelime altyazı çizilir. Bu yüzden ucuz ve hızlıdır."""
 import math
+import random
 import shutil
 import subprocess
 import tempfile
@@ -553,8 +554,38 @@ def random_start(video: Path, seconds: float) -> float:
     return start
 
 
-def render(ass_text: str, audio: Path, seconds: float, background: str, out: Path) -> Path:
-    """Arka plan + çizimler (ASS) + ses → 720x1280 mp4."""
+MUSIC_EXTS = {".mp3", ".m4a", ".wav", ".ogg", ".aac", ".flac"}
+
+
+def music_tracks() -> dict[str, Path]:
+    """Fon müzikleri: <veri>/muzikler/ klasörüne konan telifsiz parçalar (ad = dosya adı)."""
+    folder = config.DATA_DIR / "muzikler"
+    if not folder.exists():
+        return {}
+    files = sorted(p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in MUSIC_EXTS)
+    return {p.name[:-len(p.suffix)].split(".")[0][:50]: p for p in files}
+
+
+def music_choices() -> dict[str, str]:
+    """Formdaki seçenekler: "rastgele" + her parça (ad → görünen ad)."""
+    tracks = music_tracks()
+    return {"rastgele": "Rastgele", **{k: k.replace("_", " ").replace("-", " ").capitalize() for k in tracks}} \
+        if tracks else {}
+
+
+def pick_music(choice: str) -> Path | None:
+    """Seçime göre parça: "" yok, "rastgele" klasörden rastgele, ya da adıyla. Parça silinmişse rastgele."""
+    import random
+
+    tracks = music_tracks()
+    if not choice or not tracks:
+        return None
+    return tracks.get(choice) or random.choice(list(tracks.values()))
+
+
+def render(ass_text: str, audio: Path, seconds: float, background: str, out: Path, music: Path | None = None) -> Path:
+    """Arka plan + çizimler (ASS) + ses (+ fon müziği) → 720x1280 mp4.
+    Müzik konuşma sırasında kısılır (sidechain), sonda yavaşça biter; uzun parçada rastgele bir yerden başlar."""
     import imageio_ffmpeg
 
     ff = imageio_ffmpeg.get_ffmpeg_exe()
@@ -575,8 +606,21 @@ def render(ass_text: str, audio: Path, seconds: float, background: str, out: Pat
             src = _bg_source(background if background in BACKGROUNDS else "girdap", seconds)
         vf = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase:flags=neighbor,crop={W}:{H},"
               f"setsar=1,fps=30,eq=brightness=-0.06:saturation=1.1,subtitles=f.ass:fontsdir=.,format=yuv420p[v]")
-        subprocess.run([ff, "-y", "-loglevel", "error", *src, "-i", "ses.wav", "-filter_complex", vf,
-                        "-map", "[v]", "-map", "1:a", "-t", f"{seconds:.2f}", "-c:v", "libx264", "-preset", "veryfast",
+        amap, msrc = "1:a", []
+        if music:
+            from .media import _probe
+
+            mdur = _probe(music)[1]
+            mstart = random.uniform(0, mdur - seconds - 1) if mdur > seconds + 20 else 0.0
+            msrc = ["-stream_loop", "-1", "-ss", f"{mstart:.2f}", "-i", str(music)]
+            fade = max(0.0, seconds - 1.5)
+            vf += (f";[2:a]aresample=44100,aformat=channel_layouts=stereo,volume=0.32,afade=t=in:d=0.8,"
+                   f"afade=t=out:st={fade:.2f}:d=1.5[m];[1:a]aresample=44100,aformat=channel_layouts=stereo,asplit=2[v1][v2];"
+                   f"[m][v1]sidechaincompress=threshold=0.02:ratio=6:attack=15:release=350[md];"
+                   f"[v2][md]amix=inputs=2:duration=first:normalize=0[a]")
+            amap = "[a]"
+        subprocess.run([ff, "-y", "-loglevel", "error", *src, "-i", "ses.wav", *msrc, "-filter_complex", vf,
+                        "-map", "[v]", "-map", amap, "-t", f"{seconds:.2f}", "-c:v", "libx264", "-preset", "veryfast",
                         "-crf", "22", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "out.mp4"],
                        cwd=d, check=True, timeout=900)
         out.parent.mkdir(parents=True, exist_ok=True)

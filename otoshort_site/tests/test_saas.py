@@ -2614,3 +2614,34 @@ def test_parkur_file_replaces_builtin_parkour(client):
     signup(client, "a@b.com")
     page = client.get("/video/yeni?format=quiz").text
     assert re.search(r'name="background" value="parkur"\s+checked', page) and "Blok parkur" not in page
+
+
+def test_background_music_from_folder(client, monkeypatch):
+    import subprocess
+
+    import imageio_ffmpeg
+
+    from saas import formatlar
+
+    signup(client, "a@b.com", plan="")
+    give("a@b.com", 100)
+    assert 'name="music"' not in client.get("/video/yeni?format=quiz").text  # klasör boşken seçenek yok
+    folder = config.DATA_DIR / "muzikler"
+    folder.mkdir(parents=True, exist_ok=True)
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi", "-i",
+                    "anoisesrc=d=40:c=pink:a=0.2", str(folder / "neseli_lofi.mp3")], check=True)
+    page = client.get("/video/yeni?format=quiz").text
+    assert re.search(r'name="music" value="rastgele"\s+checked', page) and "Neseli lofi" in page
+    used = []
+    real = formatlar.render
+    monkeypatch.setattr(formatlar, "render", lambda *a, **k: (used.append(k.get("music")), real(*a, **k))[1])
+    t = csrf(client, "/video/yeni")
+    client.post("/video/yeni", data={"idea": "Uzay", "format": "quiz", "music": "neseli_lofi", "csrf": t})
+    client.post("/video/yeni", data={"idea": "Uzay", "format": "quiz", "music": "", "csrf": t})
+    client.post("/video/yeni", data={"idea": "x", "format": "quiz", "music": "../../etc", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        jobs = s.scalars(select(Job).order_by(Job.id)).all()
+    assert [j.music for j in jobs] == ["neseli_lofi", "", ""] and all(j.status == "hazir" for j in jobs)
+    assert used == [folder / "neseli_lofi.mp3", None, None]
+    assert "fon müziği" in client.get(f"/video/{jobs[0].id}").text

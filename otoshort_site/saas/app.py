@@ -248,7 +248,7 @@ def render(request: Request, name: str, user: User | None = None, status_code: i
                                                          base=config.BASE_SECONDS, default=config.DEFAULT_SECONDS),
         my_plan=abonelik.active_plan(user) if user else "",
         my_quals=abonelik.allowed(user) if user else config.FREE_QUALITIES,
-        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), default_bg=formatlar.default_background(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF, voice_presets=ai_mod.VOICE_PRESETS, voice_groups=ai_mod.VOICE_GROUPS,
+        plan_for=config.plan_for_quality, formats=formatlar.FORMATS, backgrounds=formatlar.background_choices(), default_bg=formatlar.default_background(), sub_styles=media.SUB_STYLE_LABELS, video_off=config.VIDEO_OFF, voice_presets=ai_mod.VOICE_PRESETS, music_choices=formatlar.music_choices(), voice_groups=ai_mod.VOICE_GROUPS,
         format_credits=config.FORMAT_CREDITS, format_min=config.FORMAT_MIN_SECONDS,
         theme=current_theme(request), themes=config.THEMES,
         yearly_save=config.YEARLY_SAVE_PCT,
@@ -1067,7 +1067,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                         ref_remove: str = Form(""), subtitles: str = Form(""), cast: list[str] = Form([]),
                         subtitle_style: str = Form("viral"), seconds: int = Form(config.DEFAULT_SECONDS),
                         format: str = Form(""), background: str = Form(""), hook: str = Form(""),
-                        progress: str = Form(""), voice: str = Form("")):
+                        progress: str = Form(""), voice: str = Form(""), music: str = Form("")):
         if (blocked := require_verified(request, user)) is not None:
             return blocked
         quality = _valid_choice(quality, config.QUALITIES, "fast")
@@ -1082,7 +1082,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
                     style=_valid_choice(style, config.STYLES, "cartoon"),
                     language=_valid_choice(language, config.LANGUAGES, "tr"), quality=quality, ref_image=ref_image,
                     subtitles=bool(subtitles), subtitle_style=subtitle_style, seconds=seconds, format=format,
-                    background=background, hook=bool(hook), progress=bool(progress), voice=voice)
+                    background=background, hook=bool(hook), progress=bool(progress), voice=voice, music=music)
                 job_id = job.id
         except credits.NotEnoughCredits:
             flash(request, "Yeterli kredin yok. Bu video {n} kredi.", "err", n=config.price(quality, seconds))
@@ -1173,7 +1173,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             params = dict(idea=old.idea, characters=old.characters, style=old.style, language=old.language,
                           quality=old.quality, ref_image=old.ref_image, subtitles=old.subtitles,
                           subtitle_style=old.subtitle_style, seconds=old.seconds, format=old.format,
-                          background=old.background, hook=old.hook, progress=old.progress, voice=old.voice)
+                          background=old.background, hook=old.hook, progress=old.progress, voice=old.voice,
+                          music=old.music)
         try:
             with db.session() as s:
                 new_id = worker.create_job(s, user.id, **params).id
@@ -1612,6 +1613,7 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             approval=form.get("approval") == "1",
             hook=bool(form.get("hook")) and not form.get("format"), progress=bool(form.get("progress")),
             voice=str(form.get("voice", "")) if form.get("format") and ai_mod.valid_voice(str(form.get("voice", ""))) else "",
+            music=str(form.get("music", "")) if form.get("format") and form.get("music") in formatlar.music_choices() else "",
         )
 
     @app.get("/kanallar", response_class=HTMLResponse)
@@ -1638,7 +1640,8 @@ def _routes(app: FastAPI) -> None:  # noqa: C901
             tpl = SimpleNamespace(id=None, name=clean(ad, 100), topic=clean(konu, 600), characters="", style="cartoon",
                                   language=i18n.current(), quality="fast", times=times, subtitles=True,
                                   subtitle_style="viral", publish_to="", ref_image="", active=True, idea="", title="",
-                                  seconds=config.DEFAULT_SECONDS, approval=False, hook=True, progress=False, voice="")
+                                  seconds=config.DEFAULT_SECONDS, approval=False, hook=True, progress=False, voice="",
+                                  music="rastgele")
         request.session.pop("kanal", None)
         return render(request, "kanal_form.html", user, ch=None, linked=_linked(user.id), platforms=social.PLATFORMS,
                       tpl=tpl, tpl_name=t.name if t else "", **_cast_ctx(user.id, []))

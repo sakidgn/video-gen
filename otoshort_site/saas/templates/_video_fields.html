@@ -114,6 +114,24 @@
 </div>
 <p class="hint" style="margin-top:8px">{{ _('Mesajlaşmada seçtiğin ses “ben” olur, karşı tarafın sesi otomatik seçilir. ▶ ile dinleyebilirsin.') }}</p>
 </div>
+{% set want_music = ch.music if ch and ch.music is defined else 'rastgele' %}
+{% if music_choices or (user and user.is_admin) %}
+<div class="only-format">
+<div class="step-title"><span class="n"></span><h3>{{ _('Fon müziği') }}</h3><span class="faint">{{ _('konuşurken kısılır') }}</span></div>
+{% if music_choices %}
+<div class="seg music-pick">
+  <label class="opt"><input type="radio" name="music" value="" {% if not want_music or want_music not in music_choices %}checked{% endif %}>
+    <span class="opt-body">{{ icon('x', 14) }}<span class="opt-title">{{ _('Müziksiz') }}</span></span></label>
+  {% for k, label in music_choices.items() %}
+  <label class="opt"><input type="radio" name="music" value="{{ k }}" {% if want_music == k %}checked{% endif %}>
+    <span class="opt-body">{{ icon('sparkles' if k == 'rastgele' else 'play', 14) }}<span class="opt-title">{{ _(label) if k == 'rastgele' else label }}</span></span></label>
+  {% endfor %}
+</div>
+{% else %}
+<p class="hint">{{ icon('info', 13) }} {{ _('Fon müziği için veri klasöründeki “muzikler” klasörüne telifsiz müzik (mp3) koy; burada seçenek olarak çıkar.') }}</p>
+{% endif %}
+</div>
+{% endif %}
 <div class="extras">
   <label class="toggle-row only-video">
     <input type="checkbox" name="hook" value="1" {% if (ch.hook if ch and ch.hook is defined else true) %}checked{% endif %}>
