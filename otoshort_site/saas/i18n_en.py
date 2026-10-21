@@ -1393,6 +1393,9 @@ EN = {
     'üstüne gel, örneği izle': 'hover to watch a sample',
     'İlişki': 'Relationships',
     'Sıralama': 'Ranking',
+    'Başlık + hashtag': 'Title + hashtags',
+    'Her gün 19:00’da': 'Daily at 7 pm',
+    'Seslendirme hazır': 'Voiceover ready',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)

@@ -12,21 +12,36 @@
 {% set start = '/video/yeni' if user else L('/kayit') %}
 
 {# kapak resmi CSS'te: telefon yalnızca dikey, masaüstü yalnızca yatay kapağı indirir #}
-<section class="hero-film" style="--poster:url('{{ S('/static/hero/hero.jpg') }}');--poster-m:url('{{ S('/static/hero/hero-m.jpg') }}')">
-  <video class="hf-video" autoplay muted loop playsinline preload="auto" data-hero-video
-    data-poster="{{ S('/static/hero/hero.jpg') }}" data-src="{{ S('/static/hero/hero.mp4') }}" data-src-m="{{ S('/static/hero/hero-m.mp4') }}" data-poster-m="{{ S('/static/hero/hero-m.jpg') }}" aria-hidden="true"></video>
-  <div class="hf-shade" aria-hidden="true"></div>
-  <div class="wrap hf-copy">
-    <span class="eyebrow hf-in" style="--i:0">{{ _('Yapay zekâ ile otomatik kısa video') }}</span>
-    <h1 class="hf-in" style="--i:1">{{ _h('Reels, TikTok ve<br>Shorts için<br><span class="hl">otomatik video.</span>') }}</h1>
-    <p class="lead hf-in" style="--i:2">{{ _("Fikrini yaz ya da boş bırak; yapay zekâ senaryoyu yazar, sesli ve dikey videoyu üretir, başlığı ve hashtag'leri hazırlar. Kanalını bir kez kur, seçtiğin saatlerde her gün yeni video gelsin.") }}</p>
-    <div class="row hf-in" style="--i:3">
-      <a class="btn btn-primary btn-lg btn-glow" href="{{ start }}">{{ _('Video üret') if user else _('Ücretsiz başla') }} {{ icon('arrow-right', 17) }}</a>
-      <a class="btn btn-ghost btn-lg" href="#nasil">{{ _('Nasıl çalışır') }}</a>
+<section class="hero-film hero-v2">
+  <div class="hv-bg" aria-hidden="true"><i class="b1"></i><i class="b2"></i><i class="b3"></i><span class="hv-grid"></span></div>
+  <div class="wrap hv-wrap">
+    <div class="hf-copy">
+      <span class="eyebrow hf-in" style="--i:0">{{ _('Yapay zekâ ile otomatik kısa video') }}</span>
+      <h1 class="hf-in" style="--i:1">{{ _h('Reels, TikTok ve<br>Shorts için<br><span class="hl">otomatik video.</span>') }}</h1>
+      <p class="lead hf-in" style="--i:2">{{ _("Fikrini yaz ya da boş bırak; yapay zekâ senaryoyu yazar, sesli ve dikey videoyu üretir, başlığı ve hashtag'leri hazırlar. Kanalını bir kez kur, seçtiğin saatlerde her gün yeni video gelsin.") }}</p>
+      <div class="row hf-in" style="--i:3">
+        <a class="btn btn-primary btn-lg btn-glow" href="{{ start }}">{{ _('Video üret') if user else _('Ücretsiz başla') }} {{ icon('arrow-right', 17) }}</a>
+        <a class="btn btn-ghost btn-lg" href="#nasil">{{ _('Nasıl çalışır') }}</a>
+      </div>
+      <div class="hf-meta hf-in" style="--i:4">
+        <span class="hf-plat" aria-label="{{ _('TikTok, Instagram Reels ve YouTube Shorts için hazır') }}">{{ brand('tiktok', 17) }}{{ brand('instagram', 17) }}{{ brand('youtube', 19) }}</span>
+        <span class="trust"><span>{{ _('Kamera ve montaj gerekmez') }}</span><span>{{ _('Otomatik çekim yok') }}</span><span>{{ _('Başarısız videoda iade') }}</span></span>
+      </div>
     </div>
-    <div class="hf-meta hf-in" style="--i:4">
-      <span class="hf-plat" aria-label="{{ _('TikTok, Instagram Reels ve YouTube Shorts için hazır') }}">{{ brand('tiktok', 17) }}{{ brand('instagram', 17) }}{{ brand('youtube', 19) }}</span>
-      <span class="trust"><span>{{ _('Kamera ve montaj gerekmez') }}</span><span>{{ _('Otomatik çekim yok') }}</span><span>{{ _('Başarısız videoda iade') }}</span></span>
+    <div class="hv-stage hf-in" style="--i:2" aria-hidden="true">
+      <div class="hv-phone">
+        <div class="hv-screen">
+          <img src="{{ S('/static/hero/vitrin.jpg') }}" alt="" class="hv-poster">
+          <video muted loop playsinline preload="auto" data-hero-video data-src="{{ S('/static/hero/vitrin.mp4') }}"
+            data-src-m="{{ S('/static/hero/vitrin.mp4') }}" data-poster="{{ S('/static/hero/vitrin.jpg') }}" data-poster-m="{{ S('/static/hero/vitrin.jpg') }}"></video>
+          <span class="hv-island"></span>
+          <span class="hv-made">{{ icon('zap', 11) }} {{ site }}</span>
+        </div>
+      </div>
+      <span class="hv-chip c1"><b class="ok">{{ icon('check', 13) }}</b>{{ _('Senaryo yazıldı') }}</span>
+      <span class="hv-chip c2"><b>{{ icon('mic', 13) }}</b>{{ _('Seslendirme hazır') }}</span>
+      <span class="hv-chip c3"><b>{{ icon('hash', 13) }}</b>{{ _('Başlık + hashtag') }}</span>
+      <span class="hv-chip c4"><b class="hot">{{ icon('repeat', 13) }}</b>{{ _('Her gün 19:00’da') }}</span>
     </div>
   </div>
   <a class="hf-scroll" href="#formatlar" aria-label="{{ _('Aşağı kaydır') }}">{{ icon('chevron-down', 22) }}</a>
