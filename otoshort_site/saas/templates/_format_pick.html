@@ -1,27 +1,35 @@
-{# Video formatı: yapay zekâ videosu ya da viral formatlar (mesajlaşma, hikâye, seçim, quiz). ch: düzenlenen kayıt #}
+{# Video formatı: büyük, videolu kartlar (üstüne gelince örnek oynar). Yapay zekâ videosu ya da viral formatlar.
+   ch: düzenlenen kayıt #}
 {% set want_fmt = ch.format if ch and ch.format is defined and ch.format in formats else (start_format or '') %}
 {% if video_off and not want_fmt %}{% set want_fmt = 'quiz' %}{% endif %}
-<div class="step-title"><span class="n"></span><h3>{{ _('Format') }}</h3></div>
-<div class="opts fmt-pick" data-fmt-pick>
-  <label class="opt {{ 'locked' if video_off }}"><input type="radio" name="format" value="" data-label="{{ _('Yapay zekâ videosu') }}" {% if video_off %}disabled{% elif not want_fmt %}checked{% endif %}>
-    <span class="opt-body"><span class="opt-tick"></span><span class="fmt-prev fp-video" aria-hidden="true"><i class="mascot"></i><i class="mascot alt"></i></span>
-      <span class="opt-title">{{ _('Yapay zekâ videosu') }}</span><span class="opt-sub">{{ _('Karakterli, sesli ve konuşmalı sahne') }}</span>
-      <span class="opt-price">{% if video_off %}{{ icon('lock', 12) }} {{ _('Yakında') }}{% else %}{{ _('{n} kredi’den', n=qualities.lite.credits) }}{% endif %}</span></span></label>
-  {% for k, (label, desc) in formats.items() %}
-  <label class="opt" title="{{ _(desc) }}"><input type="radio" name="format" value="{{ k }}" data-label="{{ _(label) }}" {% if want_fmt == k %}checked{% endif %}>
-    <span class="opt-body"><span class="opt-tick"></span>
-      {% if k == 'sohbet' %}<span class="fmt-prev fp-chat" aria-hidden="true"><i></i><i class="me"></i><i></i><i class="me"></i></span>
-      {% elif k == 'secim' %}<span class="fmt-prev fp-wyr" aria-hidden="true"><i></i><i class="b"></i><b>{{ _('VEYA') }}</b></span>
-      {% elif k == 'quiz' %}<span class="fmt-prev fp-quiz" aria-hidden="true"><i class="q"></i><i></i><i class="ok"></i><i></i></span>
-      {% elif k == 'korku' %}<span class="fmt-prev fp-horror" aria-hidden="true"><i></i><b>{{ _('KORKU') }}</b></span>
-      {% elif k == 'bilgi' %}<span class="fmt-prev fp-facts" aria-hidden="true"><i>{{ _('BİLGİ') }} 1/5</i><b>{{ _('BUNU') }} <em>{{ _('BİLİYOR') }}</em></b></span>
-      {% elif k == 'liste' %}<span class="fmt-prev fp-top" aria-hidden="true"><i data-n="1"></i><i data-n="2" class="on"></i><i data-n="3"></i></span>
-      {% elif k == 'dogru' %}<span class="fmt-prev fp-tf" aria-hidden="true"><i></i><b>{{ _('DOĞRU') }}</b></span>
-      {% elif k == 'bilmece' %}<span class="fmt-prev fp-riddle" aria-hidden="true"><b>?</b><i>{{ _('DAHİ') }}</i></span>
-      {% elif k == 'bayrak' %}<span class="fmt-prev fp-flag" aria-hidden="true"><b class="r">{{ icon('flag', 13) }}</b><b class="g">{{ icon('flag', 13) }}</b></span>
-      {% else %}<span class="fmt-prev fp-story" aria-hidden="true"><i></i><b>{{ _('İTİRAF') }}</b></span>{% endif %}
-      <span class="opt-title">{{ _(label) }} <span class="badge b-ok fmt-new">{{ _('VİRAL') }}</span></span><span class="opt-sub">{{ _(desc) }}</span>
-      <span class="opt-price">{{ _('{n} kredi', n=format_credits) }}</span></span></label>
+{% set fmeta = {'sohbet': ('message', _('Mesajlaşma')), 'hikaye': ('book', _('Hikâye')), 'secim': ('layers', _('Seçim')),
+  'quiz': ('help', _('Quiz')), 'korku': ('moon', _('Korku')), 'bilgi': ('info', _('Bilgi')), 'liste': ('list', _('Sıralama')),
+  'dogru': ('check', _('Doğru/Yanlış')), 'bayrak': ('flag', _('İlişki')), 'bilmece': ('brain', _('Bilmece'))} %}
+<div class="step-title"><span class="n"></span><h3>{{ _('Format seç') }}</h3><span class="faint">{{ _('üstüne gel, örneği izle') }}</span></div>
+<div class="fmt-grid" data-fmt-pick>
+  <label class="fcard {{ 'locked' if video_off }}" data-kind="video">
+    <input type="radio" name="format" value="" data-label="{{ _('Yapay zekâ videosu') }}" {% if video_off %}disabled{% elif not want_fmt %}checked{% endif %}>
+    <span class="fc-body">
+      <img class="fc-poster" src="{{ S('/static/hero/hero-m.jpg') }}" alt="" loading="lazy">
+      <video class="fc-vid" muted loop playsinline preload="none" data-src="{{ S('/static/hero/hero-m.mp4') }}"></video>
+      <span class="fc-shade"></span><span class="fc-check">{{ icon('check', 14) }}</span>
+      <span class="fc-chip ai">{{ icon('sparkles', 12) }} {{ _('YAPAY ZEKÂ') }}</span>
+      <span class="fc-info"><span class="fc-meta">{{ icon('film', 12) }} {{ _('Karakterli sahne') }}</span>
+        <b class="fc-title">{{ _('Yapay zekâ videosu') }}</b><span class="fc-desc">{{ _('Karakterli, sesli ve konuşmalı sahne') }}</span>
+        <span class="fc-price">{% if video_off %}{{ icon('lock', 12) }} {{ _('Yakında') }}{% else %}{{ _('{n} kredi’den', n=qualities.lite.credits) }}{% endif %}</span></span>
+    </span></label>
+  {% for k, (label, desc) in formats.items() %}{% set m = fmeta.get(k, ('sparkles', '')) %}{% set media = format_media.get(k) %}
+  <label class="fcard" data-kind="{{ k }}" title="{{ _(desc) }}">
+    <input type="radio" name="format" value="{{ k }}" data-label="{{ _(label) }}" {% if want_fmt == k %}checked{% endif %}>
+    <span class="fc-body fc-{{ k }}">
+      {% if media %}<img class="fc-poster" src="{{ S(media[0]) }}" alt="" loading="lazy">
+      <video class="fc-vid" muted loop playsinline preload="none" data-src="{{ S(media[1]) }}"></video>{% endif %}
+      <span class="fc-shade"></span><span class="fc-check">{{ icon('check', 14) }}</span>
+      <span class="fc-chip">{{ icon('zap', 12) }} {{ _('VİRAL') }}</span>
+      <span class="fc-info"><span class="fc-meta">{{ icon(m[0], 12) }} {{ m[1] }}</span>
+        <b class="fc-title">{{ _(label) }}</b><span class="fc-desc">{{ _(desc) }}</span>
+        <span class="fc-price">{{ _('{n} kredi', n=format_credits) }}</span></span>
+    </span></label>
   {% endfor %}
 </div>
 <p class="hint fmt-note">{{ _('Viral formatlar video modeli kullanmaz: abonelik gerekmez, birkaç dakikada hazır.') }}</p>

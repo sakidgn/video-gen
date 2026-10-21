@@ -113,6 +113,16 @@
     b.classList.remove('is-loading');
   });
 
+  // Format kartları: üstüne gelince (telefonda seçince) örnek video oynar; sadece o an yüklenir
+  $$('[data-fmt-pick] .fcard').forEach(card => {
+    const v = $('.fc-vid', card); if (!v) return;
+    const play = () => { if (!v.src) v.src = v.dataset.src; card.classList.add('playing'); const r = v.play(); if (r && r.catch) r.catch(() => {}); };
+    const stop = () => { v.pause(); card.classList.remove('playing'); };
+    card.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') play(); });
+    card.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') stop(); });
+    $('input', card).addEventListener('change', () => { $$('[data-fmt-pick] .fcard.playing').forEach(c => { if (c !== card) { $('.fc-vid', c).pause(); c.classList.remove('playing'); } }); if (!reduce) play(); });
+  });
+
   // Hızlı geçiş: bağlantının üstüne gelince / dokununca sayfa önceden indirilir, tıklayınca anında açılır
   const fetched = new Set([location.pathname + location.search]);
   const skip = /^\/(en\/)?(cikis|tema\/|dil\/|s\/|d\/|e\/|dogrula\/|auth\/|baglan\/|yayin\/|admin|api\/|kesfet\/\d)|\/(dosya|altyazi\.srt|kapak|durum|video)$|[?&]indir=/;

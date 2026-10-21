@@ -598,6 +598,17 @@ def random_start(video: Path, seconds: float) -> float:
     return start
 
 
+def sample_media(lang: str) -> dict[str, tuple[str, str]]:
+    """Format seçme kartlarındaki örnek (kapak, video) adresleri: varsa dile özel, yoksa Türkçe sürüm."""
+    folder = config.ROOT / "static" / "formatlar"
+    out = {}
+    for k in FORMATS:
+        name = f"{k}-{lang}" if lang != "tr" and (folder / f"{k}-{lang}.jpg").exists() else k
+        if (folder / f"{name}.jpg").exists():
+            out[k] = (f"/static/formatlar/{name}.jpg", f"/static/formatlar/{name}.mp4")
+    return out
+
+
 MUSIC_EXTS = {".mp3", ".m4a", ".wav", ".ogg", ".aac", ".flac"}
 
 

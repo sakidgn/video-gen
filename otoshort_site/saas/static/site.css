@@ -1354,7 +1354,7 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 @property --ring{syntax:'<angle>';inherits:false;initial-value:0deg}
 .glow-ring{position:relative;border-color:transparent!important;box-shadow:0 0 0 1px rgba(255,61,139,.15),0 18px 60px -24px rgba(255,61,139,.45)}
 /* neon taşma: önerilen kartın etrafına pembe-turuncu ışık yayılır, yavaşça nefes alır */
-.glow-ring:not(.cur-plan){animation:neonbreath 3.6s ease-in-out infinite}
+.glow-ring{animation:neonbreath 3.6s ease-in-out infinite}
 @keyframes neonbreath{0%,100%{box-shadow:0 0 0 1px rgba(255,61,139,.2),0 0 36px 2px rgba(255,61,139,.38),-50px 18px 110px -8px rgba(255,61,139,.3),50px 18px 110px -8px rgba(255,138,0,.28),0 60px 120px -24px rgba(255,61,139,.45)}50%{box-shadow:0 0 0 1px rgba(255,61,139,.3),0 0 50px 6px rgba(255,61,139,.55),-70px 22px 140px 0 rgba(255,61,139,.42),70px 22px 140px 0 rgba(255,138,0,.4),0 80px 150px -20px rgba(255,61,139,.6)}}
 .glow-ring .btn-primary{box-shadow:0 0 22px -2px rgba(255,61,139,.6),0 10px 34px -8px rgba(255,138,0,.55)}
 html.jumping .glow-ring{animation:none}
@@ -1439,3 +1439,47 @@ html.jumping .glow-ring{animation:none}
 .theme-pick>[data-swatches]{grid-row:2;grid-column:1}
 .theme-pick>.tp-swatches[hidden]{display:flex!important;visibility:hidden}
 .theme-pick>.tp-note[hidden]{display:block!important;visibility:hidden}
+
+/* ============ Neon patlama: neon detaylı her öğede yanlara taşan, nefes alan ışık ============ */
+@keyframes neonpill{0%,100%{box-shadow:0 0 14px 0 rgba(255,61,139,.45),-18px 6px 34px -8px rgba(255,61,139,.35),18px 6px 34px -8px rgba(255,138,0,.32)}
+  50%{box-shadow:0 0 22px 3px rgba(255,61,139,.6),-30px 8px 50px -6px rgba(255,61,139,.45),30px 8px 50px -6px rgba(255,138,0,.42)}}
+@keyframes neonbtn{0%,100%{box-shadow:0 0 18px -2px rgba(255,61,139,.45),-26px 10px 46px -14px rgba(255,61,139,.45),26px 10px 46px -14px rgba(255,138,0,.4)}
+  50%{box-shadow:0 0 30px 2px rgba(255,61,139,.62),-44px 14px 70px -10px rgba(255,61,139,.55),44px 14px 70px -10px rgba(255,138,0,.5)}}
+.btn-glow{animation:neonbtn 3.2s ease-in-out infinite}
+.btn-glow:hover{animation-duration:1.6s}
+.hot-tag,.fmt-new,.per-toggle:before{animation:neonpill 3s ease-in-out infinite}
+.pn-bar.hot i{box-shadow:0 0 14px rgba(255,61,139,.6),0 0 26px rgba(255,138,0,.4)}
+.hi-name{filter:drop-shadow(0 0 14px rgba(255,61,139,.35))}
+html.jumping .btn-glow,html.jumping .hot-tag,html.jumping .fmt-new,html.jumping .per-toggle:before{animation:none}
+@media(prefers-reduced-motion:reduce){.btn-glow,.hot-tag,.fmt-new,.per-toggle:before,.glow-ring{animation:none}}
+
+/* ============ Format seçme: uzun, videolu kartlar (üstüne gelince örnek oynar) ============ */
+.fmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:12px}
+.fcard{position:relative;display:block;cursor:pointer}
+.fcard input{position:absolute;opacity:0;pointer-events:none}
+.fc-body{position:relative;display:flex;flex-direction:column;justify-content:space-between;aspect-ratio:9/14;border-radius:18px;overflow:hidden;
+  background:linear-gradient(160deg,#2a2330,#15131a);border:1px solid var(--border-2);isolation:isolate;
+  transition:transform .35s var(--spring,var(--ease)),border-color .25s,box-shadow .35s}
+.fc-poster,.fc-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transition:transform .6s var(--ease),opacity .3s}
+.fc-vid{opacity:0}.fcard.playing .fc-vid{opacity:1}
+.fc-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 20%,rgba(8,6,10,.1) 38%,rgba(8,6,10,.86) 60%,rgba(8,6,10,.96) 100%)}
+.fc-chip{align-self:flex-start;margin:10px;display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:99px;font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#fff;
+  background:linear-gradient(90deg,#ff3d8b,#ff8a00);box-shadow:0 0 14px rgba(255,61,139,.45)}
+.fc-chip.ai{background:rgba(255,255,255,.16);box-shadow:none;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.fc-info{display:grid;gap:4px;padding:12px 12px 13px;color:#fff;text-align:left}
+.fc-meta{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffd9a0}
+.fc-title{font-size:calc(16.5px * var(--fs));line-height:1.15;font-weight:800;letter-spacing:-.01em}
+.fc-desc{font-size:calc(11.5px * var(--fs));line-height:1.4;color:rgba(255,255,255,.72);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fc-price{font-size:calc(11.5px * var(--fs));font-weight:700;color:#fff;opacity:.9;display:inline-flex;align-items:center;gap:4px}
+.fc-check{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(135deg,#ff3d8b,#ff8a00);transform:scale(0);transition:transform .35s var(--pop,var(--ease))}
+.fcard:hover .fc-body{transform:translateY(-4px);border-color:rgba(255,138,0,.5)}
+.fcard:hover .fc-poster,.fcard:hover .fc-vid{transform:scale(1.04)}
+.fcard input:checked+.fc-body{border-color:transparent;transform:translateY(-4px);
+  box-shadow:0 0 0 2px #ff8a00,0 0 26px 2px rgba(255,61,139,.5),-24px 12px 50px -10px rgba(255,61,139,.45),24px 12px 50px -10px rgba(255,138,0,.4)}
+.fcard input:checked+.fc-body .fc-check{transform:scale(1)}
+.fcard input:focus-visible+.fc-body{outline:2px solid var(--accent);outline-offset:3px}
+.fcard.locked{cursor:not-allowed}.fcard.locked .fc-body{filter:grayscale(.7);opacity:.6}
+.fc-body:not(:has(.fc-poster)){background:linear-gradient(160deg,#ff3d8b33,#2a2330 45%,#15131a)}
+@media(max-width:640px){.fmt-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.fc-desc{display:none}.fc-title{font-size:15px}}
+@media(prefers-reduced-motion:reduce){.fc-body,.fc-poster,.fc-vid{transition:none}}

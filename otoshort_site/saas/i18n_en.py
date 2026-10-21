@@ -1380,6 +1380,19 @@ EN = {
     'Bilmece, geri sayım, sonra cevap; izleyici kaçını bildiğini yazar': 'A riddle, a countdown, then the answer; viewers comment how many they got',
     'Bunu bilen dahidir': 'Only geniuses get this',
     'DAHİ': 'GENIUS',
+    'Bilgi': 'Facts',
+    'Bilmece': 'Riddle',
+    'Doğru/Yanlış': 'True/False',
+    'Format seç': 'Pick a format',
+    'Karakterli sahne': 'Character scene',
+    'Korku': 'Horror',
+    'Mesajlaşma': 'Chat',
+    'Quiz': 'Quiz',
+    'Seçim': 'Choice',
+    'YAPAY ZEKÂ': 'AI',
+    'üstüne gel, örneği izle': 'hover to watch a sample',
+    'İlişki': 'Relationships',
+    'Sıralama': 'Ranking',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)

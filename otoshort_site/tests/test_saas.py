@@ -2230,7 +2230,8 @@ def test_would_you_rather_and_quiz_formats(client, tmp_path):
     give("q@b.com", 100)
     t = csrf(client, "/video/yeni")
     page = client.get("/video/yeni?format=quiz").text
-    assert re.search(r'name="format" value="quiz"[^>]*checked', page) and "fp-wyr" in page and "fp-quiz" in page
+    assert re.search(r'name="format" value="quiz"[^>]*checked', page) and 'data-kind="secim"' in page \
+        and 'data-src="/static/formatlar/quiz.mp4"' in page
     client.post("/video/yeni", data={"idea": "", "format": "secim", "background": "pastel", "csrf": t})
     client.post("/video/yeni", data={"idea": "Uzay", "format": "quiz", "background": "piksel", "csrf": t})
     run_queue(ai.FakeAI())
@@ -2653,7 +2654,7 @@ def test_riddle_format(client, tmp_path):
     signup(client, "a@b.com", plan="")
     give("a@b.com", 100)
     t = csrf(client, "/video/yeni")
-    assert 'value="bilmece"' in client.get("/video/yeni").text and "fp-riddle" in client.get("/video/yeni").text
+    assert 'value="bilmece"' in client.get("/video/yeni").text and 'data-kind="bilmece"' in client.get("/video/yeni").text
     client.post("/video/yeni", data={"idea": "", "format": "bilmece", "csrf": t})
     run_queue(ai.FakeAI())
     with db.session() as s:

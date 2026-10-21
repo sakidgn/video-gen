@@ -58,13 +58,13 @@ QUIZ = {
 }
 
 
-def silent_clips(texts: list[str], tmp: Path) -> list[Path]:
+def silent_clips(texts: list[str], tmp: Path, name: str = "") -> list[Path]:
     import imageio_ffmpeg
 
     out = []
     for i, t in enumerate(texts):
         dur = max(1.1, min(6.0, 0.34 * len(t.split()) + 0.4))
-        p = tmp / f"c{i}.wav"
+        p = tmp / (name or f"c{i}.wav")
         subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-f", "lavfi", "-i",
                         f"anullsrc=r=24000:cl=mono", "-t", f"{dur:.2f}", str(p)], check=True)
         out.append(p)
@@ -84,7 +84,38 @@ def web(src: Path, name: str, fps: int = 24, crf: int = 30, poster_at: float = 3
                     "-q:v", "5", str(OUT / f"{name}.jpg")], check=True)
 
 
+class SilentAI:
+    """Diğer formatlar için: metni sahte yapay zekâ yazar, ses yerine metin uzunluğunda sessizlik (kartlar sessiz)."""
+
+    def __init__(self):
+        from saas import ai
+
+        self.fake = ai.FakeAI()
+
+    def write_format(self, **kw):
+        return self.fake.write_format(**kw)
+
+    def speak(self, *, text, voice, out, style=""):
+        return silent_clips([text], out.parent, out.name)[0]
+
+
+EXTRA = {"korku": "Gece 3'te kapım çalındı", "bilgi": "Hayvanlar", "liste": "Türk lezzetleri", "dogru": "",
+         "bayrak": "", "bilmece": ""}
+
+
+def extra_formats() -> None:
+    """Kalan formatların örnekleri (Türkçe; İngilizce sayfada da bunlar gösterilir)."""
+    from saas import worker
+
+    for kind, idea in EXTRA.items():
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / f"{kind}.mp4"
+            worker.make_format(SilentAI(), kind, idea, "tr", 20, "karanlik" if kind == "korku" else "parkur", [], out)
+            web(out, kind, crf=32, poster_at=4.6)
+
+
 def main() -> None:
+    extra_formats()
     for lang in ("tr", "en"):
         suffix = "" if lang == "tr" else "-en"
         with tempfile.TemporaryDirectory() as d:
