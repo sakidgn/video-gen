@@ -2365,7 +2365,7 @@ def test_light_dark_and_system_themes(client):
         assert f'data-mode-set="{mode}" data-theme-set=' in page  # Koyu | Açık | Sistem çubuğu
     css = client.get("/static/site.css").text
     assert '[data-mode="light"]{' in css and "prefers-color-scheme:light" in css
-    assert '[data-mode="light"] .hero-film{' in css  # tanıtım filmi alanı açık temada da koyu kalır
+    assert '[data-mode="light"] .hero-film .hf-shade{' in css  # açık temada giriş bölümü de açık (yazının arkası açık)
     stray = [l for l in css.splitlines() if "rgba(255,246,230" in l and ".hero-film{" not in l and ".nav:not(.scrolled)" not in l]
     assert not stray  # koyu mürekkep rengi yalnızca açık temada da koyu kalan hero/menü satırında sabit
 

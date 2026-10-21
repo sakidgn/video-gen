@@ -60,18 +60,23 @@
   // ~0.7 sn'de gider ve kayarken sayfadaki animasyonlar (şerit, parıltı) bekletilir.
   const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   let jumpRaf = 0;
+  // Uzun yolda aradaki ağır bölümler (videolar, kartlar) kayarken ilk kez çizilince ekran takılıyordu: hedefin bir
+  // ekran öncesine sessizce atlar, orası çizilince (iki kare sonra) son bir ekranı yumuşak kayar.
   const glide = top => {
     cancelAnimationFrame(jumpRaf);
-    const from = scrollY, dist = top - from;
-    if (reduce || Math.abs(dist) < 4) { window.scrollTo(0, top); return; }
-    const dur = Math.min(900, 420 + Math.abs(dist) * .06), t0 = performance.now(), root = document.documentElement;
+    if (reduce || Math.abs(top - scrollY) < 4) { window.scrollTo(0, top); return; }
+    const root = document.documentElement, span = innerHeight * 1.1;
     root.classList.add('jumping');
-    const step = now => {
-      const k = Math.min(1, (now - t0) / dur);
-      window.scrollTo(0, from + dist * ease(k));
-      if (k < 1) jumpRaf = requestAnimationFrame(step); else root.classList.remove('jumping');
-    };
-    jumpRaf = requestAnimationFrame(step);
+    if (Math.abs(top - scrollY) > span * 1.25) window.scrollTo(0, top - Math.sign(top - scrollY) * span);
+    jumpRaf = requestAnimationFrame(() => { jumpRaf = requestAnimationFrame(t0 => {
+      const from = scrollY, dist = top - from, dur = Math.min(760, 380 + Math.abs(dist) * .35);
+      const step = now => {
+        const k = Math.min(1, (now - t0) / dur);
+        window.scrollTo(0, from + dist * ease(k));
+        if (k < 1) jumpRaf = requestAnimationFrame(step); else root.classList.remove('jumping');
+      };
+      jumpRaf = requestAnimationFrame(step);
+    }); });
   };
   addEventListener('wheel', () => { cancelAnimationFrame(jumpRaf); document.documentElement.classList.remove('jumping'); }, { passive: true });
   addEventListener('touchstart', () => { cancelAnimationFrame(jumpRaf); document.documentElement.classList.remove('jumping'); }, { passive: true });
