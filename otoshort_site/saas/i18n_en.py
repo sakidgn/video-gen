@@ -1109,9 +1109,9 @@ EN = {
     '{q} yapay zekâ': '{q} AI',
     'Blok parkur': 'Block parkour',
     'Karanlık sis': 'Dark fog',
-    'Viral formatlar: 9 hazır kalıp': 'Viral formats: 9 ready-made templates',
+    'Viral formatlar: 10 hazır kalıp': 'Viral formats: 10 ready-made templates',
     "Video modeli kullanmayan, ucuz ve çok izlenen formatlar: mesajlaşmadan korkuya, quizden Top 5'e.": "Cheap, highly watched formats that don't use a video model: from text stories to horror, quizzes to Top 5.",
-    'Video üret sayfasının üstünden formatlardan birini seç: mesajlaşma, itiraf, korku, hangisini seçerdin, quiz, bunu biliyor muydun, Top 5, doğru mu yanlış mı ya da kırmızı bayrak.': 'At the top of the Create video page, pick a format: text story, confession, horror, would you rather, quiz, did you know, Top 5, true or false, or red flag.',
+    'Video üret sayfasının üstünden formatlardan birini seç: mesajlaşma, itiraf, korku, hangisini seçerdin, quiz, bunu biliyor muydun, Top 5, doğru mu yanlış mı, kırmızı bayrak ya da bunu bilen dahidir.': 'At the top of the Create video page, pick a format: text story, confession, horror, would you rather, quiz, did you know, Top 5, true or false, red flag, or only geniuses get this.',
     'Bil bakalım': 'Quiz',
     'Hangisini seçerdin?': 'Would you rather?',
     'Mesajlaşma hikâyeleri, itiraflar, “Hangisini seçerdin?” oyunları, quizler ve yapay zekâ videoları. Konuyu sen yaz; metin, ses ve video otomatik.': 'Text stories, confessions, “Would you rather?” games, quizzes and AI videos. You write the topic; text, voice and video are automatic.',
@@ -1377,6 +1377,9 @@ EN = {
     'fon müziği': 'background music',
     'konuşurken kısılır': 'ducks under the voice',
     'Rastgele': 'Random',
+    'Bilmece, geri sayım, sonra cevap; izleyici kaçını bildiğini yazar': 'A riddle, a countdown, then the answer; viewers comment how many they got',
+    'Bunu bilen dahidir': 'Only geniuses get this',
+    'DAHİ': 'GENIUS',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)

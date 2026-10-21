@@ -396,6 +396,24 @@ def build_verdict_request(kind: str, idea: str, language: str, seconds: int, pas
     return _list_request(task, idea, fallback, language, rules, returns, past)
 
 
+def build_riddle_request(idea: str, language: str, seconds: int, past: list[str]) -> str:
+    n = max(3, min(6, round(seconds / 9)))
+    return _list_request(
+        f"Write an 'Only geniuses get this' riddle game for a {seconds}-second vertical video: a riddle appears, "
+        "viewers get 3 seconds, then the answer is revealed.", idea, "Pick a fun mix of classic riddles.", language,
+        f"Exactly {n} short riddles (max 100 characters each) with one clear, fair answer (max 30 characters), "
+        "from easy to hard. Folk riddles or original ones; no trick questions that need special knowledge.",
+        "voice (female or male), items (array of {q, answer})", past)
+
+
+RIDDLE_SCHEMA = {"type": "object", "properties": {"voice": {"type": "string"}, "items": {
+    "type": "array", "items": {"type": "object", "properties": {"q": {"type": "string"}, "answer": {"type": "string"}},
+                               "required": ["q", "answer"]}}, **{
+    "title": {"type": "string"}, "caption": {"type": "string"}, "summary": {"type": "string"},
+    "hashtags": {"type": "array", "items": {"type": "string"}}}}, "required": ["items", "title", "caption", "hashtags",
+                                                                               "summary"]}
+
+
 _ITEMS = {"type": "array", "items": {"type": "object", "properties": {
     "text": {"type": "string"}, "ok": {"type": "boolean"}, "why": {"type": "string"}}, "required": ["text", "ok", "why"]}}
 _COMMON = {"title": {"type": "string"}, "caption": {"type": "string"}, "summary": {"type": "string"},
@@ -416,6 +434,7 @@ FORMAT_REQUESTS = {
     "bilgi": (build_facts_request, FACTS_SCHEMA), "liste": (build_top_request, TOP_SCHEMA),
     "dogru": (lambda *a: build_verdict_request("dogru", *a), VERDICT_SCHEMA),
     "bayrak": (lambda *a: build_verdict_request("bayrak", *a), VERDICT_SCHEMA),
+    "bilmece": (build_riddle_request, RIDDLE_SCHEMA),
 }
 
 
@@ -458,6 +477,11 @@ def clean_format(kind: str, data: dict) -> dict:
                  for x in data.get("items") or [] if isinstance(x, dict)]
         return {**common, "topic": str(data.get("topic", "")).strip()[:30],
                 "items": [x for x in items if x["name"]][:7], "voice": voice(data.get("voice"), "male")}
+    if kind == "bilmece":
+        items = [{"q": str(x.get("q", "")).strip()[:140], "answer": str(x.get("answer", "")).strip()[:40]}
+                 for x in data.get("items") or [] if isinstance(x, dict)]
+        return {**common, "items": [x for x in items if x["q"] and x["answer"]][:8],
+                "voice": voice(data.get("voice"), "male")}
     if kind in ("dogru", "bayrak"):
         items = [{"text": str(x.get("text", "")).strip()[:120], "ok": x.get("ok") is True,
                   "why": str(x.get("why", "")).strip()[:120]}
@@ -906,6 +930,12 @@ class FakeAI:
                      ("Baklava", "Tartışmasız şampiyon")]
             return clean_format(kind, {**common, "topic": idea[:24] or "Türk lezzetleri", "voice": "male",
                                        "items": [{"name": a, "why": b} for a, b in items]})
+        if kind == "bilmece":
+            rows = ([("What has keys but can't open locks?", "A piano"), ("What gets wetter the more it dries?", "A towel"),
+                     ("What has hands but can't clap?", "A clock")] if language == "en" else
+                    [("Ağzı var dili yok, söyler ama konuşmaz. Nedir?", "Kitap"),
+                     ("Kurudukça ıslanan şey nedir?", "Havlu"), ("Eli var ama alkışlayamaz. Nedir?", "Saat")])
+            return clean_format(kind, {**common, "voice": "male", "items": [{"q": q, "answer": a} for q, a in rows]})
         if kind in ("dogru", "bayrak"):
             items = ([("Bir yılda 52 hafta vardır.", True, "52 hafta artı bir iki gün."),
                       ("Ay kendi ışığını üretir.", False, "Ay, Güneş'in ışığını yansıtır."),

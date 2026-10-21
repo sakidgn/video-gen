@@ -2645,3 +2645,21 @@ def test_background_music_from_folder(client, monkeypatch):
     assert [j.music for j in jobs] == ["neseli_lofi", "", ""] and all(j.status == "hazir" for j in jobs)
     assert used == [folder / "neseli_lofi.mp3", None, None]
     assert "fon müziği" in client.get(f"/video/{jobs[0].id}").text
+
+
+def test_riddle_format(client, tmp_path):
+    from saas import formatlar
+
+    signup(client, "a@b.com", plan="")
+    give("a@b.com", 100)
+    t = csrf(client, "/video/yeni")
+    assert 'value="bilmece"' in client.get("/video/yeni").text and "fp-riddle" in client.get("/video/yeni").text
+    client.post("/video/yeni", data={"idea": "", "format": "bilmece", "csrf": t})
+    run_queue(ai.FakeAI())
+    with db.session() as s:
+        job = s.scalar(select(Job))
+    assert job.status == "hazir" and job.cost == config.FORMAT_CREDITS and "→ Havlu" in job.prompt
+    ass = formatlar.riddle_ass([{"q": "Kurudukça ıslanan şey nedir?", "answer": "Havlu"}],
+                               [(0.4, 1.2), (1.6, 3.0), (6.2, 7.0), (7.9, 9.0)], 10.2, "tr")
+    green = [l for l in ass.splitlines() if formatlar._bgr(formatlar.GREEN) in l]
+    assert len(green) == 1 and green[0].startswith("Dialogue: 4,0:00:06.20") and "BİLMECE 1/1" in ass and "}Havlu" in ass

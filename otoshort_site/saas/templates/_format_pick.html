@@ -17,6 +17,7 @@
       {% elif k == 'bilgi' %}<span class="fmt-prev fp-facts" aria-hidden="true"><i>{{ _('BİLGİ') }} 1/5</i><b>{{ _('BUNU') }} <em>{{ _('BİLİYOR') }}</em></b></span>
       {% elif k == 'liste' %}<span class="fmt-prev fp-top" aria-hidden="true"><i data-n="1"></i><i data-n="2" class="on"></i><i data-n="3"></i></span>
       {% elif k == 'dogru' %}<span class="fmt-prev fp-tf" aria-hidden="true"><i></i><b>{{ _('DOĞRU') }}</b></span>
+      {% elif k == 'bilmece' %}<span class="fmt-prev fp-riddle" aria-hidden="true"><b>?</b><i>{{ _('DAHİ') }}</i></span>
       {% elif k == 'bayrak' %}<span class="fmt-prev fp-flag" aria-hidden="true"><b class="r">{{ icon('flag', 13) }}</b><b class="g">{{ icon('flag', 13) }}</b></span>
       {% else %}<span class="fmt-prev fp-story" aria-hidden="true"><i></i><b>{{ _('İTİRAF') }}</b></span>{% endif %}
       <span class="opt-title">{{ _(label) }} <span class="badge b-ok fmt-new">{{ _('VİRAL') }}</span></span><span class="opt-sub">{{ _(desc) }}</span>

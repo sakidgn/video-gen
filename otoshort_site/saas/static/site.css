@@ -1341,6 +1341,9 @@ form[data-fmt]:not([data-fmt="video"]) .only-video{display:none}
 .fp-tf i{display:block;width:72%;height:24px;border-radius:8px;background:#fff}
 .fp-tf b{font-weight:800;font-size:12px;letter-spacing:.06em;color:#fff;background:#22c55e;padding:4px 12px;border-radius:7px;transform:rotate(-6deg);animation:fpstamp 3s infinite}
 @keyframes fpstamp{0%,40%{opacity:0;transform:rotate(-6deg) scale(1.4)}50%,100%{opacity:1;transform:rotate(-6deg) scale(1)}}
+.fp-riddle{flex-direction:column;gap:6px;background:linear-gradient(160deg,#1f6f5c,#2fbf71)}
+.fp-riddle b{font-size:44px;line-height:1;font-weight:800;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.25);animation:subpop 1.8s infinite}
+.fp-riddle i{font-style:normal;font-weight:800;font-size:11px;letter-spacing:.12em;color:#1f6f5c;background:#fff;padding:3px 10px;border-radius:7px}
 .fp-flag{background:linear-gradient(160deg,#2b0f54,#5a2d82);gap:14px}
 .fp-flag b{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;color:#fff}
 .fp-flag b.r{background:#ff3b5c;animation:fppop2 2.4s infinite}.fp-flag b.g{background:#22c55e;animation:fppop2 2.4s 1.2s infinite}

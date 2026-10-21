@@ -221,7 +221,7 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
             ass = formatlar.chat_ass(msgs, times, data["contact"], total)
             lines = [("> " if m["me"] else "< ") + m["text"] for m in msgs]
             spoken = [m["text"] for m in msgs]
-        elif kind in ("secim", "quiz", "bilgi", "liste", "dogru", "bayrak"):
+        elif kind in ("secim", "quiz", "bilgi", "liste", "dogru", "bayrak", "bilmece"):
             # tek sesli, tur tur ilerleyen formatlar: açılış + turlar (+ düşünme süresi) + kapanış çağrısı
             w, voice = formatlar.words(language), narrator
             if kind == "secim":
@@ -238,6 +238,14 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
                               f"{w['answer']}: {q['options'][q['answer']]}!"]
                     gaps += [formatlar.THINK, 0.9]
                 lines = [f"{q['q']} → {q['options'][q['answer']]}" for q in qs]
+                closing = f"{w['score']} {w['comment']}"
+            elif kind == "bilmece":
+                riddles = data["items"][:8]
+                texts, gaps = [w["riddle_say"]], [0.4]
+                for x in riddles:
+                    texts += [x["q"], f"{w['answer']}: {x['answer']}!"]
+                    gaps += [formatlar.THINK, 0.9]
+                lines = [f"{x['q']} → {x['answer']}" for x in riddles]
                 closing = f"{w['score']} {w['comment']}"
             elif kind == "bilgi":
                 facts = data["facts"][:10]
@@ -272,6 +280,8 @@ def make_format(generator, kind: str, idea: str, language: str, seconds: int, ba
                 ass = formatlar.wyr_ass(rounds, times, total, language)
             elif kind == "quiz":
                 ass = formatlar.quiz_ass(data["topic"], qs, times, total, language)
+            elif kind == "bilmece":
+                ass = formatlar.riddle_ass(riddles, times, total, language)
             elif kind == "bilgi":
                 ass = formatlar.facts_ass(facts, times, total, language)
             elif kind == "liste":

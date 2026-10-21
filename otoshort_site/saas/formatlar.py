@@ -22,6 +22,7 @@ FORMATS = {  # anahtar: (etiket, açıklama)
     "liste": ("Top 5 sıralama", "5'ten 1'e geri sayan liste, birinci sona saklanır"),
     "dogru": ("Doğru mu yanlış mı?", "İddia, geri sayım, sonra DOĞRU ya da YANLIŞ damgası"),
     "bayrak": ("Kırmızı bayrak mı?", "Davranış ekrana gelir, izleyici karar verir: kırmızı mı yeşil mi"),
+    "bilmece": ("Bunu bilen dahidir", "Bilmece, geri sayım, sonra cevap; izleyici kaçını bildiğini yazar"),
 }
 THINK = 3.0  # seçim/quiz turlarında izleyiciye düşünme süresi (sn)
 # Videoda çizilen ve seslendirilen kalıp sözler (videonun dilinde; listede olmayan dil İngilizce)
@@ -64,6 +65,14 @@ for _lang, _w in {  # bilgi, sıralama, doğru/yanlış ve bayrak formatlarını
            "top_say": "إليك أفضل خمسة", "tf": "صح أم خطأ؟", "tf_say": "صح أم خطأ؟", "yes": "صح", "no": "خطأ",
            "flag": "علامة حمراء أم خضراء؟", "flag_say": "علامة حمراء أم خضراء؟", "red": "علامة حمراء",
            "green": "علامة خضراء", "follow": "تابعنا للمزيد!", "agree": "هل توافق؟"},
+}.items():
+    WORDS[_lang].update(_w)
+for _lang, _w in {  # bilmece formatı
+    "tr": {"riddle": "BUNU BİLEN DAHİDİR", "riddle_say": "Bunu bilen dahidir!", "riddle_n": "BİLMECE"},
+    "en": {"riddle": "ONLY GENIUSES GET THIS", "riddle_say": "Only geniuses get this!", "riddle_n": "RIDDLE"},
+    "de": {"riddle": "NUR GENIES WISSEN DAS", "riddle_say": "Das wissen nur Genies!", "riddle_n": "RÄTSEL"},
+    "es": {"riddle": "SOLO LOS GENIOS LO SABEN", "riddle_say": "¡Solo los genios lo saben!", "riddle_n": "ACERTIJO"},
+    "ar": {"riddle": "لا يعرفه إلا العباقرة", "riddle_say": "لا يعرفه إلا العباقرة!", "riddle_n": "لغز"},
 }.items():
     WORDS[_lang].update(_w)
 
@@ -450,6 +459,41 @@ def verdict_ass(kind: str, items: list[dict], times: list[tuple[float, float]], 
                                            + "\\N".join(why[:3])))
     if len(times) > 2 * n + 1:
         out += _title_card(times[-1][0], total, w["agree"], w["comment"])
+    return "\n".join(out) + "\n"
+
+
+def riddle_ass(items: list[dict], times: list[tuple[float, float]], total: float, language: str) -> str:
+    """Bilmece: items [{"q", "answer"}]; times: açılış, her bilmece için (soru, cevap), kapanış.
+    Soru kartı + geri sayım ve dolan çubuk, sonra cevap yeşil kutuda büyüyerek açılır."""
+    w = words(language)
+    out = _header()
+    out += _title_card(0, times[1][0] if len(times) > 1 else total, w["riddle"], "")
+    n = len(items)
+    for i, item in enumerate(items):
+        start, spoken = times[1 + 2 * i]
+        reveal = times[2 + 2 * i][0] if 2 + 2 * i < len(times) else total
+        end = times[3 + 2 * i][0] if 3 + 2 * i < len(times) else total
+        out += _pill(start, end, f"{w['riddle_n']} {i + 1}/{n}", 40)
+        lines = wrap(item["q"], 20)
+        card_h = 80 + len(lines) * 70
+        top = 230
+        out.append(_ev(0, start, end, f"{{\\an7\\pos(40,{top})\\p1\\c&HFFFFFF&\\fad(120,0)}}{rrect(W - 80, card_h, 34)}"))
+        out.append(_ev(1, start, end, f"{{\\an5\\pos({W // 2},{top + card_h / 2:.0f})\\fs58\\b1\\c&H111111&\\fad(120,0)}}"
+                                      + "\\N".join(lines)))
+        mid = top + card_h + 170
+        think = min(reveal, spoken + 0.15)
+        if reveal - think > 0.6:
+            out += _countdown(think, reveal, W // 2, mid, 96, 150)
+            out += _bar(think, reveal)
+        ans = wrap(item["answer"], 16)[:2]
+        bw = max(320, max(len(x) for x in ans) * 38 + 100)
+        bh = 40 + len(ans) * 78
+        out.append(_ev(4, reveal, end, f"{{\\an7\\pos({(W - bw) // 2},{mid - bh // 2})\\p1\\c{_bgr(GREEN)}{_pop(160)}}}"
+                                       f"{rrect(bw, bh, 30)}"))
+        out.append(_ev(5, reveal, end, f"{{\\an5\\pos({W // 2},{mid})\\fs66\\b1\\c&HFFFFFF&{_pop(160)}}}"
+                                       + "\\N".join(ans)))
+    if len(times) > 2 * n + 1:
+        out += _title_card(times[-1][0], total, w["score"], w["comment"])
     return "\n".join(out) + "\n"
 
 

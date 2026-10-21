@@ -44,12 +44,12 @@ GUIDES = [
          ("AI etiketini unutma",
           "Platform kuralları gereği yapay zekâyla üretilen videolar “AI” etiketiyle paylaşılmalıdır."),
      ], "cta": ("/baglantilar", "Hesap bağla")},
-    {"slug": "viral-formatlar", "icon": "message", "min": 2, "title": "Viral formatlar: 9 hazır kalıp",
+    {"slug": "viral-formatlar", "icon": "message", "min": 2, "title": "Viral formatlar: 10 hazır kalıp",
      "desc": "Video modeli kullanmayan, ucuz ve çok izlenen formatlar: mesajlaşmadan korkuya, quizden Top 5'e.",
      "steps": [
          ("Formatı seç",
           "Video üret sayfasının üstünden formatlardan birini seç: mesajlaşma, itiraf, korku, hangisini seçerdin, "
-          "quiz, bunu biliyor muydun, Top 5, doğru mu yanlış mı ya da kırmızı bayrak."),
+          "quiz, bunu biliyor muydun, Top 5, doğru mu yanlış mı, kırmızı bayrak ya da bunu bilen dahidir."),
          ("Konuyu yaz",
           "Örn: “Annem gece 3'te neden çevrimiçi olduğumu soruyor” ya da quiz için “Uzay”. Yapay zekâ mesajları, "
           "hikâyeyi, seçenekleri ya da soruları yazar ve sesli okur."),
