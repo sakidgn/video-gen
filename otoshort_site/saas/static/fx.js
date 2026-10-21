@@ -36,7 +36,7 @@
     const setMenu = open => {
       mm.classList.toggle('open', open); scrim && scrim.classList.toggle('open', open);
       burger.setAttribute('aria-expanded', open); mm.setAttribute('aria-hidden', !open);
-      document.body.classList.toggle('menu-open', open); if (open) nav.classList.add('scrolled');
+      document.body.classList.toggle('menu-open', open); nav.classList.toggle('scrolled', open || scrollY > 8);  // kapanınca sayfanın yerine göre geri döner
       if (navigator.vibrate && open) try { navigator.vibrate(8); } catch (e) {}
     };
     burger.addEventListener('click', () => setMenu(!mm.classList.contains('open')));
