@@ -183,3 +183,8 @@ Fiyatlar `saas/config.py` → `QUALITIES` ve `PACKAGES`. Model adları Google de
 ## Sonraki adımlar
 - Kartla ödeme (iyzico / PayTR) — şirket kurulunca.
 - Otomatik paylaşım için platform onayları (Google doğrulaması, TikTok audit, Meta App Review).
+
+## Yayına çıkmadan önce hatırlatmalar
+- **Premium ses (ElevenLabs):** planlandı, henüz bağlanmadı. Kart gelince ticari lisanslı plan (en az Starter) alınacak,
+  `ELEVENLABS_API_KEY` yazılıp Claude'a "ElevenLabs premium sesi bağla" denecek. Ek ücret kullanıcının kredisinden düşecek.
+  Yönetim paneli → Yayına hazırlık listesinde de görünür.

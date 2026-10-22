@@ -94,6 +94,10 @@ def checks() -> list[Check]:
     for p, meta in social.PLATFORMS.items():
         add("istege", social.configured(p), f"Otomatik paylaşım: {meta['label']}",
             "Anahtarlar ve platform onayı BENIOKU'daki adımlarla.")
+    add("istege", os.environ.get("ELEVENLABS_API_KEY"), "Premium ses (ElevenLabs) — yayından önce hatırlat",
+        "Planlandı, kodu henüz yazılmadı. Kart gelince ElevenLabs'te ticari lisanslı plan (en az Starter) alın, "
+        "anahtarı ELEVENLABS_API_KEY'e yazın ve Claude'a \"ElevenLabs premium sesi bağla\" deyin: formatlarda "
+        "\"Premium ses\" seçeneği çıkar, ek ücret kullanıcının kredisinden düşer. Ücretsiz plan ticari kullanıma izin vermez.")
     return out
 
 
