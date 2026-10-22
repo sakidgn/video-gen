@@ -204,8 +204,8 @@ THEMES = {  # anahtar: (ad, zemin rengi, koyu/açık); "sistem" cihazın açık/
     "grafit": ("Grafit", "#1b1b1f", "dark"), "gece": ("Gece", "#0c0b0a", "dark"), "lacivert": ("Lacivert", "#0f1526", "dark"),
     "mor": ("Mor", "#1a1424", "dark"), "orman": ("Orman", "#101a16", "dark"), "bordo": ("Bordo", "#1c1013", "dark"),
     "petrol": ("Petrol", "#0d1b1e", "dark"), "kahve": ("Kahve", "#1b1612", "dark"),
-    "kar": ("Kar", "#f5f4f1", "light"), "krem": ("Krem", "#f6efe3", "light"), "buz": ("Buz", "#eef2f7", "light"),
-    "nane": ("Nane", "#eef5f0", "light"), "pudra": ("Pudra", "#f7eef1", "light"),
+    "kar": ("Kar", "#f3f3f1", "light"), "krem": ("Krem", "#f8ebd2", "light"), "seftali": ("Şeftali", "#fde0cf", "light"),
+    "pudra": ("Pudra", "#fadbe5", "light"), "lavanta": ("Lavanta", "#e8e0fa", "light"), "buz": ("Buz", "#dde9fa", "light"), "nane": ("Nane", "#d9f0e2", "light"),
     "sistem": ("Sistem", "#1b1b1f", "auto"),
 }
 DEFAULT_THEME = "grafit"

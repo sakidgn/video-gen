@@ -99,8 +99,8 @@ Hazır paket: `docker-compose.yml` (site + Caddy), `Caddyfile` (otomatik https s
 3. **Alan adı:** DNS ayarlarında `A` kaydı → sunucunun IP adresi (www için de aynı). Yayılması birkaç dakika–saat.
 4. Sunucuya bağlan (`ssh root@IP`) ve kodu indir:
    ```
-   git clone https://github.com/KULLANICI/DEPO.git zaply   # gizli depoysa GitHub token ile
-   cd zaply/otoshort_site
+   git clone https://github.com/sakidgn/zaply-site.git zaply   # gizli depo: şifre yerine GitHub token
+   cd zaply
    bash sunucu_kur.sh
    ```
    Betik Docker'ı kurar, alan adını/yönetici e-postasını sorar, `GIZLI_ANAHTAR`'ı kendisi üretir ve siteyi başlatır.
@@ -108,7 +108,7 @@ Hazır paket: `docker-compose.yml` (site + Caddy), `Caddyfile` (otomatik https s
 6. Siteye yönetici e-postanla kaydol → **Yönetim → Yayına hazırlık**: kırmızı kalan bir şey olmamalı.
 7. **Güncelleme:** `git pull && docker compose up -d --build` (veriler `saas_veri/` klasöründe kalır).
 8. **Yedek:** site her gün `saas_veri/yedekler/`e veritabanı yedeği alır; ara sıra bilgisayarına indir:
-   `scp -r root@IP:zaply/otoshort_site/saas_veri/yedekler .`
+   `scp -r root@IP:zaply/saas_veri/yedekler .`
 9. Satışa başlamadan önce yasal metinleri bir muhasebeciye/avukata göster.
 
 Faydalı komutlar: `docker compose ps` (durum), `docker compose logs -f site` (günlük),
@@ -188,3 +188,11 @@ Fiyatlar `saas/config.py` → `QUALITIES` ve `PACKAGES`. Model adları Google de
 - **Premium ses (ElevenLabs):** planlandı, henüz bağlanmadı. Kart gelince ticari lisanslı plan (en az Starter) alınacak,
   `ELEVENLABS_API_KEY` yazılıp Claude'a "ElevenLabs premium sesi bağla" denecek. Ek ücret kullanıcının kredisinden düşecek.
   Yönetim paneli → Yayına hazırlık listesinde de görünür.
+
+## Güncelleme (gizli depo)
+Site artık ayrı ve gizli depoda: **github.com/sakidgn/zaply-site** (eski bilgisayar otomasyonu `video-gen`'de kaldı).
+`Guncelle.bat` ve `Siteyi_Ac_Gercek.bat` gizli depodan indirir; bunun için `.env`'de bir kere `GITHUB_TOKEN` gerekir:
+1. github.com/settings/personal-access-tokens/new (sakidgn hesabı) → Ad: zaply-guncelle, süre 1 yıl
+2. Repository access: **Only select repositories → zaply-site**
+3. Permissions → Repository permissions → **Contents: Read-only** → Generate token
+4. Çıkan anahtarı `.env`'ye `GITHUB_TOKEN=...` olarak yapıştır. Anahtarı kimseyle paylaşma.

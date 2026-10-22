@@ -195,7 +195,7 @@ def test_script_request_has_rules_and_past():
     assert "Türkçe" in req and "old idea" in req and "copyrighted" in req and "watermark" in req.lower()
 
 
-def test_site_updater_writes_only_site_files_and_keeps_data(tmp_path):
+def test_site_updater_writes_only_site_files_and_keeps_data(tmp_path, monkeypatch):
     import io
     import zipfile
 
@@ -212,6 +212,19 @@ def test_site_updater_writes_only_site_files_and_keeps_data(tmp_path):
     assert (tmp_path / "saas" / "app.py").read_text() == "yeni"
     assert (tmp_path / ".env").read_text() == "benim" and not (tmp_path / "saas_veri").exists()
     assert not (tmp_path / "shitpost").exists()
+    # yeni (gizli) depo: site dosyaları doğrudan kökte
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("sakidgn-zaply-site-abc/saas/app.py", "en yeni")
+        z.writestr("sakidgn-zaply-site-abc/.env", "SIZDIRMA")
+        z.writestr("sakidgn-zaply-site-abc/Guncelle.bat", "@echo off\necho hi\n")
+    assert guncelle.extract_site(buf.getvalue(), tmp_path) == 2
+    assert (tmp_path / "saas" / "app.py").read_text() == "en yeni" and (tmp_path / ".env").read_text() == "benim"
+    assert (tmp_path / "Guncelle.bat").read_bytes() == b"@echo off\r\necho hi\r\n"
+    assert guncelle.extract_site(buf.getvalue(), tmp_path) == 0  # aynı kalan dosyalara dokunulmaz
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    (tmp_path / ".env").write_text("A=1\nGITHUB_TOKEN=gizli123\n")
+    assert guncelle._token(tmp_path) == "gizli123"
 
 
 @pytest.fixture

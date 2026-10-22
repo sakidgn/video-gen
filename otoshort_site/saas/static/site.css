@@ -30,12 +30,14 @@ html.jumping *,html.jumping *:before,html.jumping *:after{animation-play-state:p
 [data-theme="kahve"]{--bg:#1b1612;--bg-2:#211b16;--panel:#2a231d;--bg-rgb:27,22,18}
 /* açık temalar: zemin açık, kartlar beyaz, yazı ve düğmeler koyu */
 [data-mode="light"]{--ink-rgb:24,22,19;--surface:rgba(255,255,255,.78);--surface-2:rgba(24,22,19,.05);--border:rgba(24,22,19,.10);--border-2:rgba(24,22,19,.15);--border-3:rgba(24,22,19,.26);--well:#fff;--accent-ink:#a8520a;--on-text:#fff;--grad:linear-gradient(180deg,#2b2723,#161411);--grad-hover:#000;--grad-hl:linear-gradient(100deg,#c2660f,#ff7a1a);color-scheme:light;--text:#17140f;--text-2:#4f4a42;--text-3:#7a7368;--accent:#c2660f;--accent-2:#a8520a;--accent-soft:rgba(194,102,15,.10);--ok:#2f8f4e;--warn:#a07214;--err:#c2412d;--lime:#3a9a5a;--cyan:#5f6b7a;--shadow:0 1px 2px rgba(30,25,15,.06),0 14px 34px -22px rgba(30,25,15,.30)}
-[data-theme="kar"]{--bg:#f5f4f1;--bg-2:#efede8;--panel:#fff;--bg-rgb:245,244,241}
-[data-theme="krem"]{--bg:#f6efe3;--bg-2:#f0e7d8;--panel:#fffaf2;--bg-rgb:246,239,227}
-[data-theme="buz"]{--bg:#eef2f7;--bg-2:#e6ecf3;--panel:#fff;--bg-rgb:238,242,247}
-[data-theme="nane"]{--bg:#eef5f0;--bg-2:#e5efe8;--panel:#fff;--bg-rgb:238,245,240}
-[data-theme="pudra"]{--bg:#f7eef1;--bg-2:#f1e5e9;--panel:#fff;--bg-rgb:247,238,241}
-[data-theme="kar"],[data-theme="krem"],[data-theme="buz"],[data-theme="nane"],[data-theme="pudra"]{--page-bg:var(--bg)}
+[data-theme="kar"]{--bg:#f3f3f1;--bg-2:#e9e8e4;--panel:#ffffff;--bg-rgb:243,243,241}
+[data-theme="krem"]{--bg:#f8ebd2;--bg-2:#f0dfc0;--panel:#fffaf1;--bg-rgb:248,235,210}
+[data-theme="seftali"]{--bg:#fde0cf;--bg-2:#f8cfb7;--panel:#fff6f0;--bg-rgb:253,224,207}
+[data-theme="pudra"]{--bg:#fadbe5;--bg-2:#f3c8d6;--panel:#fff5f8;--bg-rgb:250,219,229}
+[data-theme="lavanta"]{--bg:#e8e0fa;--bg-2:#d9cdf5;--panel:#faf8ff;--bg-rgb:232,224,250}
+[data-theme="buz"]{--bg:#dde9fa;--bg-2:#cbdcf4;--panel:#f7faff;--bg-rgb:221,233,250}
+[data-theme="nane"]{--bg:#d9f0e2;--bg-2:#c5e6d2;--panel:#f6fcf8;--bg-rgb:217,240,226}
+[data-theme="kar"],[data-theme="krem"],[data-theme="seftali"],[data-theme="pudra"],[data-theme="lavanta"],[data-theme="buz"],[data-theme="nane"]{--page-bg:var(--bg)}
 /* açık modda giriş bölümü de açık: yazının arkası açık zemin, film sağda görünür */
 [data-mode="light"] .hero-film .hf-shade{background:linear-gradient(90deg,rgba(var(--bg-rgb),.97) 0%,rgba(var(--bg-rgb),.9) 38%,rgba(var(--bg-rgb),.2) 66%,rgba(var(--bg-rgb),0) 82%),linear-gradient(0deg,var(--bg) 0%,rgba(var(--bg-rgb),0) 32%),linear-gradient(180deg,rgba(var(--bg-rgb),.85) 0%,rgba(var(--bg-rgb),0) 16%)}
 [data-mode="light"] .hero-film .hf-video{filter:saturate(.85) brightness(1.08)}

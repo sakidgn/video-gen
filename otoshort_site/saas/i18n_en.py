@@ -1396,6 +1396,8 @@ EN = {
     'Başlık + hashtag': 'Title + hashtags',
     'Her gün 19:00’da': 'Daily at 7 pm',
     'Seslendirme hazır': 'Voiceover ready',
+    'Şeftali': 'Peach',
+    'Lavanta': 'Lavender',
 }
 
 # Veritabanında kalıp olarak saklanan metinler (gruplar sözlükte varsa onlar da çevrilir)
